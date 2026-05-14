@@ -75,6 +75,10 @@
   const VADIM_HOME        = BASE + 'vadim_project.png';
   const VADIM_BG          = BASE + 'vadim_background.png';
   const VADIM_CARD        = BASE + 'vadim_card.png';
+  const STEWARD_CHAT = BASE + 'steward_chat.png';
+  const STEWARD_HOME = BASE + 'steward_project.png';
+  const STEWARD_BG   = BASE + 'steward_background.png';
+  const STEWARD_CARD = BASE + 'steward_card.png';
 
   const PREFIX_COLORS = { 'meta': '#c45c4c' };
 
@@ -374,6 +378,14 @@
       card: { imageUrl: VADIM_CARD, titleColor: '#6a7a3c', letterSpacing: '0.5px', textTransform: null },
       chat: { backgroundImage: VADIM_BG, characterUrl: VADIM_AUTORITAR, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
       homepage: { backgroundImage: VADIM_BG, characterUrl: VADIM_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'steward', projectId: '019e1478-d849-71ee-ad74-bc96ffedf585', label: 'Steward',
+      accentColor: '#7a5a8c', interjectionColor: '#b8a0c8', interjectionBorder: '#7a5a8c',
+      chatBackground: 'linear-gradient(160deg, #0e0a12 0%, #14101a 30%, #100c16 60%, #0a080e 100%)',
+      card: { imageUrl: STEWARD_CARD, titleColor: '#7a5a8c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
     },
   ];
 

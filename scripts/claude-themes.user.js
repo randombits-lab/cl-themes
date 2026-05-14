@@ -866,6 +866,30 @@
         if (color) { titleEl.style.color = color; titleEl.setAttribute(SIDEBAR_ATTR, prefix); }
         else if (titleEl.hasAttribute(SIDEBAR_ATTR)) { titleEl.style.color = ''; titleEl.removeAttribute(SIDEBAR_ATTR); }
       }
+
+      // Project-label coloring on recents (non-pipe rows)
+      for (const link of document.querySelectorAll('a[href*="/chat/"]')) {
+        if (link.closest('nav') || link.closest('[class*="sidebar"]')) continue;
+        if (link.hasAttribute(SIDEBAR_ATTR)) continue;
+        const timeEl = link.querySelector('time');
+        if (!timeEl) continue;
+        const labelSpan = timeEl.nextElementSibling;
+        if (!labelSpan || labelSpan.tagName !== 'SPAN') continue;
+        const labelText = (labelSpan.textContent || '').trim().toLowerCase();
+        if (!labelText) continue;
+        let matched = null;
+        for (const p of PROJECTS) {
+          if (labelText === p.label.toLowerCase() || labelText.includes(p.label.toLowerCase())) {
+            matched = p; break;
+          }
+        }
+        if (!matched) continue;
+        const titleSpan = link.querySelector('span');
+        if (titleSpan && titleSpan !== labelSpan) titleSpan.style.color = matched.accentColor;
+        labelSpan.style.color = matched.accentColor;
+        labelSpan.style.opacity = '0.7';
+        link.setAttribute(SIDEBAR_ATTR, matched.id);
+      }
     }
   }
 

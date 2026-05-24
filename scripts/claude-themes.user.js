@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.8.3
+// @version      6.9.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.8.2';
+  const SCRIPT_VERSION = '6.9.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -580,14 +580,9 @@
     let vs = document.getElementById(VOICE_STYLE_ID);
     if (!vs) { vs = document.createElement('style'); vs.id = VOICE_STYLE_ID; document.head.appendChild(vs); }
     if (changed) {
-      vs.textContent = `
-        [${THEME_ATTR}] { scrollbar-color: ${accent}33 transparent !important; }
-        [${THEME_ATTR}]::-webkit-scrollbar-thumb { background: ${accent}33 !important; }
-        [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background: ${accent}55 !important; }
-        [${THEME_ATTR}] fieldset { box-shadow: 0 0 0 1px ${accent}18, 0 0 12px ${accent}08 !important; border-color: ${accent}20 !important; }
-      `;
+      vs.textContent = `:root { --tm-accent: ${accent}; }`;
     }
-    if (topBarEl && changed) topBarEl.style.borderBottom = '2px solid ' + accent;
+    if (topBarEl && changed) topBarEl.style.borderBottom = '2px solid var(--tm-accent)';
     if (!CHARACTERS_ENABLED || !sprite.characterUrl) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; return; }
     let charEl = document.getElementById(CHARACTER_ID);
     const isNew = !charEl;
@@ -725,15 +720,18 @@
       #${BG_ID} { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none;opacity:0;animation:thm-bg-in 300ms ease-out forwards;${bgCSS} }
       [${THEME_ATTR}] { background:transparent !important;background-color:transparent !important;background-image:none !important; }
       [${THEME_ATTR}] > * { background-color:transparent !important; }
-      [${THEME_ATTR}] { scrollbar-color:${accent}33 transparent !important;scrollbar-width:thin !important; }
+      :root { --tm-accent: ${accent}; }
+      [${THEME_ATTR}] { scrollbar-color:color-mix(in srgb, var(--tm-accent) 20%, transparent) transparent !important;scrollbar-width:thin !important; }
       [${THEME_ATTR}]::-webkit-scrollbar { width:6px; }
       [${THEME_ATTR}]::-webkit-scrollbar-track { background:transparent; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:${accent}33;border-radius:3px; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:${accent}55; }
-      [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px ${accent}18, 0 0 12px ${accent}08 !important;border-color:${accent}20 !important; }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 20%, transparent);border-radius:3px; }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 33%, transparent); }
+      [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
       ${hasStaticChar ? `
       #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
       #${CHARACTER_ID} img { ${imgSizing}display:block;object-fit:contain; }` : ''}
+      @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
+      #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
     `;
     document.head.appendChild(st);
     const cc = findMainChatContainer(true);
@@ -744,7 +742,7 @@
     if (isStateChat) preloadStateImages(project);
     if (mode === 'chat') {
       const tb = findTopBar();
-      if (tb) { topBarEl = tb; origTopBar = tb.style.borderBottom; tb.style.borderBottom = '2px solid ' + accent; }
+      if (tb) { topBarEl = tb; origTopBar = tb.style.borderBottom; tb.style.borderBottom = '2px solid var(--tm-accent)'; }
     }
   }
 
@@ -784,9 +782,7 @@
       if (tb && tb !== topBarEl) {
         if (topBarEl && origTopBar !== null) topBarEl.style.borderBottom = origTopBar;
         topBarEl = tb; origTopBar = tb.style.borderBottom;
-        let accent = currentProject.accentColor;
-        if (isVoiceChat) { const s = detectVoiceState(currentProject); if (s?.primary && currentProject.voices[s.primary]) accent = currentProject.voices[s.primary].accentColor; }
-        tb.style.borderBottom = '2px solid ' + accent;
+        tb.style.borderBottom = '2px solid var(--tm-accent)';
       }
     }
   }

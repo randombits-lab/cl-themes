@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.11.0
+// @version      6.11.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.11.0';
+  const SCRIPT_VERSION = '6.11.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -772,9 +772,9 @@
       [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
       [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
-      #${CHARACTER_ID} { display:grid; }
-      #${CHARACTER_ID} img { grid-area:1/1;display:block;object-fit:contain;transition:opacity 200ms ease;opacity:0; }
+      #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }
+      #${CHARACTER_ID} img:not(.is-active) { opacity:0;position:absolute;top:0;right:0; }
       ${hasStaticChar ? `
       #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:-1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
       #${CHARACTER_ID} img { ${imgSizing} }` : ''}

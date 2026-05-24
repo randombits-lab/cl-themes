@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.11.1
+// @version      6.11.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.11.1';
+  const SCRIPT_VERSION = '6.11.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -81,6 +81,7 @@
   const STEWARD_CARD = BASE + 'steward_card.png';
 
   const PREFIX_COLORS = { 'meta': '#c45c4c' };
+  function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
 
   // =========================================================================
   // USAGE METER — reads from DOM on /settings/usage, caches in localStorage
@@ -218,15 +219,15 @@
       const a = document.createElement('a');
       a.href = item.url;
       a.title = item.label;
-      a.style.cssText = `display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:${item.color};opacity:${isActive ? '1' : '0.65'};transition:opacity 0.2s,background 0.2s;background:${isActive ? item.color + '25' : item.color + '15'};border:1px solid ${isActive ? item.color + '50' : item.color + '30'};text-decoration:none;`;
+      a.style.cssText = `display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:${item.color};opacity:${isActive ? '1' : '0.65'};transition:opacity 0.2s,background 0.2s;background:${isActive ? mix(item.color, 15) : mix(item.color, 8)};border:1px solid ${isActive ? mix(item.color, 30) : mix(item.color, 20)};text-decoration:none;`;
       a.innerHTML = item.svg;
       a.querySelector('svg').style.cssText = 'width:22px;height:22px;';
-      a.addEventListener('mouseenter', () => { a.style.opacity = '1'; a.style.background = item.color + '30'; a.style.borderColor = item.color + '60'; });
+      a.addEventListener('mouseenter', () => { a.style.opacity = '1'; a.style.background = mix(item.color, 20); a.style.borderColor = mix(item.color, 40); });
       a.addEventListener('mouseleave', () => {
         const active = window.location.pathname.includes(item.url);
         a.style.opacity = active ? '1' : '0.65';
-        a.style.background = active ? item.color + '25' : item.color + '15';
-        a.style.borderColor = active ? item.color + '50' : item.color + '30';
+        a.style.background = active ? mix(item.color, 15) : mix(item.color, 8);
+        a.style.borderColor = active ? mix(item.color, 30) : mix(item.color, 20);
       });
       bar.appendChild(a);
     }
@@ -251,8 +252,8 @@
       if (!item) return;
       const isActive = window.location.pathname.includes(item.url);
       a.style.opacity = isActive ? '1' : '0.65';
-      a.style.background = isActive ? item.color + '25' : item.color + '15';
-      a.style.borderColor = isActive ? item.color + '50' : item.color + '30';
+      a.style.background = isActive ? mix(item.color, 15) : mix(item.color, 8);
+      a.style.borderColor = isActive ? mix(item.color, 30) : mix(item.color, 20);
     });
     readUsageFromPage();
     buildUsageMeter(bar);
@@ -848,10 +849,10 @@
         if (!p.projectId || !p.card) continue;
         const sel = `a[href*="/project/${p.projectId}"]`;
         if (p.card.imageUrl) {
-          css += `${sel}{background:url("${p.card.imageUrl}") center/cover no-repeat !important;border:1px solid ${p.accentColor}40 !important;position:relative !important;overflow:hidden !important;}`;
+          css += `${sel}{background:url("${p.card.imageUrl}") center/cover no-repeat !important;border:1px solid ${mix(p.accentColor, 25)} !important;position:relative !important;overflow:hidden !important;}`;
           css += `${sel}::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.35) 40%,rgba(0,0,0,.45) 65%,rgba(0,0,0,.78) 100%);pointer-events:none;border-radius:inherit;z-index:0;}`;
           css += `${sel}>*{position:relative !important;z-index:1 !important;}`;
-        } else { css += `${sel}{border:1px solid ${p.accentColor}30 !important;}`; }
+        } else { css += `${sel}{border:1px solid ${mix(p.accentColor, 20)} !important;}`; }
       }
       const s = document.createElement('style'); s.id = CARD_STYLE_ID; s.textContent = css; document.head.appendChild(s);
     }

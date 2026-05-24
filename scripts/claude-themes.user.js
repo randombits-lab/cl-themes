@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.10.0
+// @version      6.11.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.10.0';
+  const SCRIPT_VERSION = '6.11.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -602,15 +602,24 @@
     const isNew = !charEl;
     if (isNew) {
       charEl = document.createElement('div'); charEl.id = CHARACTER_ID;
-      const img = document.createElement('img'); img.alt = ''; img.draggable = false;
-      img.onerror = () => { charEl.style.display = 'none'; };
-      charEl.appendChild(img); document.body.appendChild(charEl);
+      for (const layer of ['a', 'b']) {
+        const img = document.createElement('img');
+        img.alt = ''; img.draggable = false; img.dataset.layer = layer;
+        img.style.height = '100%'; img.style.width = 'auto';
+        img.onerror = () => { charEl.style.display = 'none'; };
+        charEl.appendChild(img);
+      }
+      document.body.appendChild(charEl);
     }
-    const img = charEl.querySelector('img');
-    if (changed || isNew) img.src = sprite.characterUrl;
     charEl.style.cssText = `position:fixed;pointer-events:none;z-index:-1;user-select:none;height:${sprite.characterHeight||'76vh'};width:auto;bottom:${sprite.characterBottom||'-100px'};right:${sprite.characterRight||'-200px'};`;
-    img.style.cssText = 'height:100%;width:auto;display:block;object-fit:contain;';
-    if (isNew) { charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; voiceCharReady = true; }
+    if (isNew) {
+      const first = charEl.querySelector('img[data-layer="a"]');
+      first.src = sprite.characterUrl;
+      first.classList.add('is-active');
+      charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; voiceCharReady = true;
+    } else if (changed) {
+      swapCharacterImage(sprite.characterUrl, charEl);
+    }
     charEl.style.display = isSidePanelOpen() ? 'none' : '';
   }
 
@@ -666,8 +675,7 @@
     if (!stateConfig || !CHARACTERS_ENABLED) return;
     const charEl = document.getElementById(CHARACTER_ID);
     if (!charEl) return;
-    const img = charEl.querySelector('img');
-    if (img && stateConfig.characterUrl) img.src = stateConfig.characterUrl;
+    if (stateConfig.characterUrl) swapCharacterImage(stateConfig.characterUrl, charEl);
     if (stateConfig.characterHeight) charEl.style.height = stateConfig.characterHeight;
     if (stateConfig.characterBottom) charEl.style.bottom = stateConfig.characterBottom;
     if (stateConfig.characterRight) charEl.style.right = stateConfig.characterRight;
@@ -690,6 +698,22 @@
     cachedMainContainer = null;
   }
 
+  function swapCharacterImage(newSrc, charEl) {
+    if (!charEl) return;
+    const current = charEl.querySelector('img.is-active');
+    const staging = charEl.querySelector('img:not(.is-active)');
+    if (!current || !staging) return;
+    if (current.src === newSrc) return;
+    staging.src = newSrc;
+    staging.decode().then(() => {
+      staging.classList.add('is-active');
+      current.classList.remove('is-active');
+    }).catch(() => {
+      staging.classList.add('is-active');
+      current.classList.remove('is-active');
+    });
+  }
+
   function injectBackground(project, cfg) {
     if (document.getElementById(BG_ID)) return;
     const bgDiv = document.createElement('div'); bgDiv.id = BG_ID;
@@ -704,9 +728,16 @@
   function injectCharacter(cfg) {
     if (!CHARACTERS_ENABLED || !cfg.characterUrl || document.getElementById(CHARACTER_ID)) return;
     const d = document.createElement('div'); d.id = CHARACTER_ID;
-    const img = document.createElement('img'); img.src = cfg.characterUrl; img.alt = ''; img.draggable = false;
-    img.onerror = () => d.remove();
-    d.appendChild(img); document.body.appendChild(d);
+    for (const layer of ['a', 'b']) {
+      const img = document.createElement('img');
+      img.alt = ''; img.draggable = false; img.dataset.layer = layer;
+      img.onerror = () => { d.style.display = 'none'; };
+      d.appendChild(img);
+    }
+    const first = d.querySelector('img[data-layer="a"]');
+    first.src = cfg.characterUrl;
+    first.classList.add('is-active');
+    document.body.appendChild(d);
   }
 
   function applyTheme(project, mode) {
@@ -741,9 +772,12 @@
       [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
       [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
+      #${CHARACTER_ID} { display:grid; }
+      #${CHARACTER_ID} img { grid-area:1/1;display:block;object-fit:contain;transition:opacity 200ms ease;opacity:0; }
+      #${CHARACTER_ID} img.is-active { opacity:1; }
       ${hasStaticChar ? `
       #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:-1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
-      #${CHARACTER_ID} img { ${imgSizing}display:block;object-fit:contain; }` : ''}
+      #${CHARACTER_ID} img { ${imgSizing} }` : ''}
       @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
       #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
     `;

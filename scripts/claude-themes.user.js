@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.9.2
+// @version      6.9.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.9.2';
+  const SCRIPT_VERSION = '6.9.3';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -727,11 +727,11 @@
       [${THEME_ATTR}] { background:transparent !important;background-color:transparent !important;background-image:none !important; }
       [${THEME_ATTR}] > * { background-color:transparent !important; }
       :root { --tm-accent: ${accent}; }
-      [${THEME_ATTR}] { scrollbar-color:color-mix(in srgb, var(--tm-accent) 50%, transparent) transparent !important;scrollbar-width:thin !important; }
+      [${THEME_ATTR}] { scrollbar-color:color-mix(in srgb, var(--tm-accent) 65%, transparent) transparent !important;scrollbar-width:thin !important; }
       [${THEME_ATTR}]::-webkit-scrollbar { width:8px; }
       [${THEME_ATTR}]::-webkit-scrollbar-track { background:transparent; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 50%, transparent);border-radius:4px; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 70%, transparent); }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
       ${hasStaticChar ? `
       #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:-1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
@@ -790,6 +790,8 @@
         if (topBarEl && origTopBar !== null) topBarEl.style.borderBottom = origTopBar;
         topBarEl = tb; origTopBar = tb.style.borderBottom;
         tb.style.borderBottom = '2px solid var(--tm-accent)';
+      } else if (topBarEl && topBarEl.style.borderBottom !== '2px solid var(--tm-accent)') {
+        topBarEl.style.borderBottom = '2px solid var(--tm-accent)';
       }
     }
   }

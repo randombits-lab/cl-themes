@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.9.3
+// @version      6.10.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.9.3';
+  const SCRIPT_VERSION = '6.10.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -261,6 +261,34 @@
   // =========================================================================
   // PROJECT CONFIGS
   // =========================================================================
+  const BASE_THEMES = {
+    'foundry': {
+      accentColor: '#4a7ac8',
+      chatBackground: 'linear-gradient(160deg, #0a0c10 0%, #0c1018 30%, #090c14 60%, #070810 100%)',
+      card: { imageUrl: FOUNDRY_CARD, titleColor: '#4a7ac8', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+  };
+
+  function resolveTheme(config) {
+    if (!config.extends) return config;
+    const base = BASE_THEMES[config.extends];
+    if (!base) return config;
+    const resolved = {};
+    for (const key of Object.keys(base)) {
+      if (typeof base[key] === 'object' && base[key] !== null && !Array.isArray(base[key])) {
+        resolved[key] = { ...base[key], ...(config[key] || {}) };
+      } else {
+        resolved[key] = key in config ? config[key] : base[key];
+      }
+    }
+    for (const key of Object.keys(config)) {
+      if (!(key in resolved)) resolved[key] = config[key];
+    }
+    return resolved;
+  }
+
   const PROJECTS = [
     {
       id: 'tomoe', projectId: '019d05dc-759a-7319-849f-c79a47909884', label: 'Tomoe',
@@ -329,34 +357,10 @@
       chat: { backgroundImage: CRUCIBLE_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
       homepage: { backgroundImage: CRUCIBLE_BG, characterUrl: CRUCIBLE_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-40px', characterRight: '-20px' },
     },
-    {
-      id: 'foundry', projectId: '019d638f-5d0b-72d1-b060-96438a50d1b7', label: 'Foundry',
-      accentColor: '#4a7ac8', chatBackground: 'linear-gradient(160deg, #0a0c10 0%, #0c1018 30%, #090c14 60%, #070810 100%)',
-      card: { imageUrl: FOUNDRY_CARD, titleColor: '#4a7ac8', letterSpacing: '0.5px', textTransform: null },
-      chat: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-      homepage: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-    },
-    {
-      id: 'licitapp', projectId: '019d26a7-d716-7675-af51-76dd9d2ce4eb', label: 'LicitApp',
-      accentColor: '#4a7ac8', chatBackground: 'linear-gradient(160deg, #0a0c10 0%, #0c1018 30%, #090c14 60%, #070810 100%)',
-      card: { imageUrl: FOUNDRY_CARD, titleColor: '#4a7ac8', letterSpacing: '0.5px', textTransform: null },
-      chat: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-      homepage: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-    },
-    {
-      id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper',
-      accentColor: '#4a7ac8', chatBackground: 'linear-gradient(160deg, #0a0c10 0%, #0c1018 30%, #090c14 60%, #070810 100%)',
-      card: { imageUrl: FOUNDRY_CARD, titleColor: '#4a7ac8', letterSpacing: '0.5px', textTransform: null },
-      chat: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-      homepage: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-    },
-    {
-      id: 'aiprojectsconsole', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'AI Projects Console',
-      accentColor: '#4a7ac8', chatBackground: 'linear-gradient(160deg, #0a0c10 0%, #0c1018 30%, #090c14 60%, #070810 100%)',
-      card: { imageUrl: FOUNDRY_CARD, titleColor: '#4a7ac8', letterSpacing: '0.5px', textTransform: null },
-      chat: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-      homepage: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-    },
+    { id: 'foundry', projectId: '019d638f-5d0b-72d1-b060-96438a50d1b7', label: 'Foundry', extends: 'foundry' },
+    { id: 'licitapp', projectId: '019d26a7-d716-7675-af51-76dd9d2ce4eb', label: 'LicitApp', extends: 'foundry' },
+    { id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper', extends: 'foundry' },
+    { id: 'aiprojectsconsole', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'AI Projects Console', extends: 'foundry' },
     {
       id: 'anasteria', projectId: '019d6e94-5386-7432-898a-8d4408cd98b6', label: 'Anasteria',
       accentColor: '#b05a78', interjectionColor: '#d4a0b8', interjectionBorder: '#b05a78', chatBackground: 'linear-gradient(160deg, #1a0c0e 0%, #241014 30%, #1a0c10 60%, #10080a 100%)',
@@ -388,6 +392,10 @@
       homepage: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
     },
   ];
+
+  for (let i = 0; i < PROJECTS.length; i++) {
+    PROJECTS[i] = resolveTheme(PROJECTS[i]);
+  }
 
   const STYLE_ID       = 'claude-theme-style';
   const CHARACTER_ID   = 'claude-theme-character';

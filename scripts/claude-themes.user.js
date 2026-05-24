@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.9.1
+// @version      6.9.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.9.1';
+  const SCRIPT_VERSION = '6.9.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -600,7 +600,7 @@
     }
     const img = charEl.querySelector('img');
     if (changed || isNew) img.src = sprite.characterUrl;
-    charEl.style.cssText = `position:fixed;pointer-events:none;z-index:1;user-select:none;height:${sprite.characterHeight||'76vh'};width:auto;bottom:${sprite.characterBottom||'-100px'};right:${sprite.characterRight||'-200px'};`;
+    charEl.style.cssText = `position:fixed;pointer-events:none;z-index:-1;user-select:none;height:${sprite.characterHeight||'76vh'};width:auto;bottom:${sprite.characterBottom||'-100px'};right:${sprite.characterRight||'-200px'};`;
     img.style.cssText = 'height:100%;width:auto;display:block;object-fit:contain;';
     if (isNew) { charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; voiceCharReady = true; }
     charEl.style.display = isSidePanelOpen() ? 'none' : '';
@@ -723,18 +723,18 @@
       header { background-color:transparent !important; }
       @keyframes thm-bg-in { from{opacity:0} to{opacity:1} }
       @keyframes thm-char-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-      #${BG_ID} { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-1;pointer-events:none;opacity:0;animation:thm-bg-in 300ms ease-out forwards;${bgCSS} }
+      #${BG_ID} { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-2;pointer-events:none;opacity:0;animation:thm-bg-in 300ms ease-out forwards;${bgCSS} }
       [${THEME_ATTR}] { background:transparent !important;background-color:transparent !important;background-image:none !important; }
       [${THEME_ATTR}] > * { background-color:transparent !important; }
       :root { --tm-accent: ${accent}; }
-      [${THEME_ATTR}] { scrollbar-color:color-mix(in srgb, var(--tm-accent) 20%, transparent) transparent !important;scrollbar-width:thin !important; }
-      [${THEME_ATTR}]::-webkit-scrollbar { width:6px; }
+      [${THEME_ATTR}] { scrollbar-color:color-mix(in srgb, var(--tm-accent) 50%, transparent) transparent !important;scrollbar-width:thin !important; }
+      [${THEME_ATTR}]::-webkit-scrollbar { width:8px; }
       [${THEME_ATTR}]::-webkit-scrollbar-track { background:transparent; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 20%, transparent);border-radius:3px; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 33%, transparent); }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 50%, transparent);border-radius:4px; }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 70%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
       ${hasStaticChar ? `
-      #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
+      #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:-1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
       #${CHARACTER_ID} img { ${imgSizing}display:block;object-fit:contain; }` : ''}
       @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
       #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
@@ -749,6 +749,7 @@
     if (mode === 'chat') {
       const tb = findTopBar();
       if (tb) { topBarEl = tb; origTopBar = tb.style.borderBottom; tb.style.borderBottom = '2px solid var(--tm-accent)'; }
+      else { let tbR = 0; const tbP = setInterval(() => { const t = findTopBar(); if (t) { topBarEl = t; origTopBar = t.style.borderBottom; t.style.borderBottom = '2px solid var(--tm-accent)'; clearInterval(tbP); } if (++tbR > 6) clearInterval(tbP); }, 500); }
     }
   }
 

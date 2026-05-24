@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.9.0
+// @version      6.9.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.9.0';
+  const SCRIPT_VERSION = '6.9.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -427,25 +427,31 @@
     if (!forceRescan && cachedMainContainer && document.body.contains(cachedMainContainer)) return cachedMainContainer;
     const vh = window.innerHeight;
     let best = null, bestS = 0;
+    let scrollBest = null, scrollBestS = 0;
     document.querySelectorAll('div[class*="overflow"]').forEach(el => {
       const s = window.getComputedStyle(el);
       if (s.overflowY !== 'auto' && s.overflowY !== 'scroll') return;
       const r = el.getBoundingClientRect();
       if (r.width > 400 && r.height > 300 && r.height <= vh * 1.5) {
         const sc = r.width * r.height;
+        if (el.scrollHeight > el.clientHeight + 20) {
+          if (sc > scrollBestS) { scrollBestS = sc; scrollBest = el; }
+        }
         if (sc > bestS) { bestS = sc; best = el; }
       }
     });
-    cachedMainContainer = best;
-    return best;
+    cachedMainContainer = scrollBest || best;
+    return cachedMainContainer;
   }
 
   function findTopBar() {
-    let best = null, bestH = 999;
+    const vw = window.innerWidth;
+    let best = null, bestScore = -1;
     document.querySelectorAll('div, nav, header').forEach(el => {
       const r = el.getBoundingClientRect();
-      if (r.top >= 0 && r.top < 20 && r.height > 20 && r.height < 70 && r.width > 300) {
-        if (r.height < bestH) { bestH = r.height; best = el; }
+      if (r.top >= 0 && r.top < 20 && r.height > 20 && r.height < 70 && r.width > vw * 0.5) {
+        const score = r.width * 1000 - r.height;
+        if (score > bestScore) { bestScore = score; best = el; }
       }
     });
     return best;

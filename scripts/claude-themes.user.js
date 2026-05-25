@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.12.0';
+  const SCRIPT_VERSION = '6.12.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -781,7 +781,6 @@
       #${CHARACTER_ID} img { ${imgSizing} }` : ''}
       @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
       #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
-      #${CHARACTER_ID} { -webkit-mask-image:radial-gradient(ellipse at center bottom, black 40%, transparent 75%);mask-image:radial-gradient(ellipse at center bottom, black 40%, transparent 75%); }
     `;
     document.head.appendChild(st);
     const cc = findMainChatContainer(true);

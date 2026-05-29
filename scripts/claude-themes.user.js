@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.13.0
+// @version      6.13.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.13.0';
+  const SCRIPT_VERSION = '6.13.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -324,7 +324,14 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (!bar) {
       bar = document.createElement('div');
       bar.id = UTILBAR_ID;
-      bar.style.cssText = 'position:fixed;z-index:6;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:auto;';
+      bar.style.cssText = 'position:fixed;z-index:6;display:flex;align-items:center;gap:8px;pointer-events:auto;';
+      const counter = document.createElement('span');
+      counter.id = UTILBAR_ID + '-counter';
+      counter.style.cssText = 'font-size:11px;color:#8a8a9a;opacity:0.6;letter-spacing:0.3px;font-variant-numeric:tabular-nums;padding-left:8px;white-space:nowrap;';
+      bar.appendChild(counter);
+      const spacerL = document.createElement('div');
+      spacerL.style.flex = '1';
+      bar.appendChild(spacerL);
       const btn = document.createElement('button');
       btn.title = 'Copy research prompt template';
       btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid #ffffff15;background:#ffffff08;color:#8a8a9a;cursor:pointer;transition:all 0.2s;padding:0;';
@@ -341,6 +348,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
         });
       });
       bar.appendChild(btn);
+      const spacerR = document.createElement('div');
+      spacerR.style.flex = '1';
+      bar.appendChild(spacerR);
       document.body.appendChild(bar);
     }
     bar.style.display = 'flex';
@@ -349,6 +359,13 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     bar.style.width = r.width + 'px';
     bar.style.height = r.height + 'px';
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
+    const counterEl = document.getElementById(UTILBAR_ID + '-counter');
+    if (counterEl) {
+      const human = document.querySelectorAll('[data-testid="user-message"]').length;
+      const assist = document.querySelectorAll('[data-testid="action-bar-retry"]').length;
+      counterEl.textContent = human + ' ↕ ' + assist;
+      counterEl.title = human + ' human messages, ' + assist + ' assistant responses';
+    }
   }
 
   function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.12.1
+// @version      6.13.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.12.1';
+  const SCRIPT_VERSION = '6.13.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -89,6 +89,50 @@
   // =========================================================================
   const USAGE_KEY = 'claude-theme-usage';
   const USAGE_ID  = 'claude-theme-usage-meter';
+  const UTILBAR_ID = 'claude-theme-utilbar';
+
+  const RESEARCH_TEMPLATE = `I need you to generate a research prompt that I will run in ChatGPT Deep Research.
+
+Context: [CONTEXT — what project this is for, what you already know, what triggered the research need]
+
+Research question: [QUESTION — the specific thing you need answered]
+
+Decision this supports: [DECISION — the choice or action this research must inform]
+
+Task type: [TYPE — one of: competitive teardown / regulatory analysis / technical architecture comparison / market positioning / other (describe)]
+
+Output I need from the research: [OUTPUT — e.g. comparison matrix, risk register, executive summary, triage framework, vendor scorecard]
+
+Generate a complete ChatGPT Deep Research prompt that includes: a task statement, goal, scope, source priorities with specific domains, method constraints (separate facts from inference, flag contradictions, flag inaccessible sources), and an explicit output structure. Do not include preamble or explanation; output only the prompt I will paste into ChatGPT. Below is an example of the minimum requirements, over which you can build using what you know about me.
+
+---
+
+Task
+Run deep research on [QUESTION — the research question, one sentence].
+
+Goal
+The decision this research must support is [DECISION — the specific choice or action].
+
+Scope
+- [Determined by Claude]
+
+Method constraints
+- Separate documented facts from vendor claims, estimates, and inference. Label each.
+- Flag contradictions explicitly in a dedicated section rather than smoothing them into consensus.
+- If a source is inaccessible, paywalled, or unclear, say so rather than omitting silently.
+- Distinguish current state from roadmap or announced-but-unshipped capabilities.
+- Provide a confidence level (high / medium / low) for each major claim.
+
+Output
+Produce:
+1. Executive summary (max 300 words)
+2. Detailed analysis (structured prose with section headers)
+3. [OUTPUT ARTIFACT — e.g. comparison matrix / vendor scorecard / risk register / feature table / triage framework]
+4. Contradictions and unresolved questions
+5. Validation checklist (claims the reader should verify independently)
+6. Source appendix with access dates
+
+Do not blend evidence and recommendation into the same paragraph. Analysis first, then recommendation.`;
 
   function usageBarColor(pct) {
     if (pct >= 80) return '#c45c4c';
@@ -258,6 +302,56 @@
     readUsageFromPage();
     buildUsageMeter(bar);
   }
+
+  // =========================================================================
+  // UTILITY BAR — chat-only toolbar overlaying the disclaimer strip
+  // =========================================================================
+  function findDisclaimer() {
+    for (const el of document.querySelectorAll('div')) {
+      if (el.children.length > 3) continue;
+      if (!(el.textContent || '').includes('can make mistakes')) continue;
+      const r = el.getBoundingClientRect();
+      if (r.height > 15 && r.height < 60 && r.width > 400) return el;
+    }
+    return null;
+  }
+
+  function refreshUtilBar() {
+    const disclaimer = findDisclaimer();
+    let bar = document.getElementById(UTILBAR_ID);
+    if (!disclaimer) { if (bar) bar.style.display = 'none'; return; }
+    const r = disclaimer.getBoundingClientRect();
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = UTILBAR_ID;
+      bar.style.cssText = 'position:fixed;z-index:6;display:flex;align-items:center;justify-content:center;gap:8px;pointer-events:auto;';
+      const btn = document.createElement('button');
+      btn.title = 'Copy research prompt template';
+      btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid #ffffff15;background:#ffffff08;color:#8a8a9a;cursor:pointer;transition:all 0.2s;padding:0;';
+      btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M6 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-1"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
+      btn.addEventListener('mouseenter', () => { btn.style.background = '#ffffff15'; btn.style.color = '#b0b0b0'; });
+      btn.addEventListener('mouseleave', () => { btn.style.background = '#ffffff08'; btn.style.color = '#8a8a9a'; btn.style.borderColor = '#ffffff15'; });
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(RESEARCH_TEMPLATE).then(() => {
+          btn.style.borderColor = '#4a9a7a'; btn.style.color = '#4a9a7a';
+          setTimeout(() => { btn.style.borderColor = '#ffffff15'; btn.style.color = '#8a8a9a'; }, 600);
+        }).catch(() => {
+          btn.style.borderColor = '#c45c4c'; btn.style.color = '#c45c4c';
+          setTimeout(() => { btn.style.borderColor = '#ffffff15'; btn.style.color = '#8a8a9a'; }, 600);
+        });
+      });
+      bar.appendChild(btn);
+      document.body.appendChild(bar);
+    }
+    bar.style.display = 'flex';
+    bar.style.left = r.left + 'px';
+    bar.style.top = r.top + 'px';
+    bar.style.width = r.width + 'px';
+    bar.style.height = r.height + 'px';
+    bar.style.background = getComputedStyle(disclaimer).backgroundColor;
+  }
+
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); }
 
   // =========================================================================
   // PROJECT CONFIGS
@@ -954,6 +1048,7 @@
     const ctx = detectContext();
     if (ctx) { const key = ctx.project.id + ':' + ctx.mode; if (currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
     else if (currentThemeKey) cleanup();
+    if (window.location.pathname.includes('/chat/')) refreshUtilBar(); else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }
 
@@ -966,7 +1061,7 @@
   new MutationObserver(muts => {
     for (const m of muts) {
       if (m.type !== 'childList') continue;
-      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID);
+      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID);
       if (!dominated) { scheduleCheck(); return; }
     }
   }).observe(document.body, { childList: true, subtree: true });

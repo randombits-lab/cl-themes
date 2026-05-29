@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.13.2
+// @version      6.13.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.13.2';
+  const SCRIPT_VERSION = '6.13.3';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -380,7 +380,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       else if (tokens < 10000) tokText = '~' + (tokens / 1000).toFixed(1) + 'k';
       else tokText = '~' + Math.round(tokens / 1000) + 'k';
       tokEl.textContent = tokText;
-      tokEl.title = 'Estimated ~' + tokens.toLocaleString() + ' tokens (' + chars.toLocaleString() + ' chars ÷ 4)';
+      tokEl.style.color = tokens >= 10000 ? '#c45c4c' : tokens >= 6000 ? '#c9a84c' : '#8a8a9a';
+      tokEl.style.opacity = tokens >= 6000 ? '0.9' : '0.6';
+      tokEl.title = 'Estimated ~' + tokens.toLocaleString() + ' tokens (' + chars.toLocaleString() + ' chars ÷ 4)' + (tokens >= 10000 ? ' — consider handover' : '');
     }
   }
 

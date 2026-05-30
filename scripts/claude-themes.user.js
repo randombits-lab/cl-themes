@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.14.1
+// @version      6.14.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.14.1';
+  const SCRIPT_VERSION = '6.14.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -167,9 +167,12 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   }
 
   function detectModel() {
-    const btn = document.querySelector('button[class*="model-selector-dropdown"]');
-    if (!btn) return { newTokenizer: false, context: 200000 };
-    const text = (btn.textContent || '').toLowerCase().replace(/\s+/g, ' ');
+    let text = '';
+    for (const btn of document.querySelectorAll('button')) {
+      const t = (btn.textContent || '').trim();
+      if (/opus|sonnet|haiku/i.test(t) && t.length < 80) { text = t.toLowerCase().replace(/\s+/g, ' '); break; }
+    }
+    if (!text) return { newTokenizer: false, context: 200000 };
     const newTokenizer = text.includes('opus 4.8') || text.includes('opus 4.7');
     const is500k = newTokenizer || text.includes('opus 4.6') || text.includes('sonnet 4.6');
     return { newTokenizer, context: is500k ? 500000 : 200000 };

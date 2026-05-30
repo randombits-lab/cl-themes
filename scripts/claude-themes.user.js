@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.13.3
+// @version      6.13.4
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.13.3';
+  const SCRIPT_VERSION = '6.13.4';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -256,6 +256,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (document.getElementById(NAV_ID)) return;
     const bar = document.createElement('div');
     bar.id = NAV_ID;
+    bar.dataset.tmUi = '1';
     bar.style.cssText = 'position:fixed;top:8px;right:140px;z-index:100;display:flex;flex-wrap:nowrap;gap:6px;align-items:center;pointer-events:auto;transition:right 0.2s ease;';
 
     for (const item of QUICK_NAV) {
@@ -324,6 +325,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (!bar) {
       bar = document.createElement('div');
       bar.id = UTILBAR_ID;
+      bar.dataset.tmUi = '1';
       bar.style.cssText = 'position:fixed;z-index:6;display:flex;align-items:center;gap:8px;pointer-events:auto;';
       const counter = document.createElement('span');
       counter.id = UTILBAR_ID + '-counter';
@@ -367,8 +369,8 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (counterEl) {
       const human = document.querySelectorAll('[data-testid="user-message"]').length;
       const assist = document.querySelectorAll('[data-testid="action-bar-retry"]').length;
-      counterEl.textContent = human + ' ↕ ' + assist;
-      counterEl.title = human + ' human messages, ' + assist + ' assistant responses';
+      const counterText = human + ' ↕ ' + assist;
+      if (counterEl.textContent !== counterText) { counterEl.textContent = counterText; counterEl.title = human + ' human messages, ' + assist + ' assistant responses'; }
     }
     const tokEl = document.getElementById(UTILBAR_ID + '-tokens');
     if (tokEl) {
@@ -379,7 +381,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       if (tokens < 1000) tokText = '~' + tokens;
       else if (tokens < 10000) tokText = '~' + (tokens / 1000).toFixed(1) + 'k';
       else tokText = '~' + Math.round(tokens / 1000) + 'k';
-      tokEl.textContent = tokText;
+      if (tokEl.textContent !== tokText) tokEl.textContent = tokText;
       tokEl.style.color = tokens >= 10000 ? '#c45c4c' : tokens >= 6000 ? '#c9a84c' : '#8a8a9a';
       tokEl.style.opacity = tokens >= 6000 ? '0.9' : '0.6';
       tokEl.title = 'Estimated ~' + tokens.toLocaleString() + ' tokens (' + chars.toLocaleString() + ' chars ÷ 4)' + (tokens >= 10000 ? ' — consider handover' : '');
@@ -538,7 +540,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   let currentThemeKey = null, currentProject = null, currentMode = null;
   let currentComboKey = null, voiceCharReady = false;
   let currentStateName = null;
-  let themedContainer = null, topBarEl = null, origTopBar = null;
+  let themedContainer = null, topBarEl = null;
 
   function detectContext() {
     const url = window.location.pathname;
@@ -726,7 +728,6 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (changed) {
       vs.textContent = `:root { --tm-accent: ${accent}; }`;
     }
-    if (topBarEl && changed) topBarEl.style.borderBottom = '2px solid var(--tm-accent)';
     if (!CHARACTERS_ENABLED || !sprite.characterUrl) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; return; }
     let charEl = document.getElementById(CHARACTER_ID);
     const isNew = !charEl;
@@ -819,9 +820,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     document.getElementById(CHARACTER_ID)?.remove();
     document.getElementById(BG_ID)?.remove();
     document.getElementById(VOICE_STYLE_ID)?.remove();
+    if (topBarEl) topBarEl.removeAttribute('data-tm-topbar');
     if (themedContainer) themedContainer.removeAttribute(THEME_ATTR);
-    if (topBarEl && origTopBar !== null) topBarEl.style.borderBottom = origTopBar;
-    themedContainer = null; topBarEl = null; origTopBar = null;
+    themedContainer = null; topBarEl = null;
     currentThemeKey = null; currentProject = null; currentMode = null;
     currentComboKey = null; voiceCharReady = false;
     currentStateName = null;
@@ -902,6 +903,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
       [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
+      [data-tm-topbar] { border-bottom:2px solid var(--tm-accent) !important; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }
       #${CHARACTER_ID} img:not(.is-active) { opacity:0;position:absolute;top:0;right:0; }
@@ -920,8 +922,8 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (isStateChat) preloadStateImages(project);
     if (mode === 'chat') {
       const tb = findTopBar();
-      if (tb) { topBarEl = tb; origTopBar = tb.style.borderBottom; tb.style.borderBottom = '2px solid var(--tm-accent)'; }
-      else { let tbR = 0; const tbP = setInterval(() => { const t = findTopBar(); if (t) { topBarEl = t; origTopBar = t.style.borderBottom; t.style.borderBottom = '2px solid var(--tm-accent)'; clearInterval(tbP); } if (++tbR > 6) clearInterval(tbP); }, 500); }
+      if (tb) { topBarEl = tb; tb.setAttribute('data-tm-topbar', '1'); }
+      else { let tbR = 0; const tbP = setInterval(() => { const t = findTopBar(); if (t) { topBarEl = t; t.setAttribute('data-tm-topbar', '1'); clearInterval(tbP); } if (++tbR > 6) clearInterval(tbP); }, 500); }
     }
   }
 
@@ -959,11 +961,11 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (currentMode === 'chat') {
       const tb = findTopBar();
       if (tb && tb !== topBarEl) {
-        if (topBarEl && origTopBar !== null) topBarEl.style.borderBottom = origTopBar;
-        topBarEl = tb; origTopBar = tb.style.borderBottom;
-        tb.style.borderBottom = '2px solid var(--tm-accent)';
-      } else if (topBarEl && topBarEl.style.borderBottom !== '2px solid var(--tm-accent)') {
-        topBarEl.style.borderBottom = '2px solid var(--tm-accent)';
+        if (topBarEl) topBarEl.removeAttribute('data-tm-topbar');
+        topBarEl = tb;
+        tb.setAttribute('data-tm-topbar', '1');
+      } else if (topBarEl && !topBarEl.hasAttribute('data-tm-topbar')) {
+        topBarEl.setAttribute('data-tm-topbar', '1');
       }
     }
   }
@@ -1096,6 +1098,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   new MutationObserver(muts => {
     for (const m of muts) {
       if (m.type !== 'childList') continue;
+      if (m.target.closest?.('[data-tm-ui]')) continue;
       const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID);
       if (!dominated) { scheduleCheck(); return; }
     }

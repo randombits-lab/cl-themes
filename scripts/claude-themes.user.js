@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.14.2
+// @version      6.15.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.14.2';
+  const SCRIPT_VERSION = '6.15.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -195,6 +195,18 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     return { amber: 45000, red: 80000 };
   }
 
+  const PROJECT_OVERHEAD = {
+    'tomoe': 20000, 'faith': 20000, 'factory': 18000, 'crucible': 14000,
+    'steward': 13000, 'prism': 12000, 'foundry': 12000, 'alfred': 12000,
+    'vesper': 12000, 'anasteria': 11000, 'licitapp': 11000, 'nabu': 10000,
+    'aiprojectsconsole': 9000, 'vadim': 8000, 'workshop': 7000,
+  };
+  const DEFAULT_OVERHEAD = 8000;
+
+  const tmPulse = document.createElement('style');
+  tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}';
+  document.head.appendChild(tmPulse);
+
   let lastUsageHash = '';
   function buildUsageMeter(container) {
     const data = getUsageData();
@@ -360,6 +372,10 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       counter.id = UTILBAR_ID + '-counter';
       counter.style.cssText = 'font-size:11px;color:#8a8a9a;opacity:0.6;letter-spacing:0.3px;font-variant-numeric:tabular-nums;padding-left:8px;white-space:nowrap;';
       bar.appendChild(counter);
+      const consumDot = document.createElement('span');
+      consumDot.id = UTILBAR_ID + '-consum';
+      consumDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
+      bar.appendChild(consumDot);
       const spacerL = document.createElement('div');
       spacerL.style.flex = '1';
       bar.appendChild(spacerL);
@@ -382,6 +398,10 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       const spacerR = document.createElement('div');
       spacerR.style.flex = '1';
       bar.appendChild(spacerR);
+      const ctxDot = document.createElement('span');
+      ctxDot.id = UTILBAR_ID + '-ctx';
+      ctxDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
+      bar.appendChild(ctxDot);
       const tokCounter = document.createElement('span');
       tokCounter.id = UTILBAR_ID + '-tokens';
       tokCounter.style.cssText = 'font-size:11px;color:#8a8a9a;opacity:0.6;letter-spacing:0.3px;font-variant-numeric:tabular-nums;padding-right:8px;white-space:nowrap;';
@@ -395,28 +415,46 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     bar.style.height = r.height + 'px';
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');
+    const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
-      const human = document.querySelectorAll('[data-testid="user-message"]').length;
       const assist = document.querySelectorAll('[data-testid="action-bar-retry"]').length;
-      const counterText = human + ' ↕ ' + assist;
-      if (counterEl.textContent !== counterText) { counterEl.textContent = counterText; counterEl.title = human + ' human messages, ' + assist + ' assistant responses'; }
+      const counterText = '\u2195 ' + assist;
+      if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
+      const consumColor = assist > 20 ? '#c45c4c' : assist > 14 ? '#c9a84c' : '#4a9a7a';
+      const consumRisk = assist > 25 ? 'critical' : assist > 20 ? 'high' : assist > 14 ? 'moderate' : 'low';
+      counterEl.style.color = consumColor;
+      counterEl.style.opacity = assist > 14 ? '0.9' : '0.6';
+      counterEl.title = assist + ' replies \u00b7 consumption risk: ' + consumRisk + (assist > 20 ? ' \u2014 consider handover' : '');
+      if (consumDotEl) {
+        consumDotEl.style.background = consumColor;
+        consumDotEl.style.boxShadow = assist > 20 ? '0 0 4px ' + consumColor + '80' : 'none';
+        consumDotEl.style.animation = assist > 25 ? 'tm-pulse 1.2s ease-in-out infinite' : 'none';
+      }
     }
-    const tokEl = document.getElementById(UTILBAR_ID + '-tokens');
+  const tokEl = document.getElementById(UTILBAR_ID + '-tokens');
+    const ctxDotEl = document.getElementById(UTILBAR_ID + '-ctx');
     if (tokEl) {
       const chatEl = findMainChatContainer();
       const model = detectModel();
-      const tokens = estimateTokens(chatEl, model);
+      const visible = estimateTokens(chatEl, model);
+      const overhead = currentProject ? (PROJECT_OVERHEAD[currentProject.id] || DEFAULT_OVERHEAD) : 2000;
+      const effective = Math.round(visible * 1.3) + overhead;
       const thresh = tokenThresholds(model.context);
       let tokText;
-      if (tokens < 1000) tokText = '~' + tokens;
-      else if (tokens < 10000) tokText = '~' + (tokens / 1000).toFixed(1) + 'k';
-      else tokText = '~' + Math.round(tokens / 1000) + 'k';
+      if (effective < 1000) tokText = '~' + effective;
+      else if (effective < 10000) tokText = '~' + (effective / 1000).toFixed(1) + 'k';
+      else tokText = '~' + Math.round(effective / 1000) + 'k';
       if (tokEl.textContent !== tokText) tokEl.textContent = tokText;
-      tokEl.style.color = tokens >= thresh.red ? '#c45c4c' : tokens >= thresh.amber ? '#c9a84c' : '#8a8a9a';
-      tokEl.style.opacity = tokens >= thresh.amber ? '0.9' : '0.6';
-      const pct = Math.round(tokens / model.context * 100);
-      const risk = tokens >= thresh.red ? 'high' : tokens >= thresh.amber ? 'moderate' : 'low';
-      tokEl.title = '~' + tokens.toLocaleString() + ' tokens (' + pct + '% of ' + (model.context / 1000) + 'k) · rotation risk: ' + risk + (tokens >= thresh.red ? ' — consider handover' : '');
+      const ctxColor = effective >= thresh.red ? '#c45c4c' : effective >= thresh.amber ? '#c9a84c' : '#4a9a7a';
+      tokEl.style.color = ctxColor;
+      tokEl.style.opacity = effective >= thresh.amber ? '0.9' : '0.6';
+      const pct = Math.round(effective / model.context * 100);
+      const risk = effective >= thresh.red ? 'high' : effective >= thresh.amber ? 'moderate' : 'low';
+      tokEl.title = '~' + effective.toLocaleString() + ' effective (' + pct + '% of ' + (model.context/1000) + 'k) \u00b7 context risk: ' + risk + (effective >= thresh.red ? ' \u2014 consider handover' : '') + '\n~' + visible.toLocaleString() + ' visible + 30% buffer + ' + Math.round(overhead/1000) + 'k overhead';
+      if (ctxDotEl) {
+        ctxDotEl.style.background = ctxColor;
+        ctxDotEl.style.boxShadow = effective >= thresh.red ? '0 0 4px ' + ctxColor + '80' : 'none';
+      }
     }
   }
 

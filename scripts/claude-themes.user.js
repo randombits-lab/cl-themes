@@ -169,9 +169,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   function detectModel() {
     const btn = document.querySelector('button[class*="model-selector-dropdown"]');
     if (!btn) return { newTokenizer: false, context: 200000 };
-    const text = (btn.textContent || '').toLowerCase();
-    const newTokenizer = /opus\s*4\.[78]/.test(text);
-    const is500k = /opus\s*4\.[678]|sonnet\s*4\.6/.test(text);
+    const text = (btn.textContent || '').toLowerCase().replace(/\s+/g, ' ');
+    const newTokenizer = text.includes('opus 4.8') || text.includes('opus 4.7');
+    const is500k = newTokenizer || text.includes('opus 4.6') || text.includes('sonnet 4.6');
     return { newTokenizer, context: is500k ? 500000 : 200000 };
   }
 

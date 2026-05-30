@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.13.5
+// @version      6.14.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.13.5';
+  const SCRIPT_VERSION = '6.14.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -164,6 +164,32 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       const raw = localStorage.getItem(USAGE_KEY);
       return raw ? JSON.parse(raw) : null;
     } catch(e) { return null; }
+  }
+
+  function detectModel() {
+    const btn = document.querySelector('button[class*="model-selector-dropdown"]');
+    if (!btn) return { newTokenizer: false, context: 200000 };
+    const text = (btn.textContent || '').toLowerCase();
+    const newTokenizer = /opus\s*4\.[78]/.test(text);
+    const is500k = /opus\s*4\.[678]|sonnet\s*4\.6/.test(text);
+    return { newTokenizer, context: is500k ? 500000 : 200000 };
+  }
+
+  function estimateTokens(chatEl, model) {
+    if (!chatEl) return 0;
+    const codeEls = chatEl.querySelectorAll('pre code');
+    let codeChars = 0;
+    codeEls.forEach(el => { codeChars += (el.textContent || '').length; });
+    const totalChars = (chatEl.textContent || '').length;
+    const proseChars = totalChars - codeChars;
+    const proseDivisor = model.newTokenizer ? 3.0 : 4.0;
+    const codeDivisor = model.newTokenizer ? 2.3 : 2.7;
+    return Math.round(proseChars / proseDivisor + codeChars / codeDivisor);
+  }
+
+  function tokenThresholds(context) {
+    if (context >= 500000) return { amber: 110000, red: 200000 };
+    return { amber: 45000, red: 80000 };
   }
 
   let lastUsageHash = '';
@@ -375,16 +401,19 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     const tokEl = document.getElementById(UTILBAR_ID + '-tokens');
     if (tokEl) {
       const chatEl = findMainChatContainer();
-      const chars = chatEl ? (chatEl.textContent || '').length : 0;
-      const tokens = Math.round(chars / 4);
+      const model = detectModel();
+      const tokens = estimateTokens(chatEl, model);
+      const thresh = tokenThresholds(model.context);
       let tokText;
       if (tokens < 1000) tokText = '~' + tokens;
       else if (tokens < 10000) tokText = '~' + (tokens / 1000).toFixed(1) + 'k';
       else tokText = '~' + Math.round(tokens / 1000) + 'k';
       if (tokEl.textContent !== tokText) tokEl.textContent = tokText;
-      tokEl.style.color = tokens >= 10000 ? '#c45c4c' : tokens >= 6000 ? '#c9a84c' : '#8a8a9a';
-      tokEl.style.opacity = tokens >= 6000 ? '0.9' : '0.6';
-      tokEl.title = 'Estimated ~' + tokens.toLocaleString() + ' tokens (' + chars.toLocaleString() + ' chars ÷ 4)' + (tokens >= 10000 ? ' — consider handover' : '');
+      tokEl.style.color = tokens >= thresh.red ? '#c45c4c' : tokens >= thresh.amber ? '#c9a84c' : '#8a8a9a';
+      tokEl.style.opacity = tokens >= thresh.amber ? '0.9' : '0.6';
+      const pct = Math.round(tokens / model.context * 100);
+      const risk = tokens >= thresh.red ? 'high' : tokens >= thresh.amber ? 'moderate' : 'low';
+      tokEl.title = '~' + tokens.toLocaleString() + ' tokens (' + pct + '% of ' + (model.context / 1000) + 'k) · rotation risk: ' + risk + (tokens >= thresh.red ? ' — consider handover' : '');
     }
   }
 

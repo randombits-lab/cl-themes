@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.13.4
+// @version      6.13.5
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.13.4';
+  const SCRIPT_VERSION = '6.13.5';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -532,6 +532,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   const STYLE_ID       = 'claude-theme-style';
   const CHARACTER_ID   = 'claude-theme-character';
   const BG_ID          = 'claude-theme-bg';
+  const TOPLINE_ID     = 'claude-theme-topline';
   const CARD_STYLE_ID  = 'claude-theme-cards-style';
   const VOICE_STYLE_ID = 'claude-theme-voice-style';
   const THEME_ATTR     = 'data-claude-theme';
@@ -540,7 +541,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   let currentThemeKey = null, currentProject = null, currentMode = null;
   let currentComboKey = null, voiceCharReady = false;
   let currentStateName = null;
-  let themedContainer = null, topBarEl = null;
+  let themedContainer = null;
 
   function detectContext() {
     const url = window.location.pathname;
@@ -582,19 +583,6 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     });
     cachedMainContainer = scrollBest || best;
     return cachedMainContainer;
-  }
-
-  function findTopBar() {
-    const vw = window.innerWidth;
-    let best = null, bestScore = -1;
-    document.querySelectorAll('div, nav, header').forEach(el => {
-      const r = el.getBoundingClientRect();
-      if (r.top >= 0 && r.top < 20 && r.height > 20 && r.height < 70 && r.width > vw * 0.5) {
-        const score = r.width * 1000 - r.height;
-        if (score > bestScore) { bestScore = score; best = el; }
-      }
-    });
-    return best;
   }
 
   function isSidePanelOpen() {
@@ -820,9 +808,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     document.getElementById(CHARACTER_ID)?.remove();
     document.getElementById(BG_ID)?.remove();
     document.getElementById(VOICE_STYLE_ID)?.remove();
-    if (topBarEl) topBarEl.removeAttribute('data-tm-topbar');
+    document.getElementById(TOPLINE_ID)?.remove();
     if (themedContainer) themedContainer.removeAttribute(THEME_ATTR);
-    themedContainer = null; topBarEl = null;
+    themedContainer = null;
     currentThemeKey = null; currentProject = null; currentMode = null;
     currentComboKey = null; voiceCharReady = false;
     currentStateName = null;
@@ -903,7 +891,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
       [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
-      [data-tm-topbar] { border-bottom:2px solid var(--tm-accent) !important; }
+      #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }
       #${CHARACTER_ID} img:not(.is-active) { opacity:0;position:absolute;top:0;right:0; }
@@ -921,9 +909,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (isVoiceChat) preloadVoiceImages(project);
     if (isStateChat) preloadStateImages(project);
     if (mode === 'chat') {
-      const tb = findTopBar();
-      if (tb) { topBarEl = tb; tb.setAttribute('data-tm-topbar', '1'); }
-      else { let tbR = 0; const tbP = setInterval(() => { const t = findTopBar(); if (t) { topBarEl = t; t.setAttribute('data-tm-topbar', '1'); clearInterval(tbP); } if (++tbR > 6) clearInterval(tbP); }, 500); }
+      if (!document.getElementById(TOPLINE_ID)) { const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl); }
     }
   }
 
@@ -958,15 +944,8 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
       const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
     }
-    if (currentMode === 'chat') {
-      const tb = findTopBar();
-      if (tb && tb !== topBarEl) {
-        if (topBarEl) topBarEl.removeAttribute('data-tm-topbar');
-        topBarEl = tb;
-        tb.setAttribute('data-tm-topbar', '1');
-      } else if (topBarEl && !topBarEl.hasAttribute('data-tm-topbar')) {
-        topBarEl.setAttribute('data-tm-topbar', '1');
-      }
+    if (currentMode === 'chat' && !document.getElementById(TOPLINE_ID)) {
+      const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl);
     }
   }
 
@@ -1099,7 +1078,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     for (const m of muts) {
       if (m.type !== 'childList') continue;
       if (m.target.closest?.('[data-tm-ui]')) continue;
-      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID);
+      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID);
       if (!dominated) { scheduleCheck(); return; }
     }
   }).observe(document.body, { childList: true, subtree: true });

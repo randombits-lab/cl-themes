@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.15.0
+// @version      6.16.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.15.0';
+  const SCRIPT_VERSION = '6.16.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -172,10 +172,18 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       const t = (btn.textContent || '').trim();
       if (/opus|sonnet|haiku/i.test(t) && t.length < 80) { text = t.toLowerCase().replace(/\s+/g, ' '); break; }
     }
-    if (!text) return { newTokenizer: false, context: 200000 };
-    const newTokenizer = text.includes('opus 4.8') || text.includes('opus 4.7');
-    const is500k = newTokenizer || text.includes('opus 4.6') || text.includes('sonnet 4.6');
-    return { newTokenizer, context: is500k ? 500000 : 200000 };
+    if (!text) return { modelId: 'unknown', newTokenizer: false, context: 200000 };
+    let modelId = 'unknown';
+    if (text.includes('opus 4.8')) modelId = 'opus-4.8';
+    else if (text.includes('opus 4.7')) modelId = 'opus-4.7';
+    else if (text.includes('opus 4.6')) modelId = 'opus-4.6';
+    else if (text.includes('opus 4.5')) modelId = 'opus-4.5';
+    else if (text.includes('sonnet 4.6')) modelId = 'sonnet-4.6';
+    else if (text.includes('sonnet 4.5')) modelId = 'sonnet-4.5';
+    else if (text.includes('haiku')) modelId = 'haiku-4.5';
+    const newTokenizer = modelId === 'opus-4.8' || modelId === 'opus-4.7';
+    const is500k = newTokenizer || modelId === 'opus-4.6' || modelId === 'sonnet-4.6';
+    return { modelId, newTokenizer, context: is500k ? 500000 : 200000 };
   }
 
   function estimateTokens(chatEl, model) {
@@ -185,14 +193,19 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     codeEls.forEach(el => { codeChars += (el.textContent || '').length; });
     const totalChars = (chatEl.textContent || '').length;
     const proseChars = totalChars - codeChars;
-    const proseDivisor = model.newTokenizer ? 3.0 : 4.0;
-    const codeDivisor = model.newTokenizer ? 2.3 : 2.7;
+    const proseDivisor = model.newTokenizer ? 3.4 : 4.2;
+    const codeDivisor = model.newTokenizer ? 2.6 : 3.5;
     return Math.round(proseChars / proseDivisor + codeChars / codeDivisor);
   }
 
-  function tokenThresholds(context) {
-    if (context >= 500000) return { amber: 110000, red: 200000 };
-    return { amber: 45000, red: 80000 };
+  function tokenThresholds(model) {
+    const id = model.modelId;
+    if (id === 'opus-4.7')   return { amber: 64000,  red: 128000 };
+    if (id === 'opus-4.8')   return { amber: 125000, red: 250000 };
+    if (id === 'opus-4.6')   return { amber: 130000, red: 275000 };
+    if (id === 'sonnet-4.6') return { amber: 75000,  red: 150000 };
+    if (model.context >= 500000) return { amber: 100000, red: 200000 };
+    return { amber: 50000, red: 100000 };
   }
 
   const PROJECT_OVERHEAD = {
@@ -439,7 +452,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       const visible = estimateTokens(chatEl, model);
       const overhead = currentProject ? (PROJECT_OVERHEAD[currentProject.id] || DEFAULT_OVERHEAD) : 2000;
       const effective = Math.round(visible * 1.3) + overhead;
-      const thresh = tokenThresholds(model.context);
+      const thresh = tokenThresholds(model);
       let tokText;
       if (effective < 1000) tokText = '~' + effective;
       else if (effective < 10000) tokText = '~' + (effective / 1000).toFixed(1) + 'k';
@@ -450,7 +463,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       tokEl.style.opacity = effective >= thresh.amber ? '0.9' : '0.6';
       const pct = Math.round(effective / model.context * 100);
       const risk = effective >= thresh.red ? 'high' : effective >= thresh.amber ? 'moderate' : 'low';
-      tokEl.title = '~' + effective.toLocaleString() + ' effective (' + pct + '% of ' + (model.context/1000) + 'k) \u00b7 context risk: ' + risk + (effective >= thresh.red ? ' \u2014 consider handover' : '') + '\n~' + visible.toLocaleString() + ' visible + 30% buffer + ' + Math.round(overhead/1000) + 'k overhead';
+      tokEl.title = '~' + effective.toLocaleString() + ' effective (' + pct + '% of ' + (model.context/1000) + 'k) \u00b7 ' + model.modelId + ' \u00b7 context risk: ' + risk + (effective >= thresh.red ? ' \u2014 consider handover' : '') + '\n~' + visible.toLocaleString() + ' visible + 30% buffer + ' + Math.round(overhead/1000) + 'k overhead';
       if (ctxDotEl) {
         ctxDotEl.style.background = ctxColor;
         ctxDotEl.style.boxShadow = effective >= thresh.red ? '0 0 4px ' + ctxColor + '80' : 'none';

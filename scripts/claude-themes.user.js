@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.16.0
+// @version      6.17.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.16.0';
+  const SCRIPT_VERSION = '6.17.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -209,10 +209,10 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   }
 
   const PROJECT_OVERHEAD = {
-    'tomoe': 20000, 'faith': 20000, 'factory': 18000, 'crucible': 14000,
-    'steward': 13000, 'prism': 12000, 'foundry': 12000, 'alfred': 12000,
-    'vesper': 12000, 'anasteria': 11000, 'licitapp': 11000, 'nabu': 10000,
-    'aiprojectsconsole': 9000, 'vadim': 8000, 'workshop': 7000,
+    'tomoe': 25000, 'faith': 25000, 'factory': 24000, 'crucible': 23000,
+    'steward': 22000, 'prism': 23000, 'foundry': 23000, 'alfred': 23000,
+    'vesper': 22000, 'anasteria': 23000, 'licitapp': 23000, 'nabu': 22000,
+    'aiprojectsconsole': 22000, 'vadim': 22000, 'workshop': 22000,
   };
   const DEFAULT_OVERHEAD = 8000;
 
@@ -451,7 +451,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       const model = detectModel();
       const visible = estimateTokens(chatEl, model);
       const overhead = currentProject ? (PROJECT_OVERHEAD[currentProject.id] || DEFAULT_OVERHEAD) : 2000;
-      const effective = Math.round(visible * 1.3) + overhead;
+      const effective = visible + overhead;
       const thresh = tokenThresholds(model);
       let tokText;
       if (effective < 1000) tokText = '~' + effective;
@@ -463,7 +463,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       tokEl.style.opacity = effective >= thresh.amber ? '0.9' : '0.6';
       const pct = Math.round(effective / model.context * 100);
       const risk = effective >= thresh.red ? 'high' : effective >= thresh.amber ? 'moderate' : 'low';
-      tokEl.title = '~' + effective.toLocaleString() + ' effective (' + pct + '% of ' + (model.context/1000) + 'k) \u00b7 ' + model.modelId + ' \u00b7 context risk: ' + risk + (effective >= thresh.red ? ' \u2014 consider handover' : '') + '\n~' + visible.toLocaleString() + ' visible + 30% buffer + ' + Math.round(overhead/1000) + 'k overhead';
+      tokEl.title = '~' + effective.toLocaleString() + ' effective (' + pct + '% of ' + (model.context/1000) + 'k) \u00b7 ' + model.modelId + ' \u00b7 context risk: ' + risk + (effective >= thresh.red ? ' \u2014 consider handover' : '') + '\n~' + visible.toLocaleString() + ' visible + ' + Math.round(overhead/1000) + 'k platform+prompt overhead';
       if (ctxDotEl) {
         ctxDotEl.style.background = ctxColor;
         ctxDotEl.style.boxShadow = effective >= thresh.red ? '0 0 4px ' + ctxColor + '80' : 'none';

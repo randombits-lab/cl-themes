@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.17.0
+// @version      6.17.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.17.0';
+  const SCRIPT_VERSION = '6.17.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -141,14 +141,16 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   }
 
   function readUsageFromPage() {
-    if (!window.location.pathname.startsWith('/settings')) return;
-    const bars = document.querySelectorAll('div[aria-valuenow]');
+    const bars = document.querySelectorAll('div[aria-valuenow][role="progressbar"]');
     if (bars.length < 2) return;
+    let hasUsageText = false;
+    for (const s of document.querySelectorAll('span')) { if (/\d+%\s*used/i.test(s.textContent || '')) { hasUsageText = true; break; } }
+    if (!hasUsageText) return;
     const session = parseInt(bars[0].getAttribute('aria-valuenow')) || 0;
     const weekly = parseInt(bars[1].getAttribute('aria-valuenow')) || 0;
 
     let sessionReset = '', weeklyReset = '';
-    const resetEls = document.querySelectorAll('p');
+    const resetEls = document.querySelectorAll('p, span');
     for (const el of resetEls) {
       const t = (el.textContent || '').trim();
       if (t.startsWith('Resets in') && !sessionReset) sessionReset = t;

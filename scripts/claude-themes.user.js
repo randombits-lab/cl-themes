@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.17.1
+// @version      6.17.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.17.1';
+  const SCRIPT_VERSION = '6.17.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -510,7 +510,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     {
       id: 'tomoe', projectId: '019d05dc-759a-7319-849f-c79a47909884', label: 'Tomoe',
       accentColor: '#c9a84c', interjectionColor: '#e0d0a0', interjectionBorder: '#c9a84c', chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #1a1a0e 30%, #12130c 60%, #0a0a06 100%)',
-      card: { imageUrl: TOMOE_CARD, titleColor: '#c9a84c', letterSpacing: '1px', textTransform: 'uppercase' },
+      card: { imageUrl: TOMOE_CARD, titleColor: '#c9a84c', letterSpacing: '1px', textTransform: null },
       chat: { backgroundImage: TOMOE_BG, characterUrl: TOMOE_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
       homepage: { backgroundImage: TOMOE_BG, characterUrl: TOMOE_HOME, characterOpacity: 1.0, characterWidth: '650px', characterBottom: '-40px', characterRight: '-20px' },
     },
@@ -1116,7 +1116,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
         if (link.hasAttribute(SIDEBAR_ATTR)) continue;
         const timeEl = link.querySelector('time');
         if (!timeEl) continue;
-        const labelSpan = timeEl.nextElementSibling;
+        const labelSpan = timeEl.previousElementSibling || timeEl.nextElementSibling;
         if (!labelSpan || labelSpan.tagName !== 'SPAN') continue;
         const labelText = (labelSpan.textContent || '').trim().toLowerCase();
         if (!labelText) continue;

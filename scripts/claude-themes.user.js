@@ -430,13 +430,15 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     bar.style.height = r.height + 'px';
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
     const chatPath = window.location.pathname;
-    if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxReplyCount = 0; maxTokenEstimate = 0; }
+    if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxDataIndex = -1; maxTokenEstimate = 0; }
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');
     const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
-      const domCount = document.querySelectorAll('[data-testid="action-bar-retry"]').length;
-      if (domCount > maxReplyCount) maxReplyCount = domCount;
-      const assist = maxReplyCount;
+      const allIndexed = document.querySelectorAll('[data-index]');
+      let currentMaxIdx = -1;
+      allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMaxIdx) currentMaxIdx = idx; });
+      if (currentMaxIdx > maxDataIndex) maxDataIndex = currentMaxIdx;
+      const assist = maxDataIndex >= 0 ? Math.floor((maxDataIndex + 1) / 2) : document.querySelectorAll('[data-testid="action-bar-retry"]').length;
       const counterText = '\u2195 ' + assist;
       if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
       const consumColor = assist > 20 ? '#c45c4c' : assist > 14 ? '#c9a84c' : '#4a9a7a';
@@ -632,7 +634,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   let currentComboKey = null, voiceCharReady = false;
   let currentStateName = null;
   let themedContainer = null;
-  let maxReplyCount = 0;
+  let maxDataIndex = -1;
   let replyCountPath = null;
   let maxTokenEstimate = 0;
 
@@ -910,7 +912,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     currentComboKey = null; voiceCharReady = false;
     currentStateName = null;
     cachedMainContainer = null;
-    maxReplyCount = 0;
+    maxDataIndex = -1;
     replyCountPath = null;
     maxTokenEstimate = 0;
   }

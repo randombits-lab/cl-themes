@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.17.2
+// @version      6.17.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.17.2';
+  const SCRIPT_VERSION = '6.17.3';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -429,10 +429,14 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     bar.style.width = r.width + 'px';
     bar.style.height = r.height + 'px';
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
+    const chatPath = window.location.pathname;
+    if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxReplyCount = 0; maxTokenEstimate = 0; }
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');
     const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
-      const assist = document.querySelectorAll('[data-testid="action-bar-retry"]').length;
+      const domCount = document.querySelectorAll('[data-testid="action-bar-retry"]').length;
+      if (domCount > maxReplyCount) maxReplyCount = domCount;
+      const assist = maxReplyCount;
       const counterText = '\u2195 ' + assist;
       if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
       const consumColor = assist > 20 ? '#c45c4c' : assist > 14 ? '#c9a84c' : '#4a9a7a';
@@ -452,8 +456,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       const chatEl = findMainChatContainer();
       const model = detectModel();
       const visible = estimateTokens(chatEl, model);
+      if (visible > maxTokenEstimate) maxTokenEstimate = visible;
       const overhead = currentProject ? (PROJECT_OVERHEAD[currentProject.id] || DEFAULT_OVERHEAD) : 2000;
-      const effective = visible + overhead;
+      const effective = maxTokenEstimate + overhead;
       const thresh = tokenThresholds(model);
       let tokText;
       if (effective < 1000) tokText = '~' + effective;
@@ -627,6 +632,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   let currentComboKey = null, voiceCharReady = false;
   let currentStateName = null;
   let themedContainer = null;
+  let maxReplyCount = 0;
+  let replyCountPath = null;
+  let maxTokenEstimate = 0;
 
   function detectContext() {
     const url = window.location.pathname;
@@ -871,6 +879,8 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
 
   function refreshStateCharacter(project) {
     if (!project.states || currentMode !== 'chat') return;
+    const nearBottom = !themedContainer || (themedContainer.scrollHeight - themedContainer.scrollTop - themedContainer.clientHeight < 300);
+    if (!nearBottom && currentStateName) return;
     const detected = detectStateMarker(project);
     const stateName = detected || project.defaultState || Object.keys(project.states)[0];
     if (stateName === currentStateName) return;
@@ -900,6 +910,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     currentComboKey = null; voiceCharReady = false;
     currentStateName = null;
     cachedMainContainer = null;
+    maxReplyCount = 0;
+    replyCountPath = null;
+    maxTokenEstimate = 0;
   }
 
   function swapCharacterImage(newSrc, charEl) {
@@ -1011,8 +1024,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     if (themedContainer && !themedContainer.hasAttribute(THEME_ATTR)) themedContainer.setAttribute(THEME_ATTR, currentProject.id);
     if (!document.getElementById(BG_ID)) injectBackground(currentProject, cfg);
     if (isVoiceChat) {
+      const nearBottom = !themedContainer || (themedContainer.scrollHeight - themedContainer.scrollTop - themedContainer.clientHeight < 300);
       const state = detectVoiceState(currentProject);
-      if (state) {
+      if (state && nearBottom) {
         const comboKey = getComboKey(state);
         const resolved = resolveVoiceConfig(currentProject, comboKey, state.primary);
         if (resolved) applyVoiceState(currentProject, comboKey, resolved.accent, resolved.sprite);

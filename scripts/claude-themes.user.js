@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.18.1
+// @version      6.18.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.18.1';
+  const SCRIPT_VERSION = '6.18.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -416,7 +416,6 @@
         ctxDotEl.style.boxShadow = effective >= thresh.red ? '0 0 4px ' + ctxColor + '80' : 'none';
       }
     }
-    checkActionRequired();
   }
 
   function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); }
@@ -426,8 +425,11 @@
   // =========================================================================
   function checkActionRequired() {
     if (!window.location.pathname.includes('/chat/')) return;
-    if (maxDataIndex < 1) return;
-    const targetIdx = maxDataIndex % 2 === 1 ? maxDataIndex : maxDataIndex - 1;
+    const allIndexed = document.querySelectorAll('[data-index]');
+    let currentMax = -1;
+    allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMax) currentMax = idx; });
+    if (currentMax < 1) return;
+    const targetIdx = currentMax % 2 === 1 ? currentMax : currentMax - 1;
     if (targetIdx <= 0 || targetIdx === actionAlertedIdx) return;
     const el = document.querySelector('[data-index="' + targetIdx + '"]');
     if (!el) return;
@@ -1209,7 +1211,7 @@
       const urlStillThemed = url.includes('/chat/') || PROJECTS.some(p => url.includes('/project/' + p.projectId));
       if (!urlStillThemed) cleanup();
     }
-    if (window.location.pathname.includes('/chat/')) refreshUtilBar(); else destroyUtilBar();
+    if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }
 

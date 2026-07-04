@@ -368,7 +368,7 @@
     bar.style.height = r.height + 'px';
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
     const chatPath = window.location.pathname;
-    if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxDataIndex = -1; maxTokenEstimate = 0; lastScannedActionIdx = -1; }
+    if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxDataIndex = -1; maxTokenEstimate = 0; actionAlertedIdx = -1; }
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');
     const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
@@ -426,22 +426,17 @@
   // =========================================================================
   function checkActionRequired() {
     if (!window.location.pathname.includes('/chat/')) return;
-    const allIndexed = document.querySelectorAll('[data-index]');
-    let currentMax = -1;
-    allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMax) currentMax = idx; });
-    if (currentMax <= lastScannedActionIdx) return;
-    allIndexed.forEach(el => {
-      const idx = parseInt(el.getAttribute('data-index'), 10);
-      if (idx <= lastScannedActionIdx) return;
-      if (idx % 2 === 0) return;
-      const text = (el.textContent || '').trim();
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-      if (!lines.length) return;
-      const lastLine = lines[lines.length - 1];
-      const match = lastLine.match(ACTION_RE);
-      if (match && ACTION_REGISTRY[match[1]]) showActionAlert(match[1], match[2] || null);
-    });
-    lastScannedActionIdx = currentMax;
+    if (maxDataIndex < 1) return;
+    const targetIdx = maxDataIndex % 2 === 1 ? maxDataIndex : maxDataIndex - 1;
+    if (targetIdx <= 0 || targetIdx === actionAlertedIdx) return;
+    const el = document.querySelector('[data-index="' + targetIdx + '"]');
+    if (!el) return;
+    const paras = [...el.querySelectorAll('p')].filter(p => !p.closest('pre'));
+    if (!paras.length) return;
+    const lastP = paras[paras.length - 1];
+    const text = (lastP.textContent || '').trim();
+    const match = text.match(ACTION_RE);
+    if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); actionAlertedIdx = targetIdx; }
   }
 
   function showActionAlert(action, context) {
@@ -669,7 +664,7 @@
   let maxDataIndex = -1;
   let replyCountPath = null;
   let maxTokenEstimate = 0;
-  let lastScannedActionIdx = -1;
+  let actionAlertedIdx = -1;
   let actionAudioEnabled = GM_getValue('action_audio', false);
   const ACTION_ALERT_ID = 'claude-theme-action-alert';
   const ACTION_RE = /^\[ACTION-REQUIRED:\s*([a-z/-]+)(?:\s*\|\s*([^\]]+))?\]$/;
@@ -956,7 +951,7 @@
     maxDataIndex = -1;
     replyCountPath = null;
     maxTokenEstimate = 0;
-    lastScannedActionIdx = -1;
+    actionAlertedIdx = -1;
     laneBranches = {};
     nextLaneIdx = 0;
   }

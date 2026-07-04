@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.17.4
+// @version      6.18.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.17.4';
+  const SCRIPT_VERSION = '6.18.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -90,49 +90,6 @@
   const USAGE_KEY = 'claude-theme-usage';
   const USAGE_ID  = 'claude-theme-usage-meter';
   const UTILBAR_ID = 'claude-theme-utilbar';
-
-  const RESEARCH_TEMPLATE = `I need you to generate a research prompt that I will run in ChatGPT Deep Research.
-
-Context: [CONTEXT — what project this is for, what you already know, what triggered the research need]
-
-Research question: [QUESTION — the specific thing you need answered]
-
-Decision this supports: [DECISION — the choice or action this research must inform]
-
-Task type: [TYPE — one of: competitive teardown / regulatory analysis / technical architecture comparison / market positioning / other (describe)]
-
-Output I need from the research: [OUTPUT — e.g. comparison matrix, risk register, executive summary, triage framework, vendor scorecard]
-
-Generate a complete ChatGPT Deep Research prompt that includes: a task statement, goal, scope, source priorities with specific domains, method constraints (separate facts from inference, flag contradictions, flag inaccessible sources), and an explicit output structure. Do not include preamble or explanation; output only the prompt I will paste into ChatGPT. Below is an example of the minimum requirements, over which you can build using what you know about me.
-
----
-
-Task
-Run deep research on [QUESTION — the research question, one sentence].
-
-Goal
-The decision this research must support is [DECISION — the specific choice or action].
-
-Scope
-- [Determined by Claude]
-
-Method constraints
-- Separate documented facts from vendor claims, estimates, and inference. Label each.
-- Flag contradictions explicitly in a dedicated section rather than smoothing them into consensus.
-- If a source is inaccessible, paywalled, or unclear, say so rather than omitting silently.
-- Distinguish current state from roadmap or announced-but-unshipped capabilities.
-- Provide a confidence level (high / medium / low) for each major claim.
-
-Output
-Produce:
-1. Executive summary (max 300 words)
-2. Detailed analysis (structured prose with section headers)
-3. [OUTPUT ARTIFACT — e.g. comparison matrix / vendor scorecard / risk register / feature table / triage framework]
-4. Contradictions and unresolved questions
-5. Validation checklist (claims the reader should verify independently)
-6. Source appendix with access dates
-
-Do not blend evidence and recommendation into the same paragraph. Analysis first, then recommendation.`;
 
   function usageBarColor(pct) {
     if (pct >= 80) return '#c45c4c';
@@ -219,7 +176,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   const DEFAULT_OVERHEAD = 8000;
 
   const tmPulse = document.createElement('style');
-  tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}';
+  tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}@keyframes tm-action-pulse{0%,100%{box-shadow:0 0 20px #ff980040,0 0 60px #ff980020}50%{box-shadow:0 0 30px #ff980060,0 0 80px #ff980030}}';
   document.head.appendChild(tmPulse);
 
   let lastUsageHash = '';
@@ -391,28 +348,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
       consumDot.id = UTILBAR_ID + '-consum';
       consumDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
       bar.appendChild(consumDot);
-      const spacerL = document.createElement('div');
-      spacerL.style.flex = '1';
-      bar.appendChild(spacerL);
-      const btn = document.createElement('button');
-      btn.title = 'Copy research prompt template';
-      btn.style.cssText = 'display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid #ffffff15;background:#ffffff08;color:#8a8a9a;cursor:pointer;transition:all 0.2s;padding:0;';
-      btn.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><rect x="8" y="2" width="8" height="4" rx="1"/><path d="M6 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-1"/><line x1="9" y1="11" x2="15" y2="11"/><line x1="9" y1="15" x2="15" y2="15"/></svg>';
-      btn.addEventListener('mouseenter', () => { btn.style.background = '#ffffff15'; btn.style.color = '#b0b0b0'; });
-      btn.addEventListener('mouseleave', () => { btn.style.background = '#ffffff08'; btn.style.color = '#8a8a9a'; btn.style.borderColor = '#ffffff15'; });
-      btn.addEventListener('click', () => {
-        navigator.clipboard.writeText(RESEARCH_TEMPLATE).then(() => {
-          btn.style.borderColor = '#4a9a7a'; btn.style.color = '#4a9a7a';
-          setTimeout(() => { btn.style.borderColor = '#ffffff15'; btn.style.color = '#8a8a9a'; }, 600);
-        }).catch(() => {
-          btn.style.borderColor = '#c45c4c'; btn.style.color = '#c45c4c';
-          setTimeout(() => { btn.style.borderColor = '#ffffff15'; btn.style.color = '#8a8a9a'; }, 600);
-        });
-      });
-      bar.appendChild(btn);
-      const spacerR = document.createElement('div');
-      spacerR.style.flex = '1';
-      bar.appendChild(spacerR);
+      const spacer = document.createElement('div');
+      spacer.style.flex = '1';
+      bar.appendChild(spacer);
       const ctxDot = document.createElement('span');
       ctxDot.id = UTILBAR_ID + '-ctx';
       ctxDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
@@ -430,7 +368,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     bar.style.height = r.height + 'px';
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
     const chatPath = window.location.pathname;
-    if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxDataIndex = -1; maxTokenEstimate = 0; }
+    if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxDataIndex = -1; maxTokenEstimate = 0; lastScannedActionIdx = -1; }
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');
     const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
@@ -478,9 +416,103 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
         ctxDotEl.style.boxShadow = effective >= thresh.red ? '0 0 4px ' + ctxColor + '80' : 'none';
       }
     }
+    checkActionRequired();
   }
 
   function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); }
+
+  // =========================================================================
+  // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
+  // =========================================================================
+  function checkActionRequired() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const allIndexed = document.querySelectorAll('[data-index]');
+    let currentMax = -1;
+    allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMax) currentMax = idx; });
+    if (currentMax <= lastScannedActionIdx) return;
+    allIndexed.forEach(el => {
+      const idx = parseInt(el.getAttribute('data-index'), 10);
+      if (idx <= lastScannedActionIdx) return;
+      if (idx % 2 === 0) return;
+      const text = (el.textContent || '').trim();
+      const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+      if (!lines.length) return;
+      const lastLine = lines[lines.length - 1];
+      const match = lastLine.match(ACTION_RE);
+      if (match && ACTION_REGISTRY[match[1]]) showActionAlert(match[1], match[2] || null);
+    });
+    lastScannedActionIdx = currentMax;
+  }
+
+  function showActionAlert(action, context) {
+    if (document.getElementById(ACTION_ALERT_ID)) return;
+    const alert = document.createElement('div');
+    alert.id = ACTION_ALERT_ID;
+    alert.dataset.tmUi = '1';
+    alert.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:8px;background:#1a0e00;border:2px solid #ff9800;animation:tm-action-pulse 1.5s ease-in-out infinite;font-family:-apple-system,BlinkMacSystemFont,sans-serif;pointer-events:auto;';
+    const icon = document.createElement('span');
+    icon.textContent = '\u26A1';
+    icon.style.cssText = 'font-size:20px;';
+    alert.appendChild(icon);
+    const msg = document.createElement('span');
+    msg.style.cssText = 'color:#ffb74d;font-size:14px;font-weight:600;letter-spacing:0.5px;';
+    msg.textContent = 'Run ' + action + (context ? ' \u2014 ' + context : '');
+    alert.appendChild(msg);
+    const audioBtn = document.createElement('button');
+    audioBtn.style.cssText = 'background:none;border:1px solid #ff980040;border-radius:4px;color:#ff9800;cursor:pointer;padding:2px 6px;font-size:12px;opacity:0.7;';
+    audioBtn.textContent = actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+    audioBtn.title = 'Toggle audio notification';
+    audioBtn.addEventListener('click', (e) => { e.stopPropagation(); actionAudioEnabled = !actionAudioEnabled; GM_setValue('action_audio', actionAudioEnabled); audioBtn.textContent = actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'; });
+    alert.appendChild(audioBtn);
+    const dismiss = document.createElement('button');
+    dismiss.style.cssText = 'background:none;border:none;color:#ff9800;cursor:pointer;font-size:18px;padding:0 0 0 4px;opacity:0.8;';
+    dismiss.textContent = '\u00D7';
+    dismiss.title = 'Dismiss';
+    dismiss.addEventListener('click', () => alert.remove());
+    alert.appendChild(dismiss);
+    document.body.appendChild(alert);
+    if (actionAudioEnabled) {
+      try {
+        const actx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = actx.createOscillator(); const gain = actx.createGain();
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.frequency.setValueAtTime(880, actx.currentTime);
+        osc.frequency.setValueAtTime(1100, actx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, actx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
+        osc.start(actx.currentTime); osc.stop(actx.currentTime + 0.3);
+      } catch(e) {}
+    }
+  }
+
+  // =========================================================================
+  // TERMINAL LANE TINTING — colors code blocks by execution lane
+  // =========================================================================
+  function getLaneColor(branch) {
+    if (!branch) return LANE_PRIMARY_COLOR;
+    if (laneBranches[branch]) return laneBranches[branch];
+    if (nextLaneIdx < LANE_COLORS.length) { laneBranches[branch] = LANE_COLORS[nextLaneIdx++]; return laneBranches[branch]; }
+    return LANE_COLORS[LANE_COLORS.length - 1];
+  }
+
+  function tintCodeBlocks() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const ATTR = 'data-lane-tinted';
+    for (const pre of container.querySelectorAll('pre')) {
+      if (pre.hasAttribute(ATTR)) continue;
+      const code = pre.querySelector('code');
+      if (!code) continue;
+      const firstLine = (code.textContent || '').split('\n')[0].trim();
+      const match = firstLine.match(/^\[.+?\.\s*(?:Worktree:\s*(\S+)\s*\.\s*)?Terminal\s*\./);
+      if (!match) continue;
+      const color = getLaneColor(match[1] || null);
+      pre.style.borderLeft = '3px solid ' + color;
+      pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40';
+      pre.setAttribute(ATTR, match[1] || 'primary');
+    }
+  }
 
   // =========================================================================
   // PROJECT CONFIGS
@@ -637,6 +669,15 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
   let maxDataIndex = -1;
   let replyCountPath = null;
   let maxTokenEstimate = 0;
+  let lastScannedActionIdx = -1;
+  let actionAudioEnabled = GM_getValue('action_audio', false);
+  const ACTION_ALERT_ID = 'claude-theme-action-alert';
+  const ACTION_RE = /^\[ACTION-REQUIRED:\s*([a-z/-]+)(?:\s*\|\s*([^\]]+))?\]$/;
+  const ACTION_REGISTRY = { '/ship': true };
+  const LANE_PRIMARY_COLOR = '#4a7ac8';
+  const LANE_COLORS = ['#c9a84c', '#2dd4bf'];
+  let laneBranches = {};
+  let nextLaneIdx = 0;
 
   function detectContext() {
     const url = window.location.pathname;
@@ -915,6 +956,9 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     maxDataIndex = -1;
     replyCountPath = null;
     maxTokenEstimate = 0;
+    lastScannedActionIdx = -1;
+    laneBranches = {};
+    nextLaneIdx = 0;
   }
 
   function swapCharacterImage(newSrc, charEl) {
@@ -1157,6 +1201,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     colorChatLinks();
     if (currentProject && currentMode && !currentProject.voices) colorInterjections(currentProject);
     if (window.location.pathname === '/projects') styleProjectCardText();
+    tintCodeBlocks();
   }
 
   function check() {
@@ -1164,7 +1209,11 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     refreshQuickNav();
     const ctx = detectContext();
     if (ctx) { const key = ctx.project.id + ':' + ctx.mode; if (currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
-    else if (currentThemeKey) cleanup();
+    else if (currentThemeKey) {
+      const url = window.location.pathname;
+      const urlStillThemed = url.includes('/chat/') || PROJECTS.some(p => url.includes('/project/' + p.projectId));
+      if (!urlStillThemed) cleanup();
+    }
     if (window.location.pathname.includes('/chat/')) refreshUtilBar(); else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }
@@ -1179,7 +1228,7 @@ Do not blend evidence and recommendation into the same paragraph. Analysis first
     for (const m of muts) {
       if (m.type !== 'childList') continue;
       if (m.target.closest?.('[data-tm-ui]')) continue;
-      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID);
+      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID);
       if (!dominated) { scheduleCheck(); return; }
     }
   }).observe(document.body, { childList: true, subtree: true });

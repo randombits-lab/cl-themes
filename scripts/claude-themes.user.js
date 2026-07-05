@@ -1,12 +1,13 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.18.3
+// @version      6.19.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
 // @grant        GM_getValue
 // @grant        GM_setValue
+// @grant        GM_xmlhttpRequest
 // @downloadURL  https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // @updateURL    https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // ==/UserScript==
@@ -15,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.18.3';
+  const SCRIPT_VERSION = '6.19.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -235,6 +236,87 @@
   }
 
   // =========================================================================
+  // INBOX DASHBOARD — fetches pending item counts from cl-themes
+  // =========================================================================
+  const INBOX_KEY = 'claude-theme-inbox';
+  const INBOX_URL = BASE + 'inbox-summary.json';
+  const INBOX_POPUP_ID = 'claude-theme-inbox-popup';
+
+  function fetchInboxSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: INBOX_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(INBOX_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getInboxData() {
+    try { const r = localStorage.getItem(INBOX_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let inboxFetched = false;
+  function ensureInboxFetch() {
+    if (inboxFetched) return;
+    inboxFetched = true;
+    fetchInboxSummary();
+  }
+
+  function formatAge(date) {
+    const ms = Date.now() - date.getTime();
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return 'just now';
+    if (min < 60) return min + 'm ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    return Math.floor(hr / 24) + 'd ago';
+  }
+
+  function toggleInboxPopup(anchorEl) {
+    const existing = document.getElementById(INBOX_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getInboxData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = INBOX_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+    let html = '<div style="font-size:11px;color:#8a8a9a;padding:6px 10px 4px;border-bottom:1px solid #ffffff10;letter-spacing:0.3px;">Pending Items</div>';
+    for (const [agentId, count] of entries) {
+      const proj = PROJECTS.find(p => p.id === agentId);
+      const color = proj ? proj.accentColor : '#8a8a9a';
+      const label = proj ? proj.label : agentId;
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;"><span style="color:' + color + ';font-size:12px;">' + label + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></div>';
+    }
+    if (entries.length === 0) {
+      html += '<div style="padding:8px 10px;color:#8a8a9a;font-size:11px;opacity:0.5;">All clear</div>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      const d = getInboxData();
+      if (!d || (Date.now() - (d._fetchedAt || 0)) > 300000) fetchInboxSummary();
+    }
+  });
+
+  // =========================================================================
   // QUICK-NAV — pinned project shortcuts, always visible
   // =========================================================================
   const NAV_ID = 'claude-theme-quicknav';
@@ -357,6 +439,12 @@
       consumDot.id = UTILBAR_ID + '-consum';
       consumDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
       bar.appendChild(consumDot);
+      const inboxBadge = document.createElement('span');
+      inboxBadge.id = UTILBAR_ID + '-inbox';
+      inboxBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      inboxBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M1 9h4l1.5 2h3L11 9h4" stroke="currentColor" fill="none" stroke-width="1.5"/><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
+      inboxBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleInboxPopup(inboxBadge); });
+      bar.appendChild(inboxBadge);
       const spacer = document.createElement('div');
       spacer.style.flex = '1';
       bar.appendChild(spacer);
@@ -425,9 +513,30 @@
         ctxDotEl.style.boxShadow = effective >= thresh.red ? '0 0 4px ' + ctxColor + '80' : 'none';
       }
     }
+    const inboxEl = document.getElementById(UTILBAR_ID + '-inbox');
+    if (inboxEl) {
+      const iData = getInboxData();
+      const iCount = inboxEl.querySelector('span');
+      const iSvg = inboxEl.querySelector('svg');
+      if (iData && iData.total > 0) {
+        if (iCount) iCount.textContent = iData.total;
+        const stale = iData.updated_at && (Date.now() - new Date(iData.updated_at).getTime()) > 86400000;
+        const iColor = stale ? '#c9a84c80' : '#c9a84c';
+        inboxEl.style.opacity = stale ? '0.5' : '0.7';
+        if (iSvg) iSvg.style.color = iColor;
+        if (iCount) iCount.style.color = iColor;
+        const age = iData.updated_at ? formatAge(new Date(iData.updated_at)) : 'unknown';
+        inboxEl.title = iData.total + ' pending across inboxes\nUpdated: ' + age + (stale ? ' (stale)' : '');
+      } else {
+        if (iCount) iCount.textContent = '';
+        inboxEl.style.opacity = '0.3';
+        if (iSvg) iSvg.style.color = '#8a8a9a';
+        inboxEl.title = iData ? 'All inboxes clear' : 'Inbox data not loaded';
+      }
+    }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); }
 
   // =========================================================================
   // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
@@ -1211,6 +1320,7 @@
   }
 
   function check() {
+    ensureInboxFetch();
     manageCardStyles();
     refreshQuickNav();
     const ctx = detectContext();
@@ -1234,7 +1344,7 @@
     for (const m of muts) {
       if (m.type !== 'childList') continue;
       if (m.target.closest?.('[data-tm-ui]')) continue;
-      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID);
+      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID);
       if (!dominated) { scheduleCheck(); return; }
     }
   }).observe(document.body, { childList: true, subtree: true });

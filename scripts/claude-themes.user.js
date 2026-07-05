@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.18.2
+// @version      6.18.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -15,7 +15,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.18.2';
+  const SCRIPT_VERSION = '6.18.3';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -265,7 +265,14 @@
     },
   ];
 
+  const SUPPRESSED_PATHS = ['/design', '/code/'];
+  function isPathSuppressed() {
+    const p = window.location.pathname;
+    return SUPPRESSED_PATHS.some(s => p.startsWith(s));
+  }
+
   function injectQuickNav() {
+    if (isPathSuppressed()) { const ex = document.getElementById(NAV_ID); if (ex) ex.style.display = 'none'; return; }
     if (document.getElementById(NAV_ID)) return;
     const bar = document.createElement('div');
     bar.id = NAV_ID;
@@ -300,8 +307,10 @@
   }
 
   function refreshQuickNav() {
+    if (isPathSuppressed()) { const ex = document.getElementById(NAV_ID); if (ex) ex.style.display = 'none'; return; }
     const bar = document.getElementById(NAV_ID);
     if (!bar) { injectQuickNav(); return; }
+    bar.style.display = 'flex';
     const panelOpen = isSidePanelOpen();
     bar.style.right = panelOpen ? '50%' : '140px';
     const links = bar.querySelectorAll('a:not(#' + USAGE_ID + ')');

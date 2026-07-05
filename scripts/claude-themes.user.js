@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.19.0
+// @version      6.19.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.19.0';
+  const SCRIPT_VERSION = '6.19.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -285,14 +285,30 @@
     popup.id = INBOX_POPUP_ID;
     popup.dataset.tmUi = '1';
     const rect = anchorEl.getBoundingClientRect();
+    const GOVERNANCE_IDS = ['factory', 'foundry', 'workshop', 'steward'];
     const entries = Object.entries(data.agents).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
-    let html = '<div style="font-size:11px;color:#8a8a9a;padding:6px 10px 4px;border-bottom:1px solid #ffffff10;letter-spacing:0.3px;">Pending Items</div>';
-    for (const [agentId, count] of entries) {
-      const proj = PROJECTS.find(p => p.id === agentId);
-      const color = proj ? proj.accentColor : '#8a8a9a';
-      const label = proj ? proj.label : agentId;
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;"><span style="color:' + color + ';font-size:12px;">' + label + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></div>';
+    const govEntries = entries.filter(([id]) => GOVERNANCE_IDS.includes(id));
+    const opsEntries = entries.filter(([id]) => !GOVERNANCE_IDS.includes(id));
+    let html = '';
+    function renderGroup(groupLabel, items) {
+      if (!items.length) return '';
+      let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
+      for (const [agentId, count] of items) {
+        const proj = PROJECTS.find(p => p.id === agentId);
+        const color = proj ? proj.accentColor : '#8a8a9a';
+        const agentLabel = proj ? proj.label : agentId;
+        const href = proj ? '/project/' + proj.projectId : '';
+        if (href) {
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+        } else {
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></div>';
+        }
+      }
+      return g;
     }
+    html += renderGroup('Governance', govEntries);
+    if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Agents', opsEntries);
     if (entries.length === 0) {
       html += '<div style="padding:8px 10px;color:#8a8a9a;font-size:11px;opacity:0.5;">All clear</div>';
     }
@@ -302,6 +318,7 @@
       html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
     }
     popup.innerHTML = html;
+    popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
     const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };

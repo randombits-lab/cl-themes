@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.19.2
+// @version      6.19.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.19.2';
+  const SCRIPT_VERSION = '6.19.3';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -172,7 +172,7 @@
     'tomoe': 25000, 'faith': 25000, 'factory': 24000, 'crucible': 23000,
     'steward': 22000, 'prism': 23000, 'foundry': 23000, 'alfred': 23000,
     'vesper': 22000, 'anasteria': 23000, 'licitapp': 23000, 'nabu': 22000,
-    'aiprojectsconsole': 22000, 'vadim': 22000, 'workshop': 22000,
+    'template-builder': 22000, 'grim-dawn-advisor': 22000, 'vadim': 22000, 'workshop': 22000,
   };
   const DEFAULT_OVERHEAD = 8000;
 
@@ -746,7 +746,8 @@
     { id: 'foundry', projectId: '019d638f-5d0b-72d1-b060-96438a50d1b7', label: 'Foundry', extends: 'foundry' },
     { id: 'licitapp', projectId: '019d26a7-d716-7675-af51-76dd9d2ce4eb', label: 'LicitApp', extends: 'foundry' },
     { id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper', extends: 'foundry' },
-    { id: 'aiprojectsconsole', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'AI Projects Console', extends: 'foundry' },
+    { id: 'template-builder', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'Template Builder', extends: 'foundry' },
+    { id: 'grim-dawn-advisor', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Grim Dawn', extends: 'foundry' },
     {
       id: 'anasteria', projectId: '019d6e94-5386-7432-898a-8d4408cd98b6', label: 'Anasteria',
       accentColor: '#b05a78', interjectionColor: '#d4a0b8', interjectionBorder: '#b05a78', chatBackground: 'linear-gradient(160deg, #1a0c0e 0%, #241014 30%, #1a0c10 60%, #10080a 100%)',

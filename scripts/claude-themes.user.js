@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.19.1
+// @version      6.19.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.19.1';
+  const SCRIPT_VERSION = '6.19.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -286,7 +286,7 @@
     popup.dataset.tmUi = '1';
     const rect = anchorEl.getBoundingClientRect();
     const GOVERNANCE_IDS = ['factory', 'foundry', 'workshop', 'steward'];
-    const entries = Object.entries(data.agents).filter(([,v]) => v > 0).sort((a,b) => b[1] - a[1]);
+    const entries = Object.entries(data.agents).sort((a,b) => { if (a[1] === 0 && b[1] > 0) return 1; if (b[1] === 0 && a[1] > 0) return -1; if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]); return b[1] - a[1]; });
     const govEntries = entries.filter(([id]) => GOVERNANCE_IDS.includes(id));
     const opsEntries = entries.filter(([id]) => !GOVERNANCE_IDS.includes(id));
     let html = '';
@@ -298,10 +298,11 @@
         const color = proj ? proj.accentColor : '#8a8a9a';
         const agentLabel = proj ? proj.label : agentId;
         const href = proj ? '/project/' + proj.projectId : '';
+        const dim = count === 0 ? 'opacity:0.35;' : '';
         if (href) {
-          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
         } else {
-          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></div>';
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></div>';
         }
       }
       return g;
@@ -309,9 +310,6 @@
     html += renderGroup('Governance', govEntries);
     if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
     html += renderGroup('Agents', opsEntries);
-    if (entries.length === 0) {
-      html += '<div style="padding:8px 10px;color:#8a8a9a;font-size:11px;opacity:0.5;">All clear</div>';
-    }
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;

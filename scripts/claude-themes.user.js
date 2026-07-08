@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.19.3
+// @version      6.19.4
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.19.3';
+  const SCRIPT_VERSION = '6.19.4';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -638,9 +638,10 @@
       const match = firstLine.match(/^\[.+?\.\s*(?:Worktree:\s*(\S+)\s*\.\s*)?Terminal\s*\./);
       if (!match) continue;
       const color = getLaneColor(match[1] || null);
-      pre.style.borderLeft = '3px solid ' + color;
-      pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40';
-      pre.setAttribute(ATTR, match[1] || 'primary');
+      const isPlan = /\.\s*Plan\s+Mode\s*\./.test(firstLine);
+      pre.style.borderLeft = '3px ' + (isPlan ? 'dashed' : 'solid') + ' ' + color;
+      pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40' + (isPlan ? ', inset 0 0 30px ' + color + '0a' : '');
+      pre.setAttribute(ATTR, (match[1] || 'primary') + (isPlan ? ':plan' : ''));
     }
   }
 

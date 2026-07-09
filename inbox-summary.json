@@ -5,7 +5,7 @@
         "anasteria": 1,
         "crucible": 1,
         "factory": 2,
-        "faith": 1,
+        "faith": 0,
         "foundry": 10,
         "grim-dawn-advisor": 0,
         "licitapp": 3,
@@ -13,10 +13,10 @@
         "prism": 0,
         "steward": 3,
         "template-builder": 0,
-        "tomoe": 0,
+        "tomoe": 1,
         "vadim": 0,
         "vesper": 0,
         "workshop": 2
     },
-    "updated_at": "2026-07-09T18:49:29Z"
+    "updated_at": "2026-07-09T18:51:20Z"
 }

@@ -6,17 +6,17 @@
         "crucible": 1,
         "factory": 3,
         "faith": 0,
-        "foundry": 10,
+        "foundry": 7,
         "grim-dawn-advisor": 0,
-        "licitapp": 3,
+        "licitapp": 4,
         "nabu": 1,
         "prism": 0,
         "steward": 4,
-        "template-builder": 0,
+        "template-builder": 1,
         "tomoe": 1,
         "vadim": 0,
-        "vesper": 0,
+        "vesper": 1,
         "workshop": 2
     },
-    "updated_at": "2026-07-09T20:00:54Z"
+    "updated_at": "2026-07-10T13:15:48Z"
 }

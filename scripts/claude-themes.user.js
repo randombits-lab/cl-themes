@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.19.4
+// @version      6.20.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.19.4';
+  const SCRIPT_VERSION = '6.20.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -286,9 +286,11 @@
     popup.dataset.tmUi = '1';
     const rect = anchorEl.getBoundingClientRect();
     const GOVERNANCE_IDS = ['factory', 'foundry', 'workshop', 'steward'];
+    const EXECUTOR_IDS = ['licitapp', 'vesper', 'template-builder'];
     const entries = Object.entries(data.agents).sort((a,b) => { if (a[1] === 0 && b[1] > 0) return 1; if (b[1] === 0 && a[1] > 0) return -1; if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]); return b[1] - a[1]; });
     const govEntries = entries.filter(([id]) => GOVERNANCE_IDS.includes(id));
-    const opsEntries = entries.filter(([id]) => !GOVERNANCE_IDS.includes(id));
+    const execEntries = entries.filter(([id]) => EXECUTOR_IDS.includes(id));
+    const opsEntries = entries.filter(([id]) => !GOVERNANCE_IDS.includes(id) && !EXECUTOR_IDS.includes(id));
     let html = '';
     function renderGroup(groupLabel, items) {
       if (!items.length) return '';
@@ -310,6 +312,8 @@
     html += renderGroup('Governance', govEntries);
     if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
     html += renderGroup('Agents', opsEntries);
+    if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Executors', execEntries);
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
@@ -328,8 +332,78 @@
     if (document.visibilityState === 'visible') {
       const d = getInboxData();
       if (!d || (Date.now() - (d._fetchedAt || 0)) > 300000) fetchInboxSummary();
+      const rd = getReflectData();
+      if (!rd || (Date.now() - (rd._fetchedAt || 0)) > 300000) fetchReflectionSummary();
     }
   });
+
+  // =========================================================================
+  // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
+  // =========================================================================
+  const REFLECT_KEY = 'claude-theme-reflect';
+  const REFLECT_URL = BASE + 'reflection-summary.json';
+  const REFLECT_POPUP_ID = 'claude-theme-reflect-popup';
+
+  function fetchReflectionSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: REFLECT_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(REFLECT_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getReflectData() {
+    try { const r = localStorage.getItem(REFLECT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let reflectFetched = false;
+  function ensureReflectFetch() {
+    if (reflectFetched) return;
+    reflectFetched = true;
+    fetchReflectionSummary();
+  }
+
+  function toggleReflectPopup(anchorEl) {
+    const existing = document.getElementById(REFLECT_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getReflectData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = REFLECT_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).sort((a,b) => {
+      if (a[1] === 0 && b[1] > 0) return 1;
+      if (b[1] === 0 && a[1] > 0) return -1;
+      if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]);
+      return b[1] - a[1];
+    });
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
+    for (const [agentId, count] of entries) {
+      const proj = PROJECTS.find(p => p.id === agentId);
+      const color = proj ? proj.accentColor : '#8a8a9a';
+      const agentLabel = proj ? proj.label : agentId;
+      const dim = count === 0 ? 'opacity:0.35;' : '';
+      const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
+      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
 
   // =========================================================================
   // QUICK-NAV — pinned project shortcuts, always visible
@@ -460,6 +534,12 @@
       inboxBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M1 9h4l1.5 2h3L11 9h4" stroke="currentColor" fill="none" stroke-width="1.5"/><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       inboxBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleInboxPopup(inboxBadge); });
       bar.appendChild(inboxBadge);
+      const reflectBadge = document.createElement('span');
+      reflectBadge.id = UTILBAR_ID + '-reflect';
+      reflectBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      reflectBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 1.5a4 4 0 0 0-1.5 7.7V11h3V9.2A4 4 0 0 0 8 1.5z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="6.5" y1="12.5" x2="9.5" y2="12.5" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="14" x2="9" y2="14" stroke="currentColor" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
+      reflectBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleReflectPopup(reflectBadge); });
+      bar.appendChild(reflectBadge);
       const spacer = document.createElement('div');
       spacer.style.flex = '1';
       bar.appendChild(spacer);
@@ -549,9 +629,30 @@
         inboxEl.title = iData ? 'All inboxes clear' : 'Inbox data not loaded';
       }
     }
+    const reflectEl = document.getElementById(UTILBAR_ID + '-reflect');
+    if (reflectEl) {
+      const rData = getReflectData();
+      const rCount = reflectEl.querySelector('span');
+      const rSvg = reflectEl.querySelector('svg');
+      if (rData && rData.total > 0) {
+        if (rCount) rCount.textContent = rData.total;
+        const stale = rData.updated_at && (Date.now() - new Date(rData.updated_at).getTime()) > 86400000;
+        const rColor = stale ? '#c9a84c80' : '#c9a84c';
+        reflectEl.style.opacity = stale ? '0.5' : '0.7';
+        if (rSvg) rSvg.style.color = rColor;
+        if (rCount) rCount.style.color = rColor;
+        const age = rData.updated_at ? formatAge(new Date(rData.updated_at)) : 'unknown';
+        reflectEl.title = rData.total + ' reflections pending\nUpdated: ' + age + (stale ? ' (stale)' : '');
+      } else {
+        if (rCount) rCount.textContent = '';
+        reflectEl.style.opacity = '0.3';
+        if (rSvg) rSvg.style.color = '#8a8a9a';
+        reflectEl.title = rData ? 'No reflections' : 'Reflection data not loaded';
+      }
+    }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); }
 
   // =========================================================================
   // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
@@ -748,7 +849,14 @@
     { id: 'licitapp', projectId: '019d26a7-d716-7675-af51-76dd9d2ce4eb', label: 'LicitApp', extends: 'foundry' },
     { id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper', extends: 'foundry' },
     { id: 'template-builder', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'Template Builder', extends: 'foundry' },
-    { id: 'grim-dawn-advisor', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Grim Dawn', extends: 'foundry' },
+    {
+      id: 'grim-dawn-advisor', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Grim Dawn',
+      accentColor: '#8a6a3c',
+      chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #141210 30%, #0e0c0a 60%, #0a0908 100%)',
+      card: { imageUrl: null, titleColor: '#8a6a3c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
     {
       id: 'anasteria', projectId: '019d6e94-5386-7432-898a-8d4408cd98b6', label: 'Anasteria',
       accentColor: '#b05a78', interjectionColor: '#d4a0b8', interjectionBorder: '#b05a78', chatBackground: 'linear-gradient(160deg, #1a0c0e 0%, #241014 30%, #1a0c10 60%, #10080a 100%)',
@@ -1338,6 +1446,7 @@
 
   function check() {
     ensureInboxFetch();
+    ensureReflectFetch();
     manageCardStyles();
     refreshQuickNav();
     const ctx = detectContext();
@@ -1361,7 +1470,7 @@
     for (const m of muts) {
       if (m.type !== 'childList') continue;
       if (m.target.closest?.('[data-tm-ui]')) continue;
-      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID);
+      const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID);
       if (!dominated) { scheduleCheck(); return; }
     }
   }).observe(document.body, { childList: true, subtree: true });

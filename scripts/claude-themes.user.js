@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.20.0
+// @version      6.20.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.20.0';
+  const SCRIPT_VERSION = '6.20.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -719,10 +719,10 @@
   // =========================================================================
   // TERMINAL LANE TINTING — colors code blocks by execution lane
   // =========================================================================
-  function getLaneColor(branch) {
-    if (!branch) return LANE_PRIMARY_COLOR;
-    if (laneBranches[branch]) return laneBranches[branch];
-    if (nextLaneIdx < LANE_COLORS.length) { laneBranches[branch] = LANE_COLORS[nextLaneIdx++]; return laneBranches[branch]; }
+  function getLaneColor(wt) {
+    if (!wt) return LANE_PRIMARY_COLOR;
+    const m = wt.match(/^worktree-(\d+)$/);
+    if (m) { const idx = Math.max(0, parseInt(m[1], 10) - 1); return LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)]; }
     return LANE_COLORS[LANE_COLORS.length - 1];
   }
 
@@ -736,7 +736,7 @@
       const code = pre.querySelector('code');
       if (!code) continue;
       const firstLine = (code.textContent || '').split('\n')[0].trim();
-      const match = firstLine.match(/^\[.+?\.\s*(?:Worktree:\s*(\S+)\s*\.\s*)?Terminal\s*\./);
+      const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
       if (!match) continue;
       const color = getLaneColor(match[1] || null);
       const isPlan = /\.\s*Plan\s+Mode\s*\./.test(firstLine);
@@ -916,8 +916,6 @@
   const ACTION_REGISTRY = { '/ship': true };
   const LANE_PRIMARY_COLOR = '#4a7ac8';
   const LANE_COLORS = ['#c9a84c', '#2dd4bf'];
-  let laneBranches = {};
-  let nextLaneIdx = 0;
 
   function detectContext() {
     const url = window.location.pathname;
@@ -1197,8 +1195,6 @@
     replyCountPath = null;
     maxTokenEstimate = 0;
     actionAlertedIdx = -1;
-    laneBranches = {};
-    nextLaneIdx = 0;
   }
 
   function swapCharacterImage(newSrc, charEl) {

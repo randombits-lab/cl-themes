@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.20.1
+// @version      6.20.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.20.1';
+  const SCRIPT_VERSION = '6.20.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -99,7 +99,7 @@
   }
 
   function readUsageFromPage() {
-    const bars = document.querySelectorAll('div[aria-valuenow][role="progressbar"]');
+    const bars = document.querySelectorAll('div[role="meter"][aria-valuenow]');
     if (bars.length < 2) return;
     let hasUsageText = false;
     for (const s of document.querySelectorAll('span')) { if (/\d+%\s*used/i.test(s.textContent || '')) { hasUsageText = true; break; } }
@@ -1391,43 +1391,33 @@
       else if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); }
     }
     if (window.location.pathname === '/recents') {
-      for (const link of document.querySelectorAll('a[href*="/chat/"]')) {
-        if (link.closest('nav') || link.closest('[class*="sidebar"]')) continue;
-        let titleEl = null;
-        for (const el of link.querySelectorAll('*')) {
-          const fw = parseInt(getComputedStyle(el).fontWeight)||400; if (fw < 500) continue;
-          for (const c of el.childNodes) { if (c.nodeType === Node.TEXT_NODE && c.textContent.includes('|')) { titleEl = el; break; } }
-          if (titleEl) break;
+      // Recents table layout: TD with overlay a[href] + visible content in span siblings
+      // Title: span.text-primary.truncate, project label: span[class*="max-w-"]
+      for (const td of document.querySelectorAll('td')) {
+        const link = td.querySelector('a[href*="/chat/"]');
+        if (!link) continue;
+        const titleSpan = td.querySelector('span[class*="text-primary"]');
+        if (!titleSpan || titleSpan.hasAttribute(SIDEBAR_ATTR)) continue;
+        const titleText = (titleSpan.textContent || '').trim();
+        const si = titleText.indexOf('|');
+        if (si !== -1) {
+          const prefix = titleText.substring(0, si).trim().toLowerCase(), color = colorMap[prefix];
+          if (color) { titleSpan.style.color = color; titleSpan.setAttribute(SIDEBAR_ATTR, prefix); }
+          continue;
         }
-        if (!titleEl) { if (!(link.textContent||'').includes('|')) continue; titleEl = link; }
-        const text = (titleEl.textContent||'').trim(), si = text.indexOf('|'); if (si === -1) continue;
-        const prefix = text.substring(0, si).trim().toLowerCase(), color = colorMap[prefix];
-        if (color) { titleEl.style.color = color; titleEl.setAttribute(SIDEBAR_ATTR, prefix); }
-        else if (titleEl.hasAttribute(SIDEBAR_ATTR)) { titleEl.style.color = ''; titleEl.removeAttribute(SIDEBAR_ATTR); }
-      }
-
-      // Project-label coloring on recents (non-pipe rows)
-      for (const link of document.querySelectorAll('a[href*="/chat/"]')) {
-        if (link.closest('nav') || link.closest('[class*="sidebar"]')) continue;
-        if (link.hasAttribute(SIDEBAR_ATTR)) continue;
-        const timeEl = link.querySelector('time');
-        if (!timeEl) continue;
-        const labelSpan = timeEl.previousElementSibling || timeEl.nextElementSibling;
-        if (!labelSpan || labelSpan.tagName !== 'SPAN') continue;
+        const labelSpan = td.querySelector('span[class*="max-w-"]');
+        if (!labelSpan) continue;
         const labelText = (labelSpan.textContent || '').trim().toLowerCase();
         if (!labelText) continue;
         let matched = null;
         for (const p of PROJECTS) {
-          if (labelText === p.label.toLowerCase() || labelText.includes(p.label.toLowerCase())) {
-            matched = p; break;
-          }
+          if (labelText === p.label.toLowerCase() || labelText.includes(p.label.toLowerCase())) { matched = p; break; }
         }
         if (!matched) continue;
-        const titleSpan = link.querySelector('span');
-        if (titleSpan && titleSpan !== labelSpan) titleSpan.style.color = matched.accentColor;
+        titleSpan.style.color = matched.accentColor;
+        titleSpan.setAttribute(SIDEBAR_ATTR, matched.id);
         labelSpan.style.color = matched.accentColor;
         labelSpan.style.opacity = '0.7';
-        link.setAttribute(SIDEBAR_ATTR, matched.id);
       }
     }
   }

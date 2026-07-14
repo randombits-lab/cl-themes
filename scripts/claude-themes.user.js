@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.20.2
+// @version      6.20.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.20.2';
+  const SCRIPT_VERSION = '6.20.3';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -726,6 +726,23 @@
     return LANE_COLORS[LANE_COLORS.length - 1];
   }
 
+  function findTerminalNumber(pre) {
+    const wrapper = pre.parentElement?.parentElement;
+    if (!wrapper) return null;
+    let el = wrapper.previousElementSibling;
+    let steps = 0;
+    while (el && steps < 6) {
+      if (el.tagName === 'P') {
+        const m = (el.textContent || '').trim().match(/^T(\d+)\s*[—\-]/);
+        if (m) return parseInt(m[1], 10);
+      }
+      if (el.querySelector?.('pre')) break;
+      el = el.previousElementSibling;
+      steps++;
+    }
+    return null;
+  }
+
   function tintCodeBlocks() {
     if (!window.location.pathname.includes('/chat/')) return;
     const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
@@ -738,11 +755,28 @@
       const firstLine = (code.textContent || '').split('\n')[0].trim();
       const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
       if (!match) continue;
-      const color = getLaneColor(match[1] || null);
+      let color, laneId;
+      const tNum = findTerminalNumber(pre);
+      if (tNum !== null) {
+        if (tNum > 1) {
+          const idx = tNum - 2;
+          color = LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)];
+          laneId = 't' + tNum;
+        } else {
+          color = LANE_PRIMARY_COLOR;
+          laneId = 'primary';
+        }
+      } else if (match[1]) {
+        color = getLaneColor(match[1]);
+        laneId = match[1];
+      } else {
+        color = LANE_PRIMARY_COLOR;
+        laneId = 'primary';
+      }
       const isPlan = /\.\s*Plan\s+Mode\s*\./.test(firstLine);
       pre.style.borderLeft = '3px ' + (isPlan ? 'dashed' : 'solid') + ' ' + color;
       pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40' + (isPlan ? ', inset 0 0 30px ' + color + '0a' : '');
-      pre.setAttribute(ATTR, (match[1] || 'primary') + (isPlan ? ':plan' : ''));
+      pre.setAttribute(ATTR, laneId + (isPlan ? ':plan' : ''));
     }
   }
 

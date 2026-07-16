@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.20.3
+// @version      6.20.4
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -16,7 +16,7 @@
   'use strict';
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.20.3';
+  const SCRIPT_VERSION = '6.20.4';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
 
@@ -1292,7 +1292,7 @@
     const st = document.createElement('style'); st.id = STYLE_ID;
     st.textContent = `
       body { position:relative !important; z-index:0 !important; background-color:transparent !important; }
-      header { background-color:transparent !important; }
+      header, main { background-color:transparent !important; }
       @keyframes thm-bg-in { from{opacity:0} to{opacity:1} }
       @keyframes thm-char-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
       #${BG_ID} { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-2;pointer-events:none;opacity:0;animation:thm-bg-in 300ms ease-out forwards;${bgCSS} }
@@ -1365,7 +1365,7 @@
   }
 
   function manageCardStyles() {
-    const onP = window.location.pathname === '/projects';
+    const onP = window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects';
     const ex = document.getElementById(CARD_STYLE_ID);
     if (!onP) { if (ex) ex.remove(); return; }
     if (!ex) {
@@ -1424,7 +1424,7 @@
       if (color) { link.style.color = color; link.setAttribute(SIDEBAR_ATTR, prefix); }
       else if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); }
     }
-    if (window.location.pathname === '/recents') {
+    if (window.location.pathname === '/recents' || window.location.pathname === '/cowork/recents') {
       // Recents table layout: TD with overlay a[href] + visible content in span siblings
       // Title: span.text-primary.truncate, project label: span[class*="max-w-"]
       for (const td of document.querySelectorAll('td')) {
@@ -1460,7 +1460,7 @@
   function slowCycle() {
     colorChatLinks();
     if (currentProject && currentMode && !currentProject.voices) colorInterjections(currentProject);
-    if (window.location.pathname === '/projects') styleProjectCardText();
+    if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') styleProjectCardText();
     tintCodeBlocks();
   }
 

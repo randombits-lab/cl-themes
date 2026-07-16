@@ -1,22 +1,22 @@
 {
-    "total": 21,
+    "total": 33,
     "agents": {
-        "alfred": 3,
-        "anasteria": 0,
-        "crucible": 0,
+        "alfred": 4,
+        "anasteria": 1,
+        "crucible": 1,
         "factory": 1,
-        "faith": 0,
-        "foundry": 8,
-        "grim-dawn-advisor": 0,
+        "faith": 1,
+        "foundry": 9,
+        "grim-dawn-advisor": 1,
         "licitapp": 4,
-        "nabu": 0,
-        "prism": 0,
-        "steward": 3,
+        "nabu": 1,
+        "prism": 1,
+        "steward": 4,
         "template-builder": 0,
-        "tomoe": 1,
-        "vadim": 0,
+        "tomoe": 2,
+        "vadim": 1,
         "vesper": 0,
-        "workshop": 1
+        "workshop": 2
     },
-    "updated_at": "2026-07-16T05:32:49Z"
+    "updated_at": "2026-07-16T09:59:58Z"
 }

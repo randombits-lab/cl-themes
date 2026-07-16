@@ -4,7 +4,7 @@
         "alfred": 4,
         "anasteria": 1,
         "crucible": 0,
-        "factory": 2,
+        "factory": 3,
         "faith": 1,
         "foundry": 10,
         "grim-dawn-advisor": 1,
@@ -14,9 +14,9 @@
         "steward": 4,
         "template-builder": 0,
         "tomoe": 2,
-        "vadim": 1,
+        "vadim": 0,
         "vesper": 0,
         "workshop": 2
     },
-    "updated_at": "2026-07-16T12:57:27Z"
+    "updated_at": "2026-07-16T13:20:50Z"
 }

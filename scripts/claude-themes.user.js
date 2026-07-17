@@ -1,13 +1,14 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.20.4
+// @version      6.21.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
 // @grant        GM_getValue
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
+// @grant        GM_registerMenuCommand
 // @downloadURL  https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // @updateURL    https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // ==/UserScript==
@@ -15,10 +16,27 @@
 (function () {
   'use strict';
 
+  if (window.__CLAUDE_THEMES_ACTIVE) return;
+  window.__CLAUDE_THEMES_ACTIVE = '6.21.0';
+
+  const HAS_MENU = typeof GM_registerMenuCommand === 'function';
+  if (GM_getValue('theme_disabled', false)) {
+    if (HAS_MENU) GM_registerMenuCommand('Claude Themes: enable (reloads)', () => { GM_setValue('theme_disabled', false); location.reload(); });
+    return;
+  }
+  if (HAS_MENU) {
+    GM_registerMenuCommand('Claude Themes: disable (reloads)', () => { GM_setValue('theme_disabled', true); location.reload(); });
+    GM_registerMenuCommand('Claude Themes: toggle sprites (reloads)', () => { GM_setValue('sprites_enabled', !GM_getValue('sprites_enabled', false)); location.reload(); });
+    GM_registerMenuCommand('Claude Themes: toggle reduced motion (reloads)', () => { GM_setValue('reduced_motion', !GM_getValue('reduced_motion', false)); location.reload(); });
+    GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); actionAudioEnabled = v; });
+  }
+  const REDUCED_MOTION = GM_getValue('reduced_motion', false);
+
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.20.4';
+  const SCRIPT_VERSION = '6.21.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
+  const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
 
   const TOMOE_CHAT = BASE + 'tomoe_chat.png';
   const TOMOE_HOME = BASE + 'tomoe_project.png';
@@ -126,55 +144,7 @@
     } catch(e) { return null; }
   }
 
-  function detectModel() {
-    let text = '';
-    for (const btn of document.querySelectorAll('button')) {
-      const t = (btn.textContent || '').trim();
-      if (/opus|sonnet|haiku/i.test(t) && t.length < 80) { text = t.toLowerCase().replace(/\s+/g, ' '); break; }
-    }
-    if (!text) return { modelId: 'unknown', newTokenizer: false, context: 200000 };
-    let modelId = 'unknown';
-    if (text.includes('opus 4.8')) modelId = 'opus-4.8';
-    else if (text.includes('opus 4.7')) modelId = 'opus-4.7';
-    else if (text.includes('opus 4.6')) modelId = 'opus-4.6';
-    else if (text.includes('opus 4.5')) modelId = 'opus-4.5';
-    else if (text.includes('sonnet 4.6')) modelId = 'sonnet-4.6';
-    else if (text.includes('sonnet 4.5')) modelId = 'sonnet-4.5';
-    else if (text.includes('haiku')) modelId = 'haiku-4.5';
-    const newTokenizer = modelId === 'opus-4.8' || modelId === 'opus-4.7';
-    const is500k = newTokenizer || modelId === 'opus-4.6' || modelId === 'sonnet-4.6';
-    return { modelId, newTokenizer, context: is500k ? 500000 : 200000 };
-  }
 
-  function estimateTokens(chatEl, model) {
-    if (!chatEl) return 0;
-    const codeEls = chatEl.querySelectorAll('pre code');
-    let codeChars = 0;
-    codeEls.forEach(el => { codeChars += (el.textContent || '').length; });
-    const totalChars = (chatEl.textContent || '').length;
-    const proseChars = totalChars - codeChars;
-    const proseDivisor = model.newTokenizer ? 3.4 : 4.2;
-    const codeDivisor = model.newTokenizer ? 2.6 : 3.5;
-    return Math.round(proseChars / proseDivisor + codeChars / codeDivisor);
-  }
-
-  function tokenThresholds(model) {
-    const id = model.modelId;
-    if (id === 'opus-4.7')   return { amber: 64000,  red: 128000 };
-    if (id === 'opus-4.8')   return { amber: 125000, red: 250000 };
-    if (id === 'opus-4.6')   return { amber: 130000, red: 275000 };
-    if (id === 'sonnet-4.6') return { amber: 75000,  red: 150000 };
-    if (model.context >= 500000) return { amber: 100000, red: 200000 };
-    return { amber: 50000, red: 100000 };
-  }
-
-  const PROJECT_OVERHEAD = {
-    'tomoe': 25000, 'faith': 25000, 'factory': 24000, 'crucible': 23000,
-    'steward': 22000, 'prism': 23000, 'foundry': 23000, 'alfred': 23000,
-    'vesper': 22000, 'anasteria': 23000, 'licitapp': 23000, 'nabu': 22000,
-    'template-builder': 22000, 'grim-dawn-advisor': 22000, 'vadim': 22000, 'workshop': 22000,
-  };
-  const DEFAULT_OVERHEAD = 8000;
 
   const tmPulse = document.createElement('style');
   tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}@keyframes tm-action-pulse{0%,100%{box-shadow:0 0 20px #ff980040,0 0 60px #ff980020}50%{box-shadow:0 0 30px #ff980060,0 0 80px #ff980030}}';
@@ -298,7 +268,7 @@
       for (const [agentId, count] of items) {
         const proj = PROJECTS.find(p => p.id === agentId);
         const color = proj ? proj.accentColor : '#8a8a9a';
-        const agentLabel = proj ? proj.label : agentId;
+        const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
         const href = proj ? '/project/' + proj.projectId : '';
         const dim = count === 0 ? 'opacity:0.35;' : '';
         if (href) {
@@ -330,6 +300,7 @@
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
+      scheduleCheck();
       const d = getInboxData();
       if (!d || (Date.now() - (d._fetchedAt || 0)) > 300000) fetchInboxSummary();
       const rd = getReflectData();
@@ -387,7 +358,7 @@
     for (const [agentId, count] of entries) {
       const proj = PROJECTS.find(p => p.id === agentId);
       const color = proj ? proj.accentColor : '#8a8a9a';
-      const agentLabel = proj ? proj.label : agentId;
+      const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
       const dim = count === 0 ? 'opacity:0.35;' : '';
       const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
       html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
@@ -500,12 +471,15 @@
   // =========================================================================
   // UTILITY BAR — chat-only toolbar overlaying the disclaimer strip
   // =========================================================================
+  let cachedDisclaimer = null;
   function findDisclaimer() {
+    if (cachedDisclaimer && cachedDisclaimer.isConnected) return cachedDisclaimer;
+    cachedDisclaimer = null;
     for (const el of document.querySelectorAll('div')) {
       if (el.children.length > 3) continue;
       if (!(el.textContent || '').includes('can make mistakes')) continue;
       const r = el.getBoundingClientRect();
-      if (r.height > 15 && r.height < 60 && r.width > 400) return el;
+      if (r.height > 15 && r.height < 60 && r.width > 400) { cachedDisclaimer = el; return el; }
     }
     return null;
   }
@@ -543,14 +517,6 @@
       const spacer = document.createElement('div');
       spacer.style.flex = '1';
       bar.appendChild(spacer);
-      const ctxDot = document.createElement('span');
-      ctxDot.id = UTILBAR_ID + '-ctx';
-      ctxDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
-      bar.appendChild(ctxDot);
-      const tokCounter = document.createElement('span');
-      tokCounter.id = UTILBAR_ID + '-tokens';
-      tokCounter.style.cssText = 'font-size:11px;color:#8a8a9a;opacity:0.6;letter-spacing:0.3px;font-variant-numeric:tabular-nums;padding-right:8px;white-space:nowrap;';
-      bar.appendChild(tokCounter);
       document.body.appendChild(bar);
     }
     bar.style.display = 'flex';
@@ -582,32 +548,7 @@
         consumDotEl.style.animation = assist > 25 ? 'tm-pulse 1.2s ease-in-out infinite' : 'none';
       }
     }
-  const tokEl = document.getElementById(UTILBAR_ID + '-tokens');
-    const ctxDotEl = document.getElementById(UTILBAR_ID + '-ctx');
-    if (tokEl) {
-      const chatEl = findMainChatContainer();
-      const model = detectModel();
-      const visible = estimateTokens(chatEl, model);
-      if (visible > maxTokenEstimate) maxTokenEstimate = visible;
-      const overhead = currentProject ? (PROJECT_OVERHEAD[currentProject.id] || DEFAULT_OVERHEAD) : 2000;
-      const effective = maxTokenEstimate + overhead;
-      const thresh = tokenThresholds(model);
-      let tokText;
-      if (effective < 1000) tokText = '~' + effective;
-      else if (effective < 10000) tokText = '~' + (effective / 1000).toFixed(1) + 'k';
-      else tokText = '~' + Math.round(effective / 1000) + 'k';
-      if (tokEl.textContent !== tokText) tokEl.textContent = tokText;
-      const ctxColor = effective >= thresh.red ? '#c45c4c' : effective >= thresh.amber ? '#c9a84c' : '#4a9a7a';
-      tokEl.style.color = ctxColor;
-      tokEl.style.opacity = effective >= thresh.amber ? '0.9' : '0.6';
-      const pct = Math.round(effective / model.context * 100);
-      const risk = effective >= thresh.red ? 'high' : effective >= thresh.amber ? 'moderate' : 'low';
-      tokEl.title = '~' + effective.toLocaleString() + ' effective (' + pct + '% of ' + (model.context/1000) + 'k) \u00b7 ' + model.modelId + ' \u00b7 context risk: ' + risk + (effective >= thresh.red ? ' \u2014 consider handover' : '') + '\n~' + visible.toLocaleString() + ' visible + ' + Math.round(overhead/1000) + 'k platform+prompt overhead';
-      if (ctxDotEl) {
-        ctxDotEl.style.background = ctxColor;
-        ctxDotEl.style.boxShadow = effective >= thresh.red ? '0 0 4px ' + ctxColor + '80' : 'none';
-      }
-    }
+
     const inboxEl = document.getElementById(UTILBAR_ID + '-inbox');
     if (inboxEl) {
       const iData = getInboxData();
@@ -652,7 +593,7 @@
     }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
 
   // =========================================================================
   // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
@@ -936,6 +877,12 @@
   const THEME_ATTR     = 'data-claude-theme';
   const SIDEBAR_ATTR   = 'data-theme-colored';
 
+  if (REDUCED_MOTION) {
+    const rm = document.createElement('style');
+    rm.textContent = '#' + BG_ID + ', #' + CHARACTER_ID + ' { animation: none !important; opacity: 1 !important; } #' + CHARACTER_ID + ' img { animation: none !important; }';
+    document.head.appendChild(rm);
+  }
+
   let currentThemeKey = null, currentProject = null, currentMode = null;
   let currentComboKey = null, voiceCharReady = false;
   let currentStateName = null;
@@ -1073,8 +1020,8 @@
   }
 
   function preloadVoiceImages(project) {
-    if (project.voices) for (const v of Object.values(project.voices)) { if (v.characterUrl) new Image().src = v.characterUrl; }
-    if (project.voiceCombos) for (const c of Object.values(project.voiceCombos)) { if (c.characterUrl) new Image().src = c.characterUrl; }
+    if (project.voices) for (const v of Object.values(project.voices)) { if (v.characterUrl) new Image().src = vurl(v.characterUrl); }
+    if (project.voiceCombos) for (const c of Object.values(project.voiceCombos)) { if (c.characterUrl) new Image().src = vurl(c.characterUrl); }
   }
 
   function colorVoiceText(project) {
@@ -1141,7 +1088,7 @@
     charEl.style.cssText = `position:fixed;pointer-events:none;z-index:-1;user-select:none;height:${sprite.characterHeight||'76vh'};width:auto;bottom:${sprite.characterBottom||'-100px'};right:${sprite.characterRight||'-200px'};`;
     if (isNew) {
       const first = charEl.querySelector('img[data-layer="a"]');
-      first.src = sprite.characterUrl;
+      first.src = vurl(sprite.characterUrl);
       first.classList.add('is-active');
       charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; voiceCharReady = true;
     } else if (changed) {
@@ -1189,7 +1136,7 @@
 
   function preloadStateImages(project) {
     if (!project.states) return;
-    for (const s of Object.values(project.states)) { if (s.characterUrl) new Image().src = s.characterUrl; }
+    for (const s of Object.values(project.states)) { if (s.characterUrl) new Image().src = vurl(s.characterUrl); }
   }
 
   function refreshStateCharacter(project) {
@@ -1233,6 +1180,7 @@
 
   function swapCharacterImage(newSrc, charEl) {
     if (!charEl) return;
+    newSrc = vurl(newSrc);
     const current = charEl.querySelector('img.is-active');
     const staging = charEl.querySelector('img:not(.is-active)');
     if (!current || !staging) return;
@@ -1253,7 +1201,7 @@
     if (cfg.backgroundImage && project.chatBackground) {
       const img = new Image();
       img.onerror = () => { bgDiv.style.backgroundImage = 'none'; bgDiv.style.background = project.chatBackground; };
-      img.src = cfg.backgroundImage;
+      img.src = vurl(cfg.backgroundImage);
     }
     document.body.appendChild(bgDiv);
   }
@@ -1268,7 +1216,7 @@
       d.appendChild(img);
     }
     const first = d.querySelector('img[data-layer="a"]');
-    first.src = cfg.characterUrl;
+    first.src = vurl(cfg.characterUrl);
     first.classList.add('is-active');
     document.body.appendChild(d);
   }
@@ -1282,7 +1230,7 @@
     const isVoiceChat = !!(project.voices && mode === 'chat');
     const isStateChat = !!(project.states && mode === 'chat');
     let bgCSS = '';
-    if (cfg.backgroundImage) bgCSS = `background-image:url("${cfg.backgroundImage}");background-size:cover;background-position:center;background-repeat:no-repeat;`;
+    if (cfg.backgroundImage) bgCSS = `background-image:url("${vurl(cfg.backgroundImage)}");background-size:cover;background-position:center;background-repeat:no-repeat;`;
     else if (project.chatBackground) bgCSS = `background:${project.chatBackground};`;
     const hasStaticChar = CHARACTERS_ENABLED && !!cfg.characterUrl && !isVoiceChat;
     const isChat = mode === 'chat';
@@ -1341,7 +1289,7 @@
     if (!document.getElementById(BG_ID)) injectBackground(currentProject, cfg);
     if (isVoiceChat) {
       const nearBottom = !themedContainer || (themedContainer.scrollHeight - themedContainer.scrollTop - themedContainer.clientHeight < 300);
-      const state = detectVoiceState(currentProject);
+      const state = nearBottom ? detectVoiceState(currentProject) : null;
       if (state && nearBottom) {
         const comboKey = getComboKey(state);
         const resolved = resolveVoiceConfig(currentProject, comboKey, state.primary);
@@ -1456,26 +1404,83 @@
     }
   }
 
+  let cycleWarned = false;
+  function cycleWarn(e) { if (!cycleWarned) { cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
+  let nullDetections = 0;
+
+  const LEGEND_ID = 'claude-theme-lanelegend';
+  function legendColor(id) {
+    if (id === 'primary' || id === 't1') return LANE_PRIMARY_COLOR;
+    const t = id.match(/^t(\d+)$/);
+    if (t) return LANE_COLORS[Math.min(parseInt(t[1], 10) - 2, LANE_COLORS.length - 1)];
+    return getLaneColor(id);
+  }
+  function refreshLaneLegend() {
+    const onChat = window.location.pathname.includes('/chat/');
+    let box = document.getElementById(LEGEND_ID);
+    if (!onChat) { if (box) box.style.display = 'none'; return; }
+    const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    const lanes = new Set();
+    if (container) for (const pre of container.querySelectorAll('pre[data-lane-tinted]')) lanes.add(pre.getAttribute('data-lane-tinted').split(':')[0]);
+    if (lanes.size < 2) { if (box) box.style.display = 'none'; return; }
+    if (!box) {
+      box = document.createElement('div'); box.id = LEGEND_ID; box.dataset.tmUi = '1';
+      box.style.cssText = 'position:fixed;top:52px;right:16px;z-index:5;display:flex;gap:8px;align-items:center;padding:3px 8px;border-radius:5px;background:#00000055;pointer-events:none;';
+      document.body.appendChild(box);
+    }
+    box.style.display = 'flex';
+    const key = [...lanes].sort().join(',');
+    if (box.dataset.lanes === key) return;
+    box.dataset.lanes = key;
+    box.textContent = '';
+    for (const id of [...lanes].sort()) {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#c8c8d0;letter-spacing:0.3px;';
+      const dot = document.createElement('span');
+      dot.style.cssText = 'width:7px;height:7px;border-radius:2px;background:' + legendColor(id) + ';display:inline-block;';
+      chip.appendChild(dot);
+      chip.appendChild(document.createTextNode(id));
+      box.appendChild(chip);
+    }
+  }
+
+  function updateHealthBeacon() {
+    const ver = document.querySelector('#' + NAV_ID + ' span');
+    if (!ver) return;
+    if (!currentThemeKey) { ver.style.color = ''; ver.title = ''; return; }
+    const bgEl = document.getElementById(BG_ID);
+    const bgFallback = !!(bgEl && bgEl.style.background);
+    const containerOk = !!(themedContainer && themedContainer.isConnected);
+    const ok = !!bgEl && !bgFallback && containerOk;
+    ver.style.color = ok ? '#4a9a7a' : '#c9a84c';
+    ver.title = ok ? 'Theme layers healthy' : ('Theme degraded: ' + [!bgEl ? 'background missing' : null, bgFallback ? 'background on gradient fallback' : null, !containerOk ? 'container not found' : null].filter(Boolean).join(', '));
+  }
+
   let slowCycleTimer = null;
-  function slowCycle() {
+  function slowCycle() { if (document.hidden) return; try { slowCycleInner(); } catch (e) { cycleWarn(e); } }
+  function slowCycleInner() {
     colorChatLinks();
     if (currentProject && currentMode && !currentProject.voices) colorInterjections(currentProject);
     if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') styleProjectCardText();
     tintCodeBlocks();
+    refreshLaneLegend();
   }
 
-  function check() {
+  function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
+  function checkInner() {
     ensureInboxFetch();
     ensureReflectFetch();
     manageCardStyles();
     refreshQuickNav();
     const ctx = detectContext();
-    if (ctx) { const key = ctx.project.id + ':' + ctx.mode; if (currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
+    if (ctx) { nullDetections = 0; const key = ctx.project.id + ':' + ctx.mode; if (currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
     else if (currentThemeKey) {
       const url = window.location.pathname;
       const urlStillThemed = url.includes('/chat/') || PROJECTS.some(p => url.includes('/project/' + p.projectId));
-      if (!urlStillThemed) cleanup();
+      if (!urlStillThemed) { nullDetections = 0; cleanup(); }
+      else if (url.includes('/chat/')) { nullDetections++; if (nullDetections >= 6) { nullDetections = 0; cleanup(); } }
     }
+    updateHealthBeacon();
     if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }
@@ -1499,6 +1504,5 @@
   const oRS = history.replaceState; history.replaceState = function() { oRS.apply(this, arguments); setTimeout(check, 300); };
   window.addEventListener('popstate', () => setTimeout(check, 300));
   setInterval(check, 10000);
-  setInterval(slowCycle, 2000);
   setTimeout(check, 1000);
 })();

@@ -1,10 +1,10 @@
 {
-    "total": 44,
+    "total": 32,
     "agents": {
         "alfred": 3,
         "anasteria": 0,
         "crucible": 0,
-        "factory": 17,
+        "factory": 5,
         "faith": 0,
         "foundry": 9,
         "grim-dawn-advisor": 0,
@@ -18,5 +18,5 @@
         "vesper": 2,
         "workshop": 1
     },
-    "updated_at": "2026-07-17T06:52:57Z"
+    "updated_at": "2026-07-17T07:02:54Z"
 }

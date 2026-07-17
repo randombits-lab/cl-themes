@@ -1,12 +1,12 @@
 {
-    "total": 33,
+    "total": 34,
     "agents": {
         "alfred": 3,
         "anasteria": 0,
         "crucible": 0,
         "factory": 6,
         "faith": 0,
-        "foundry": 11,
+        "foundry": 12,
         "grim-dawn-advisor": 0,
         "licitapp": 6,
         "nabu": 0,
@@ -18,5 +18,5 @@
         "vesper": 0,
         "workshop": 1
     },
-    "updated_at": "2026-07-17T12:34:11Z"
+    "updated_at": "2026-07-17T13:00:00Z"
 }

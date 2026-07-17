@@ -1,3 +1,7 @@
+// DEPRECATED: DO NOT INSTALL. claude.ai's CSP omits 'unsafe-eval'; Chromium MV3 enforces it
+// inside userscript worlds, so eval/new Function on fetched text cannot execute here.
+// Canonical delivery is direct install of claude-themes.user.js (Tampermonkey auto-update).
+// Retained for reference only.
 // ==UserScript==
 // @name         Claude Project Themes (Loader)
 // @namespace    mihnea-claude-themes

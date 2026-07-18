@@ -1,5 +1,5 @@
 {
-    "total": 41,
+    "total": 42,
     "agents": {
         "alfred": 3,
         "anasteria": 0,
@@ -10,7 +10,7 @@
         "grim-dawn-advisor": 0,
         "licitapp": 7,
         "nabu": 0,
-        "prism": 0,
+        "prism": 1,
         "steward": 4,
         "template-builder": 3,
         "tomoe": 1,
@@ -18,5 +18,5 @@
         "vesper": 1,
         "workshop": 1
     },
-    "updated_at": "2026-07-18T10:10:05Z"
+    "updated_at": "2026-07-18T10:10:41Z"
 }

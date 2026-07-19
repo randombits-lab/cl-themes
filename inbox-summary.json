@@ -1,5 +1,5 @@
 {
-    "total": 33,
+    "total": 32,
     "agents": {
         "alfred": 3,
         "anasteria": 0,
@@ -13,10 +13,10 @@
         "prism": 1,
         "steward": 4,
         "template-builder": 4,
-        "tomoe": 1,
+        "tomoe": 0,
         "vadim": 0,
         "vesper": 2,
         "workshop": 1
     },
-    "updated_at": "2026-07-18T19:03:20Z"
+    "updated_at": "2026-07-19T13:38:44Z"
 }

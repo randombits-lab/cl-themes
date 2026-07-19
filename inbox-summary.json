@@ -1,22 +1,71 @@
 {
-    "total": 35,
-    "agents": {
-        "alfred": 4,
-        "anasteria": 0,
-        "crucible": 0,
-        "factory": 1,
-        "faith": 0,
-        "foundry": 8,
-        "grim-dawn-advisor": 0,
-        "licitapp": 9,
-        "nabu": 0,
-        "prism": 1,
-        "steward": 5,
-        "template-builder": 4,
-        "tomoe": 0,
-        "vadim": 0,
-        "vesper": 2,
-        "workshop": 1
+  "agents": {
+    "alfred": {
+      "total": 4,
+      "actionable": 4
     },
-    "updated_at": "2026-07-19T16:21:53Z"
+    "anasteria": {
+      "total": 0,
+      "actionable": 0
+    },
+    "crucible": {
+      "total": 0,
+      "actionable": 0
+    },
+    "factory": {
+      "total": 1,
+      "actionable": 0
+    },
+    "faith": {
+      "total": 0,
+      "actionable": 0
+    },
+    "foundry": {
+      "total": 8,
+      "actionable": 5
+    },
+    "grim-dawn-advisor": {
+      "total": 0,
+      "actionable": 0
+    },
+    "licitapp": {
+      "total": 9,
+      "actionable": 9
+    },
+    "nabu": {
+      "total": 0,
+      "actionable": 0
+    },
+    "prism": {
+      "total": 2,
+      "actionable": 2
+    },
+    "steward": {
+      "total": 5,
+      "actionable": 2
+    },
+    "template-builder": {
+      "total": 4,
+      "actionable": 4
+    },
+    "tomoe": {
+      "total": 0,
+      "actionable": 0
+    },
+    "vadim": {
+      "total": 0,
+      "actionable": 0
+    },
+    "vesper": {
+      "total": 2,
+      "actionable": 2
+    },
+    "workshop": {
+      "total": 1,
+      "actionable": 1
+    }
+  },
+  "total": 36,
+  "actionable": 29,
+  "updated_at": "2026-07-19T16:58:12Z"
 }

@@ -255,8 +255,7 @@
     popup.id = INBOX_POPUP_ID;
     popup.dataset.tmUi = '1';
     const rect = anchorEl.getBoundingClientRect();
-    const norm = {}; for (const [id, v] of Object.entries(data.agents)) norm[id] = typeof v === 'number' ? { total: v, actionable: v } : v;
-    const entries = Object.entries(norm).sort((a,b) => { const aa = a[1].actionable, ba = b[1].actionable, at = a[1].total, bt = b[1].total; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
+    const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
     const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
     const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
     const govEntries = entries.filter(([id]) => govMembers.includes(id));
@@ -266,18 +265,18 @@
     function renderGroup(groupLabel, items) {
       if (!items.length) return '';
       let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
-      for (const [agentId, cData] of items) {
-        const aCount = cData.actionable, tCount = cData.total;
-        const countLabel = aCount === tCount ? String(tCount) : aCount + '<span style="opacity:0.35;font-size:10px"> / ' + tCount + '</span>';
+      for (const [agentId, counts] of items) {
         const proj = PROJECTS.find(p => p.id === agentId);
         const color = proj ? proj.accentColor : '#8a8a9a';
         const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
         const href = proj ? '/project/' + proj.projectId : '';
-        const dim = tCount === 0 ? 'opacity:0.35;' : aCount === 0 ? 'opacity:0.5;' : '';
+        const ac = counts.actionable, tc = counts.total;
+        const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
+        const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
         if (href) {
-          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countLabel + '</span></a>';
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></a>';
         } else {
-          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countLabel + '</span></div>';
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></div>';
         }
       }
       return g;
@@ -290,7 +289,8 @@
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+      const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + '</div>';
     }
     popup.innerHTML = html;
     popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
@@ -563,22 +563,22 @@
       const iData = getInboxData();
       const iCount = inboxEl.querySelector('span');
       const iSvg = inboxEl.querySelector('svg');
-      const actionable = iData ? (iData.actionable ?? iData.total ?? 0) : 0;
-      const totalItems = iData ? (iData.total ?? 0) : 0;
-      if (totalItems > 0) {
-        if (iCount) iCount.textContent = actionable > 0 ? actionable : '';
+      const iActionable = typeof iData?.actionable === 'number' ? iData.actionable : iData?.total || 0;
+      if (iData && iActionable > 0) {
+        if (iCount) iCount.textContent = iActionable;
         const stale = iData.updated_at && (Date.now() - new Date(iData.updated_at).getTime()) > 86400000;
-        const iColor = stale ? '#c9a84c80' : actionable > 0 ? '#c9a84c' : '#8a8a9a';
-        inboxEl.style.opacity = stale ? '0.5' : actionable > 0 ? '0.7' : '0.4';
+        const iColor = stale ? '#c9a84c80' : '#c9a84c';
+        inboxEl.style.opacity = stale ? '0.5' : '0.7';
         if (iSvg) iSvg.style.color = iColor;
         if (iCount) iCount.style.color = iColor;
         const age = iData.updated_at ? formatAge(new Date(iData.updated_at)) : 'unknown';
-        inboxEl.title = actionable + ' actionable' + (totalItems > actionable ? ', ' + (totalItems - actionable) + ' deferred' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
+        inboxEl.title = iActionable + ' actionable' + (iData.total > iActionable ? ' of ' + iData.total + ' total' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
       } else {
         if (iCount) iCount.textContent = '';
         inboxEl.style.opacity = '0.3';
         if (iSvg) iSvg.style.color = '#8a8a9a';
-        inboxEl.title = iData ? 'All inboxes clear' : 'Inbox data not loaded';
+        const deferred = iData?.total ? iData.total - iActionable : 0;
+        inboxEl.title = iData ? (deferred > 0 ? deferred + ' deferred, none actionable' : 'All inboxes clear') : 'Inbox data not loaded';
       }
     }
     const reflectEl = document.getElementById(UTILBAR_ID + '-reflect');

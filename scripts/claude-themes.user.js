@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.21.0
+// @version      6.23.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.21.0';
+  window.__CLAUDE_THEMES_ACTIVE = '6.23.0';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.21.0';
+  const SCRIPT_VERSION = '6.23.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -868,6 +868,14 @@
     PROJECTS[i] = resolveTheme(PROJECTS[i]);
   }
 
+  const PROJECT_GROUPS = [
+    { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
+    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'grim-dawn-advisor'] },
+    { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
+  ];
+  const PROJECT_GROUP_MAP = {};
+  for (const g of PROJECT_GROUPS) { for (const mid of g.members) { const proj = PROJECTS.find(p => p.id === mid); if (proj) PROJECT_GROUP_MAP[proj.projectId] = g; } }
+
   const STYLE_ID       = 'claude-theme-style';
   const CHARACTER_ID   = 'claude-theme-character';
   const BG_ID          = 'claude-theme-bg';
@@ -1327,9 +1335,14 @@
           css += `${sel}>*{position:relative !important;z-index:1 !important;}`;
         } else { css += `${sel}{border:1px solid ${mix(p.accentColor, 20)} !important;}`; }
       }
+      for (const g of PROJECT_GROUPS) { for (let gi = 0; gi < g.members.length; gi++) { const gp = PROJECTS.find(pp => pp.id === g.members[gi]); if (gp && gp.projectId) css += 'ul.grid>li:has(a[href*="/project/' + gp.projectId + '"]){order:' + (g.order + gi) + '}'; } }
+      css += 'li[data-tm-group-header]{grid-column:1/-1;list-style:none}';
+      for (const g of PROJECT_GROUPS) css += 'ul.grid.tm-hide-' + g.id + ' li[data-tm-group="' + g.id + '"]{display:none!important}';
+      css += 'ul.grid.tm-hide-other li[data-tm-group="other"]{display:none!important}';
       const s = document.createElement('style'); s.id = CARD_STYLE_ID; s.textContent = css; document.head.appendChild(s);
     }
     styleProjectCardText();
+    applyProjectGrouping();
   }
 
   function styleProjectCardText() {
@@ -1359,6 +1372,50 @@
         }
       }
     }
+  }
+
+  function applyProjectGrouping() {
+    const grid = document.querySelector('ul.grid');
+    if (!grid) return;
+    const collapsed = GM_getValue('collapsed_groups', []);
+    let hasOther = false;
+    for (const li of grid.children) {
+      if (li.hasAttribute('data-tm-group-header')) continue;
+      const link = li.querySelector('a[href*="/project/"]');
+      if (!link) continue;
+      const href = link.getAttribute('href') || '';
+      let group = null;
+      for (const [pid, g] of Object.entries(PROJECT_GROUP_MAP)) {
+        if (href.includes('/project/' + pid)) { group = g; break; }
+      }
+      if (group) li.setAttribute('data-tm-group', group.id);
+      else { li.setAttribute('data-tm-group', 'other'); li.style.order = '900'; hasOther = true; }
+    }
+    const groups = [...PROJECT_GROUPS];
+    if (hasOther) groups.push({ id: 'other', label: 'Other', order: 900 });
+    for (const g of groups) {
+      if (grid.querySelector('li[data-tm-group-header="' + g.id + '"]')) continue;
+      const count = grid.querySelectorAll('li[data-tm-group="' + g.id + '"]').length;
+      if (!count) continue;
+      const isColl = collapsed.includes(g.id);
+      const li = document.createElement('li');
+      li.setAttribute('data-tm-group-header', g.id);
+      li.dataset.tmUi = '1';
+      li.style.cssText = 'grid-column:1/-1;order:' + (g.order - 1) + ';list-style:none;padding:4px 0 0;cursor:pointer;user-select:none;';
+      li.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:4px 8px;border-radius:4px;transition:background 0.15s;"><span class="tm-chevron" style="display:inline-block;font-size:10px;color:#8a8a9a;transition:transform 0.2s;' + (isColl ? 'transform:rotate(-90deg);' : '') + '">\u25BC</span><span style="font-size:11px;color:#8a8a9a;letter-spacing:1px;text-transform:uppercase;opacity:0.6;">' + g.label + '</span><span style="font-size:10px;color:#8a8a9a;opacity:0.3;">' + count + '</span></div>';
+      li.addEventListener('mouseenter', () => { li.firstChild.style.background = '#ffffff06'; });
+      li.addEventListener('mouseleave', () => { li.firstChild.style.background = 'none'; });
+      li.addEventListener('click', () => {
+        const c = GM_getValue('collapsed_groups', []);
+        const idx = c.indexOf(g.id);
+        if (idx >= 0) c.splice(idx, 1); else c.push(g.id);
+        GM_setValue('collapsed_groups', c);
+        grid.classList.toggle('tm-hide-' + g.id);
+        li.querySelector('.tm-chevron').style.transform = c.includes(g.id) ? 'rotate(-90deg)' : '';
+      });
+      grid.appendChild(li);
+    }
+    for (const gid of collapsed) grid.classList.add('tm-hide-' + gid);
   }
 
   function colorChatLinks() {
@@ -1461,7 +1518,7 @@
   function slowCycleInner() {
     colorChatLinks();
     if (currentProject && currentMode && !currentProject.voices) colorInterjections(currentProject);
-    if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') styleProjectCardText();
+    if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') { styleProjectCardText(); applyProjectGrouping(); }
     tintCodeBlocks();
     refreshLaneLegend();
   }

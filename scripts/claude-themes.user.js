@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.23.0
+// @version      6.24.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.23.0';
+  window.__CLAUDE_THEMES_ACTIVE = '6.24.0';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.23.0';
+  const SCRIPT_VERSION = '6.24.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -382,6 +382,12 @@
   const NAV_ID = 'claude-theme-quicknav';
   const QUICK_NAV = [
     {
+      label: 'Projects',
+      url: '/projects',
+      color: '#9a9aaa',
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.3"/></svg>',
+    },
+    {
       label: 'Prism',
       url: '/project/019d4919-fdb8-70a6-9ab0-742306733d2c',
       color: '#00e5ff',
@@ -441,7 +447,7 @@
 
     const ver = document.createElement('span');
     ver.textContent = 'v' + SCRIPT_VERSION;
-    ver.style.cssText = 'font-size:9px;opacity:0.35;color:#ffffff;pointer-events:none;user-select:none;letter-spacing:0.5px;padding-left:2px;';
+    ver.style.cssText = 'font-size:9px;opacity:0.55;color:#ffffff;pointer-events:none;user-select:none;letter-spacing:0.5px;padding-left:2px;';
     bar.appendChild(ver);
 
     document.body.appendChild(bar);
@@ -1509,7 +1515,7 @@
     const bgFallback = !!(bgEl && bgEl.style.background);
     const containerOk = !!(themedContainer && themedContainer.isConnected);
     const ok = !!bgEl && !bgFallback && containerOk;
-    ver.style.color = ok ? '#4a9a7a' : '#c9a84c';
+    ver.style.color = ok ? '#8ac8a8' : '#c9a84c';
     ver.title = ok ? 'Theme layers healthy' : ('Theme degraded: ' + [!bgEl ? 'background missing' : null, bgFallback ? 'background on gradient fallback' : null, !containerOk ? 'container not found' : null].filter(Boolean).join(', '));
   }
 

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.24.0
+// @version      6.25.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.24.0';
+  window.__CLAUDE_THEMES_ACTIVE = '6.25.0';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.24.0';
+  const SCRIPT_VERSION = '6.25.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -255,26 +255,29 @@
     popup.id = INBOX_POPUP_ID;
     popup.dataset.tmUi = '1';
     const rect = anchorEl.getBoundingClientRect();
-    const GOVERNANCE_IDS = ['factory', 'foundry', 'workshop', 'steward'];
-    const EXECUTOR_IDS = ['licitapp', 'vesper', 'template-builder'];
-    const entries = Object.entries(data.agents).sort((a,b) => { if (a[1] === 0 && b[1] > 0) return 1; if (b[1] === 0 && a[1] > 0) return -1; if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]); return b[1] - a[1]; });
-    const govEntries = entries.filter(([id]) => GOVERNANCE_IDS.includes(id));
-    const execEntries = entries.filter(([id]) => EXECUTOR_IDS.includes(id));
-    const opsEntries = entries.filter(([id]) => !GOVERNANCE_IDS.includes(id) && !EXECUTOR_IDS.includes(id));
+    const norm = {}; for (const [id, v] of Object.entries(data.agents)) norm[id] = typeof v === 'number' ? { total: v, actionable: v } : v;
+    const entries = Object.entries(norm).sort((a,b) => { const aa = a[1].actionable, ba = b[1].actionable, at = a[1].total, bt = b[1].total; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
+    const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
+    const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
+    const govEntries = entries.filter(([id]) => govMembers.includes(id));
+    const execEntries = entries.filter(([id]) => execMembers.includes(id));
+    const opsEntries = entries.filter(([id]) => !govMembers.includes(id) && !execMembers.includes(id));
     let html = '';
     function renderGroup(groupLabel, items) {
       if (!items.length) return '';
       let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
-      for (const [agentId, count] of items) {
+      for (const [agentId, cData] of items) {
+        const aCount = cData.actionable, tCount = cData.total;
+        const countLabel = aCount === tCount ? String(tCount) : aCount + '<span style="opacity:0.35;font-size:10px"> / ' + tCount + '</span>';
         const proj = PROJECTS.find(p => p.id === agentId);
         const color = proj ? proj.accentColor : '#8a8a9a';
         const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
         const href = proj ? '/project/' + proj.projectId : '';
-        const dim = count === 0 ? 'opacity:0.35;' : '';
+        const dim = tCount === 0 ? 'opacity:0.35;' : aCount === 0 ? 'opacity:0.5;' : '';
         if (href) {
-          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countLabel + '</span></a>';
         } else {
-          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></div>';
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countLabel + '</span></div>';
         }
       }
       return g;
@@ -560,15 +563,17 @@
       const iData = getInboxData();
       const iCount = inboxEl.querySelector('span');
       const iSvg = inboxEl.querySelector('svg');
-      if (iData && iData.total > 0) {
-        if (iCount) iCount.textContent = iData.total;
+      const actionable = iData ? (iData.actionable ?? iData.total ?? 0) : 0;
+      const totalItems = iData ? (iData.total ?? 0) : 0;
+      if (totalItems > 0) {
+        if (iCount) iCount.textContent = actionable > 0 ? actionable : '';
         const stale = iData.updated_at && (Date.now() - new Date(iData.updated_at).getTime()) > 86400000;
-        const iColor = stale ? '#c9a84c80' : '#c9a84c';
-        inboxEl.style.opacity = stale ? '0.5' : '0.7';
+        const iColor = stale ? '#c9a84c80' : actionable > 0 ? '#c9a84c' : '#8a8a9a';
+        inboxEl.style.opacity = stale ? '0.5' : actionable > 0 ? '0.7' : '0.4';
         if (iSvg) iSvg.style.color = iColor;
         if (iCount) iCount.style.color = iColor;
         const age = iData.updated_at ? formatAge(new Date(iData.updated_at)) : 'unknown';
-        inboxEl.title = iData.total + ' pending across inboxes\nUpdated: ' + age + (stale ? ' (stale)' : '');
+        inboxEl.title = actionable + ' actionable' + (totalItems > actionable ? ', ' + (totalItems - actionable) + ' deferred' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
       } else {
         if (iCount) iCount.textContent = '';
         inboxEl.style.opacity = '0.3';

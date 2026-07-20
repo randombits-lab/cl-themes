@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.25.1
+// @version      6.25.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.25.1';
+  window.__CLAUDE_THEMES_ACTIVE = '6.25.2';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.25.1';
+  const SCRIPT_VERSION = '6.25.2';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -684,8 +684,8 @@
     let el = wrapper.previousElementSibling;
     let steps = 0;
     while (el && steps < 6) {
-      if (el.tagName === 'P') {
-        const m = (el.textContent || '').trim().match(/^T(\d+)\s*[—\-]/);
+      if (/^(P|H[1-6])$/.test(el.tagName)) {
+        const m = (el.textContent || '').trim().match(/^T(\d+)\b.*?[—\-]/);
         if (m) return parseInt(m[1], 10);
       }
       if (el.querySelector?.('pre')) break;
@@ -708,7 +708,8 @@
       const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
       if (!match) continue;
       let color, laneId;
-      const tNum = findTerminalNumber(pre);
+      let tNum = findTerminalNumber(pre);
+      if (tNum === null) { const ti = firstLine.match(/\.\s*T(\d+)\s*\./); if (ti) tNum = parseInt(ti[1], 10); }
       if (tNum !== null) {
         if (tNum > 1) {
           const idx = tNum - 2;

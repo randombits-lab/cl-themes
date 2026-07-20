@@ -1,9 +1,9 @@
 {
-    "total": 10,
+    "total": 11,
     "agents": {
         "licitapp": 0,
         "template-builder": 4,
-        "vesper": 6
+        "vesper": 7
     },
-    "updated_at": "2026-07-20T15:26:15Z"
+    "updated_at": "2026-07-20T18:35:19Z"
 }

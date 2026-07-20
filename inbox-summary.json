@@ -57,15 +57,15 @@
       "actionable": 0
     },
     "vesper": {
-      "total": 2,
-      "actionable": 2
+      "total": 1,
+      "actionable": 1
     },
     "workshop": {
       "total": 1,
       "actionable": 1
     }
   },
-  "total": 33,
-  "actionable": 26,
-  "updated_at": "2026-07-20T08:33:04Z"
+  "total": 32,
+  "actionable": 25,
+  "updated_at": "2026-07-20T10:45:51Z"
 }

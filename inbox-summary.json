@@ -21,8 +21,8 @@
       "actionable": 0
     },
     "foundry": {
-      "total": 11,
-      "actionable": 8
+      "total": 9,
+      "actionable": 4
     },
     "grim-dawn-advisor": {
       "total": 0,
@@ -65,7 +65,7 @@
       "actionable": 1
     }
   },
-  "total": 38,
-  "actionable": 31,
-  "updated_at": "2026-07-22T07:33:21Z"
+  "total": 36,
+  "actionable": 27,
+  "updated_at": "2026-07-22T07:34:52Z"
 }

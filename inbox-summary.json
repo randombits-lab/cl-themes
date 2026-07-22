@@ -45,8 +45,8 @@
       "actionable": 0
     },
     "template-builder": {
-      "total": 0,
-      "actionable": 0
+      "total": 1,
+      "actionable": 1
     },
     "tomoe": {
       "total": 0,
@@ -65,7 +65,7 @@
       "actionable": 1
     }
   },
-  "total": 34,
-  "actionable": 27,
-  "updated_at": "2026-07-22T06:19:21Z"
+  "total": 35,
+  "actionable": 28,
+  "updated_at": "2026-07-22T06:19:47Z"
 }

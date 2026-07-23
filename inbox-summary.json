@@ -29,8 +29,8 @@
       "actionable": 0
     },
     "licitapp": {
-      "total": 10,
-      "actionable": 10
+      "total": 3,
+      "actionable": 3
     },
     "nabu": {
       "total": 0,
@@ -65,7 +65,7 @@
       "actionable": 1
     }
   },
-  "total": 40,
-  "actionable": 31,
-  "updated_at": "2026-07-23T07:35:23Z"
+  "total": 33,
+  "actionable": 24,
+  "updated_at": "2026-07-23T07:54:53Z"
 }

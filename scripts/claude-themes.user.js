@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.25.3
+// @version      6.26.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.25.3';
+  window.__CLAUDE_THEMES_ACTIVE = '6.26.0';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.25.3';
+  const SCRIPT_VERSION = '6.26.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -736,6 +736,22 @@
   }
 
   // =========================================================================
+  // OPERATOR-BLOCK LABEL STYLING
+  // =========================================================================
+  function styleOperatorBlocks() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    for (const p of container.querySelectorAll('p')) {
+      if (p.hasAttribute(OB_ATTR)) continue;
+      const text = (p.textContent || '').trim();
+      const m = text.match(OB_RE);
+      if (!m) continue;
+      p.setAttribute(OB_ATTR, m[1].toLowerCase());
+    }
+  }
+
+  // =========================================================================
   // PROJECT CONFIGS
   // =========================================================================
   const BASE_THEMES = {
@@ -917,6 +933,10 @@
   const ACTION_ALERT_ID = 'claude-theme-action-alert';
   const ACTION_RE = /^\[ACTION-REQUIRED:\s*([a-z/-]+)(?:\s*\|\s*([^\]]+))?\]$/;
   const ACTION_REGISTRY = { '/ship': true };
+  const OB_SETUP_COLOR = '#9b8ec4';
+  const OB_LAUNCH_COLOR = '#d4845a';
+  const OB_RE = /^\[T[123] \. (SETUP|LAUNCH) \. (?:Base Terminal|New Terminal)\]$/;
+  const OB_ATTR = 'data-operator-block';
   const LANE_PRIMARY_COLOR = '#4a7ac8';
   const LANE_COLORS = ['#c9a84c', '#2dd4bf'];
 
@@ -1284,6 +1304,8 @@
       #${CHARACTER_ID} img { ${imgSizing} }` : ''}
       @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
       #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
+      p[${OB_ATTR}="setup"]{color:${OB_SETUP_COLOR} !important;border-left:3px solid ${OB_SETUP_COLOR};padding-left:8px;background:${OB_SETUP_COLOR}0d;border-radius:2px;font-size:0.85em;letter-spacing:0.3px;}
+      p[${OB_ATTR}="launch"]{color:${OB_LAUNCH_COLOR} !important;border-left:3px solid ${OB_LAUNCH_COLOR};padding-left:8px;background:${OB_LAUNCH_COLOR}0d;border-radius:2px;font-size:0.85em;letter-spacing:0.3px;}
     `;
     document.head.appendChild(st);
     const cc = findMainChatContainer(true);
@@ -1534,6 +1556,7 @@
     if (currentProject && currentMode && !currentProject.voices) colorInterjections(currentProject);
     if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') { styleProjectCardText(); applyProjectGrouping(); }
     tintCodeBlocks();
+    styleOperatorBlocks();
     refreshLaneLegend();
   }
 

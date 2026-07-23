@@ -14,7 +14,7 @@
     },
     "factory": {
       "total": 5,
-      "actionable": 4
+      "actionable": 3
     },
     "faith": {
       "total": 0,
@@ -22,7 +22,7 @@
     },
     "foundry": {
       "total": 10,
-      "actionable": 4
+      "actionable": 1
     },
     "grim-dawn-advisor": {
       "total": 0,
@@ -41,7 +41,7 @@
       "actionable": 3
     },
     "steward": {
-      "total": 3,
+      "total": 4,
       "actionable": 0
     },
     "template-builder": {
@@ -65,7 +65,7 @@
       "actionable": 1
     }
   },
-  "total": 34,
-  "actionable": 24,
-  "updated_at": "2026-07-23T08:33:36Z"
+  "total": 35,
+  "actionable": 20,
+  "updated_at": "2026-07-23T09:46:38Z"
 }

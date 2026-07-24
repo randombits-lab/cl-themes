@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.26.0
+// @version      6.27.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.26.0';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.0';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.26.0';
+  const SCRIPT_VERSION = '6.27.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -266,7 +266,7 @@
       if (!items.length) return '';
       let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
       for (const [agentId, counts] of items) {
-        const proj = PROJECTS.find(p => p.id === agentId);
+        const proj = ALL_PROJECTS.find(p => p.id === agentId);
         const color = proj ? proj.accentColor : '#8a8a9a';
         const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
         const href = proj ? '/project/' + proj.projectId : '';
@@ -359,7 +359,7 @@
     });
     let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
     for (const [agentId, count] of entries) {
-      const proj = PROJECTS.find(p => p.id === agentId);
+      const proj = ALL_PROJECTS.find(p => p.id === agentId);
       const color = proj ? proj.accentColor : '#8a8a9a';
       const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
       const dim = count === 0 ? 'opacity:0.35;' : '';
@@ -416,6 +416,8 @@
     },
   ];
 
+  for (const i of QUICK_NAV) { if (i.label !== 'Projects') i.account = 'A'; }
+
   const SUPPRESSED_PATHS = ['/design', '/code/'];
   function isPathSuppressed() {
     const p = window.location.pathname;
@@ -430,7 +432,7 @@
     bar.dataset.tmUi = '1';
     bar.style.cssText = 'position:fixed;top:8px;right:140px;z-index:100;display:flex;flex-wrap:nowrap;gap:6px;align-items:center;pointer-events:auto;transition:right 0.2s ease;';
 
-    for (const item of QUICK_NAV) {
+    for (const item of activeNav) {
       const isActive = window.location.pathname.includes(item.url);
       const a = document.createElement('a');
       a.href = item.url;
@@ -449,7 +451,7 @@
     }
 
     const ver = document.createElement('span');
-    ver.textContent = 'v' + SCRIPT_VERSION;
+    ver.textContent = 'v' + SCRIPT_VERSION + '-' + (ACCOUNT || '?');
     ver.style.cssText = 'font-size:9px;opacity:0.55;color:#ffffff;pointer-events:none;user-select:none;letter-spacing:0.5px;padding-left:2px;';
     bar.appendChild(ver);
 
@@ -466,7 +468,7 @@
     bar.style.right = panelOpen ? '50%' : '140px';
     const links = bar.querySelectorAll('a:not(#' + USAGE_ID + ')');
     links.forEach((a, i) => {
-      const item = QUICK_NAV[i];
+      const item = activeNav[i];
       if (!item) return;
       const isActive = window.location.pathname.includes(item.url);
       a.style.opacity = isActive ? '1' : '0.65';
@@ -896,6 +898,24 @@
 
   for (let i = 0; i < PROJECTS.length; i++) {
     PROJECTS[i] = resolveTheme(PROJECTS[i]);
+  }
+
+  // Account branching — A (personal) vs B (KLG corporate)
+  for (const p of PROJECTS) { if (!p.account) p.account = 'A'; }
+  const ALL_PROJECTS = PROJECTS.slice();
+  let ACCOUNT = null;
+  let activeNav = [];
+  function initAccount() {
+    const nav = document.querySelector('nav');
+    if (!nav) return false;
+    const previous = ACCOUNT;
+    ACCOUNT = nav.textContent.includes('KLG') ? 'B' : 'A';
+    const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
+    PROJECTS.length = 0;
+    PROJECTS.push(...filtered);
+    activeNav = QUICK_NAV.filter(i => !i.account || i.account === ACCOUNT);
+    if (previous && previous !== ACCOUNT) document.getElementById(NAV_ID)?.remove();
+    return true;
   }
 
   const PROJECT_GROUPS = [
@@ -1562,6 +1582,7 @@
 
   function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
   function checkInner() {
+    if (!ACCOUNT) initAccount();
     ensureInboxFetch();
     ensureReflectFetch();
     manageCardStyles();

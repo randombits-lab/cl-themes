@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.5
+// @version      6.27.6
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.5';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.6';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -34,7 +34,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.5';
+  const SCRIPT_VERSION = '6.27.6';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -543,11 +543,12 @@
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');
     const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
-      const allIndexed = document.querySelectorAll('[data-index]');
+      const counterScope = themedContainer || document;
+      const allIndexed = counterScope.querySelectorAll('[data-index]');
       let currentMaxIdx = -1;
       allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMaxIdx) currentMaxIdx = idx; });
-      if (currentMaxIdx > maxDataIndex) maxDataIndex = currentMaxIdx;
-      const assist = maxDataIndex >= 0 ? Math.floor((maxDataIndex + 1) / 2) : document.querySelectorAll('[data-testid="action-bar-retry"]').length;
+      maxDataIndex = currentMaxIdx;
+      const assist = maxDataIndex >= 0 ? Math.floor((maxDataIndex + 1) / 2) : counterScope.querySelectorAll('[data-testid="action-bar-retry"]').length;
       const counterText = '\u2195 ' + assist;
       if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
       const consumColor = assist > 20 ? '#c45c4c' : assist > 14 ? '#c9a84c' : '#4a9a7a';
@@ -615,7 +616,8 @@
   // =========================================================================
   function checkActionRequired() {
     if (!window.location.pathname.includes('/chat/')) return;
-    const allIndexed = document.querySelectorAll('[data-index]');
+    const actionScope = themedContainer || document;
+    const allIndexed = actionScope.querySelectorAll('[data-index]');
     let currentMax = -1;
     allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMax) currentMax = idx; });
     if (currentMax < 1) return;

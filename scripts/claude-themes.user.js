@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.2
+// @version      6.27.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.2';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.3';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.2';
+  const SCRIPT_VERSION = '6.27.3';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -908,9 +908,8 @@
   let activeNav = [];
   function initAccount() {
     const nav = document.querySelector('nav');
-    if (!nav) return false;
     const previous = ACCOUNT;
-    ACCOUNT = nav.textContent.includes('LG EUR') ? 'B' : 'A';
+    ACCOUNT = (nav && nav.textContent.includes('LG EUR')) ? 'B' : 'A';
     const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
     PROJECTS.length = 0;
     PROJECTS.push(...filtered);

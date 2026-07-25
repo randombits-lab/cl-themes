@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.3
+// @version      6.27.4
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.3';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.4';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -33,7 +33,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.3';
+  const SCRIPT_VERSION = '6.27.4';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -906,10 +906,17 @@
   const ALL_PROJECTS = PROJECTS.slice();
   let ACCOUNT = null;
   let activeNav = [];
+  let accountCycles = 0;
   function initAccount() {
-    const nav = document.querySelector('nav');
+    if (ACCOUNT && accountCycles >= 10) return true;
+    accountCycles++;
     const previous = ACCOUNT;
-    ACCOUNT = (nav && nav.textContent.includes('LG EUR')) ? 'B' : 'A';
+    let isB = false;
+    for (const s of document.querySelectorAll('span')) {
+      if ((s.textContent || '').includes('LG EUR')) { isB = true; break; }
+    }
+    ACCOUNT = isB ? 'B' : 'A';
+    if (ACCOUNT === previous) return true;
     const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
     PROJECTS.length = 0;
     PROJECTS.push(...filtered);
@@ -1582,7 +1589,7 @@
 
   function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
   function checkInner() {
-    if (!ACCOUNT) initAccount();
+    initAccount();
     ensureInboxFetch();
     ensureReflectFetch();
     manageCardStyles();

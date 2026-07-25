@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.4
+// @version      6.27.5
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.4';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.5';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -28,12 +28,13 @@
     GM_registerMenuCommand('Claude Themes: disable (reloads)', () => { GM_setValue('theme_disabled', true); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle sprites (reloads)', () => { GM_setValue('sprites_enabled', !GM_getValue('sprites_enabled', false)); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle reduced motion (reloads)', () => { GM_setValue('reduced_motion', !GM_getValue('reduced_motion', false)); location.reload(); });
+    GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = GM_getValue('account', 'A'); const next = cur === 'A' ? 'B' : 'A'; GM_setValue('account', next); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); actionAudioEnabled = v; });
   }
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.4';
+  const SCRIPT_VERSION = '6.27.5';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -906,22 +907,13 @@
   const ALL_PROJECTS = PROJECTS.slice();
   let ACCOUNT = null;
   let activeNav = [];
-  let accountCycles = 0;
   function initAccount() {
-    if (ACCOUNT && accountCycles >= 10) return true;
-    accountCycles++;
-    const previous = ACCOUNT;
-    let isB = false;
-    for (const s of document.querySelectorAll('span')) {
-      if ((s.textContent || '').includes('LG EUR')) { isB = true; break; }
-    }
-    ACCOUNT = isB ? 'B' : 'A';
-    if (ACCOUNT === previous) return true;
+    if (ACCOUNT) return true;
+    ACCOUNT = GM_getValue('account', 'A');
     const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
     PROJECTS.length = 0;
     PROJECTS.push(...filtered);
     activeNav = QUICK_NAV.filter(i => !i.account || i.account === ACCOUNT);
-    if (previous && previous !== ACCOUNT) document.getElementById(NAV_ID)?.remove();
     return true;
   }
 
@@ -1589,7 +1581,7 @@
 
   function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
   function checkInner() {
-    initAccount();
+    if (!ACCOUNT) initAccount();
     ensureInboxFetch();
     ensureReflectFetch();
     manageCardStyles();

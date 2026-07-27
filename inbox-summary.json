@@ -49,7 +49,7 @@
       "actionable": 2
     },
     "tomoe": {
-      "total": 1,
+      "total": 2,
       "actionable": 0
     },
     "vadim": {
@@ -65,7 +65,7 @@
       "actionable": 1
     }
   },
-  "total": 38,
+  "total": 39,
   "actionable": 19,
-  "updated_at": "2026-07-27T07:25:09Z"
+  "updated_at": "2026-07-27T08:34:48Z"
 }

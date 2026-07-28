@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.6
+// @version      6.27.7
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.6';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.7';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -28,13 +28,13 @@
     GM_registerMenuCommand('Claude Themes: disable (reloads)', () => { GM_setValue('theme_disabled', true); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle sprites (reloads)', () => { GM_setValue('sprites_enabled', !GM_getValue('sprites_enabled', false)); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle reduced motion (reloads)', () => { GM_setValue('reduced_motion', !GM_getValue('reduced_motion', false)); location.reload(); });
-    GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = GM_getValue('account', 'A'); const next = cur === 'A' ? 'B' : 'A'; GM_setValue('account', next); location.reload(); });
+    GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); actionAudioEnabled = v; });
   }
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.6';
+  const SCRIPT_VERSION = '6.27.7';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -909,9 +909,25 @@
   const ALL_PROJECTS = PROJECTS.slice();
   let ACCOUNT = null;
   let activeNav = [];
+  function detectAccountFromDOM() {
+    const nav = document.querySelector('nav');
+    return (nav?.textContent || '').includes('ope Logistics S.R.') ? 'B' : null;
+  }
+
   function initAccount() {
     if (ACCOUNT) return true;
-    ACCOUNT = GM_getValue('account', 'A');
+    const tabVal = sessionStorage.getItem('claude-theme-account');
+    if (tabVal === 'A' || tabVal === 'B') {
+      ACCOUNT = tabVal;
+    } else {
+      const detected = detectAccountFromDOM();
+      if (detected) {
+        ACCOUNT = detected;
+        sessionStorage.setItem('claude-theme-account', detected);
+      } else {
+        ACCOUNT = 'A';
+      }
+    }
     const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
     PROJECTS.length = 0;
     PROJECTS.push(...filtered);
@@ -1584,6 +1600,21 @@
   function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
   function checkInner() {
     if (!ACCOUNT) initAccount();
+    else if (!sessionStorage.getItem('claude-theme-account')) {
+      const detected = detectAccountFromDOM();
+      if (detected) {
+        sessionStorage.setItem('claude-theme-account', detected);
+        if (detected !== ACCOUNT) {
+          ACCOUNT = detected;
+          const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
+          PROJECTS.length = 0;
+          PROJECTS.push(...filtered);
+          activeNav = QUICK_NAV.filter(i => !i.account || i.account === ACCOUNT);
+          cleanup();
+          document.getElementById(NAV_ID)?.remove();
+        }
+      }
+    }
     ensureInboxFetch();
     ensureReflectFetch();
     manageCardStyles();

@@ -13,24 +13,24 @@
       "actionable": 0
     },
     "factory": {
-      "total": 6,
-      "actionable": 0
+      "total": 8,
+      "actionable": 2
     },
     "faith": {
       "total": 0,
       "actionable": 0
     },
     "foundry": {
-      "total": 12,
-      "actionable": 5
+      "total": 7,
+      "actionable": 0
     },
     "grim-dawn-advisor": {
       "total": 0,
       "actionable": 0
     },
     "licitapp": {
-      "total": 4,
-      "actionable": 4
+      "total": 6,
+      "actionable": 6
     },
     "nabu": {
       "total": 0,
@@ -41,12 +41,12 @@
       "actionable": 0
     },
     "steward": {
-      "total": 9,
-      "actionable": 5
+      "total": 14,
+      "actionable": 10
     },
     "template-builder": {
-      "total": 1,
-      "actionable": 1
+      "total": 3,
+      "actionable": 3
     },
     "tomoe": {
       "total": 2,
@@ -57,15 +57,15 @@
       "actionable": 0
     },
     "vesper": {
-      "total": 1,
-      "actionable": 1
+      "total": 4,
+      "actionable": 4
     },
     "workshop": {
       "total": 2,
       "actionable": 1
     }
   },
-  "total": 41,
-  "actionable": 21,
-  "updated_at": "2026-07-29T12:46:38Z"
+  "total": 50,
+  "actionable": 30,
+  "updated_at": "2026-07-29T17:25:36Z"
 }

@@ -41,8 +41,8 @@
       "actionable": 0
     },
     "steward": {
-      "total": 7,
-      "actionable": 3
+      "total": 8,
+      "actionable": 4
     },
     "template-builder": {
       "total": 0,
@@ -65,7 +65,7 @@
       "actionable": 1
     }
   },
-  "total": 40,
-  "actionable": 19,
-  "updated_at": "2026-07-29T08:39:41Z"
+  "total": 41,
+  "actionable": 20,
+  "updated_at": "2026-07-29T09:00:58Z"
 }

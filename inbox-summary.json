@@ -12,6 +12,10 @@
       "total": 0,
       "actionable": 0
     },
+    "egostic": {
+      "total": 0,
+      "actionable": 0
+    },
     "factory": {
       "total": 10,
       "actionable": 2
@@ -67,5 +71,5 @@
   },
   "total": 44,
   "actionable": 24,
-  "updated_at": "2026-07-30T18:17:24Z"
+  "updated_at": "2026-07-30T18:19:47Z"
 }

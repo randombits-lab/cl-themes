@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.7
+// @version      6.27.8
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.7';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.8';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -34,7 +34,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.7';
+  const SCRIPT_VERSION = '6.27.8';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -497,6 +497,18 @@
     return null;
   }
 
+  const MSG_SEL = '[data-testid="user-message"], .font-claude-response, .font-claude-message';
+  function getMessageNodes(scope) {
+    const out = [];
+    for (const el of (scope || document).querySelectorAll('[data-index]')) {
+      if (!el.querySelector(MSG_SEL)) continue;
+      const idx = parseInt(el.getAttribute('data-index'), 10);
+      if (!Number.isFinite(idx)) continue;
+      out.push({ idx, el, assistant: !!el.querySelector('.font-claude-response, .font-claude-message') });
+    }
+    return out;
+  }
+
   function refreshUtilBar() {
     const disclaimer = findDisclaimer();
     let bar = document.getElementById(UTILBAR_ID);
@@ -544,10 +556,10 @@
     const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
       const counterScope = themedContainer || document;
-      const allIndexed = counterScope.querySelectorAll('[data-index]');
+      const msgs = getMessageNodes(counterScope);
       let currentMaxIdx = -1;
-      allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMaxIdx) currentMaxIdx = idx; });
-      maxDataIndex = currentMaxIdx;
+      for (const m of msgs) { if (m.idx > currentMaxIdx) currentMaxIdx = m.idx; }
+      if (currentMaxIdx > maxDataIndex) maxDataIndex = currentMaxIdx;
       const assist = maxDataIndex >= 0 ? Math.floor((maxDataIndex + 1) / 2) : counterScope.querySelectorAll('[data-testid="action-bar-retry"]').length;
       const counterText = '\u2195 ' + assist;
       if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
@@ -616,21 +628,18 @@
   // =========================================================================
   function checkActionRequired() {
     if (!window.location.pathname.includes('/chat/')) return;
-    const actionScope = themedContainer || document;
-    const allIndexed = actionScope.querySelectorAll('[data-index]');
-    let currentMax = -1;
-    allIndexed.forEach(el => { const idx = parseInt(el.getAttribute('data-index'), 10); if (idx > currentMax) currentMax = idx; });
-    if (currentMax < 1) return;
-    const targetIdx = currentMax % 2 === 1 ? currentMax : currentMax - 1;
-    if (targetIdx <= 0 || targetIdx === actionAlertedIdx) return;
-    const el = document.querySelector('[data-index="' + targetIdx + '"]');
+    const msgs = getMessageNodes(themedContainer || document);
+    let target = null;
+    for (const m of msgs) { if (m.assistant && (!target || m.idx > target.idx)) target = m; }
+    if (!target || target.idx <= 0 || target.idx === actionAlertedIdx) return;
+    const el = target.el;
     if (!el) return;
     const paras = [...el.querySelectorAll('p')].filter(p => !p.closest('pre'));
     if (!paras.length) return;
     const lastP = paras[paras.length - 1];
     const text = (lastP.textContent || '').trim();
     const match = text.match(ACTION_RE);
-    if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); actionAlertedIdx = targetIdx; }
+    if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); actionAlertedIdx = target.idx; }
   }
 
   function showActionAlert(action, context) {

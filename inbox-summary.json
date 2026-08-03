@@ -41,7 +41,7 @@
       "actionable": 0
     },
     "prism": {
-      "total": 1,
+      "total": 2,
       "actionable": 0
     },
     "steward": {
@@ -69,7 +69,7 @@
       "actionable": 1
     }
   },
-  "total": 66,
+  "total": 67,
   "actionable": 40,
-  "updated_at": "2026-08-03T17:30:49Z"
+  "updated_at": "2026-08-03T18:37:29Z"
 }

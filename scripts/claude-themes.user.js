@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.8
+// @version      6.27.9
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.8';
+  window.__CLAUDE_THEMES_ACTIVE = '6.27.9';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -28,13 +28,14 @@
     GM_registerMenuCommand('Claude Themes: disable (reloads)', () => { GM_setValue('theme_disabled', true); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle sprites (reloads)', () => { GM_setValue('sprites_enabled', !GM_getValue('sprites_enabled', false)); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle reduced motion (reloads)', () => { GM_setValue('reduced_motion', !GM_getValue('reduced_motion', false)); location.reload(); });
-    GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); location.reload(); });
+    GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); GM_setValue('account_pin', next); location.reload(); });
+    GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); GM_setValue('account_pin', cur); location.reload(); });
     GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); actionAudioEnabled = v; });
   }
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.8';
+  const SCRIPT_VERSION = '6.27.9';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -453,7 +454,7 @@
     }
 
     const ver = document.createElement('span');
-    ver.textContent = 'v' + SCRIPT_VERSION + '-' + (ACCOUNT || '?');
+    ver.textContent = 'v' + SCRIPT_VERSION + '-' + (ACCOUNT || '?') + (ACCOUNT_ASSUMED ? '?' : '');
     ver.style.cssText = 'font-size:9px;opacity:0.55;color:#ffffff;pointer-events:none;user-select:none;letter-spacing:0.5px;padding-left:2px;';
     bar.appendChild(ver);
 
@@ -916,32 +917,56 @@
   // Account branching — A (personal) vs B (KLG corporate)
   for (const p of PROJECTS) { if (!p.account) p.account = 'A'; }
   const ALL_PROJECTS = PROJECTS.slice();
+  const ACCOUNT_TAB_KEY = 'claude-theme-account';
+  const ACCOUNT_PIN_KEY = 'account_pin';
+  const ORG_B_RE = /ope\s*Logistics\s*S\.?\s*R\.?\s*L?\.?/i;
   let ACCOUNT = null;
+  let ACCOUNT_ASSUMED = false;
   let activeNav = [];
+
   function detectAccountFromDOM() {
     const nav = document.querySelector('nav');
-    return (nav?.textContent || '').includes('ope Logistics S.R.') ? 'B' : null;
+    if (!nav) return null;
+    return ORG_B_RE.test(nav.textContent || '') ? 'B' : null;
   }
 
-  function initAccount() {
-    if (ACCOUNT) return true;
-    const tabVal = sessionStorage.getItem('claude-theme-account');
-    if (tabVal === 'A' || tabVal === 'B') {
-      ACCOUNT = tabVal;
-    } else {
-      const detected = detectAccountFromDOM();
-      if (detected) {
-        ACCOUNT = detected;
-        sessionStorage.setItem('claude-theme-account', detected);
-      } else {
-        ACCOUNT = 'A';
-      }
-    }
+  function selectAccountProjects() {
     const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
     PROJECTS.length = 0;
     PROJECTS.push(...filtered);
     activeNav = QUICK_NAV.filter(i => !i.account || i.account === ACCOUNT);
+  }
+
+  function initAccount() {
+    if (ACCOUNT) return true;
+    const tabVal = sessionStorage.getItem(ACCOUNT_TAB_KEY);
+    const pinVal = GM_getValue(ACCOUNT_PIN_KEY, null);
+    if (tabVal === 'A' || tabVal === 'B') {
+      ACCOUNT = tabVal; ACCOUNT_ASSUMED = false;
+    } else if (pinVal === 'A' || pinVal === 'B') {
+      ACCOUNT = pinVal; ACCOUNT_ASSUMED = false;
+      sessionStorage.setItem(ACCOUNT_TAB_KEY, pinVal);
+    } else {
+      const detected = detectAccountFromDOM();
+      if (detected) {
+        ACCOUNT = detected; ACCOUNT_ASSUMED = false;
+        sessionStorage.setItem(ACCOUNT_TAB_KEY, detected);
+        GM_setValue(ACCOUNT_PIN_KEY, detected);
+      } else {
+        ACCOUNT = 'A'; ACCOUNT_ASSUMED = true;
+      }
+    }
+    selectAccountProjects();
     return true;
+  }
+
+  function adoptAccount(acc) {
+    const changed = acc !== ACCOUNT;
+    ACCOUNT = acc; ACCOUNT_ASSUMED = false;
+    sessionStorage.setItem(ACCOUNT_TAB_KEY, acc);
+    GM_setValue(ACCOUNT_PIN_KEY, acc);
+    if (changed) { selectAccountProjects(); cleanup(); }
+    document.getElementById(NAV_ID)?.remove();
   }
 
   const PROJECT_GROUPS = [
@@ -1609,20 +1634,9 @@
   function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
   function checkInner() {
     if (!ACCOUNT) initAccount();
-    else if (!sessionStorage.getItem('claude-theme-account')) {
+    else if (ACCOUNT_ASSUMED) {
       const detected = detectAccountFromDOM();
-      if (detected) {
-        sessionStorage.setItem('claude-theme-account', detected);
-        if (detected !== ACCOUNT) {
-          ACCOUNT = detected;
-          const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
-          PROJECTS.length = 0;
-          PROJECTS.push(...filtered);
-          activeNav = QUICK_NAV.filter(i => !i.account || i.account === ACCOUNT);
-          cleanup();
-          document.getElementById(NAV_ID)?.remove();
-        }
-      }
+      if (detected) adoptAccount(detected);
     }
     ensureInboxFetch();
     ensureReflectFetch();

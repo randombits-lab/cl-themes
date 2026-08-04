@@ -17,8 +17,8 @@
       "actionable": 0
     },
     "factory": {
-      "total": 19,
-      "actionable": 11
+      "total": 20,
+      "actionable": 12
     },
     "faith": {
       "total": 0,
@@ -45,8 +45,8 @@
       "actionable": 1
     },
     "steward": {
-      "total": 20,
-      "actionable": 13
+      "total": 19,
+      "actionable": 10
     },
     "template-builder": {
       "total": 3,
@@ -70,6 +70,6 @@
     }
   },
   "total": 80,
-  "actionable": 51,
-  "updated_at": "2026-08-04T18:47:33Z"
+  "actionable": 49,
+  "updated_at": "2026-08-04T19:21:59Z"
 }

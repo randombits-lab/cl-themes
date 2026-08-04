@@ -1,0 +1,22 @@
+{
+  "updated_at": "2026-08-04T19:40:05Z",
+  "agents": {
+    "faith": "1.45",
+    "tomoe": "3.31",
+    "anasteria": "1.35",
+    "alfred": "1.32",
+    "nabu": "1.29",
+    "prism": "1.30",
+    "crucible": "2.15",
+    "vadim": "1.24",
+    "grim-dawn-advisor": "1.26",
+    "egostic": "1.2",
+    "code-foundry": "1.49",
+    "factory": "1.44",
+    "steward": "1.24",
+    "business-agent-workshop": "2.25",
+    "licitapp": "1.85",
+    "vesper": "1.56",
+    "template-builder": "1.40"
+  }
+}

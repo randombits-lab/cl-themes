@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.27.9
+// @version      6.28.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.27.9';
+  window.__CLAUDE_THEMES_ACTIVE = '6.28.0';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -35,7 +35,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.27.9';
+  const SCRIPT_VERSION = '6.28.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -100,6 +100,11 @@
   const STEWARD_HOME = BASE + 'steward_project.png';
   const STEWARD_BG   = BASE + 'steward_background.png';
   const STEWARD_CARD = BASE + 'steward_card.png';
+
+  const EGOSTIC_CHAT = BASE + 'egostic_chat.png';
+  const EGOSTIC_HOME = BASE + 'egostic_project.png';
+  const EGOSTIC_BG   = BASE + 'egostic_background.png';
+  const EGOSTIC_CARD = BASE + 'egostic_card.png';
 
   const PREFIX_COLORS = { 'meta': '#c45c4c' };
   function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
@@ -908,6 +913,14 @@
       chat: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
       homepage: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
     },
+    {
+      id: 'egostic', projectId: '019fccf4-99e1-77b2-9272-904646d733aa', label: 'Egostic',
+      accentColor: '#c43030', interjectionColor: '#d4a0a0', interjectionBorder: '#c43030',
+      chatBackground: 'linear-gradient(160deg, #14080a 0%, #1a0c10 30%, #120a0e 60%, #0a0608 100%)',
+      card: { imageUrl: EGOSTIC_CARD, titleColor: '#c43030', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
+    },
   ];
 
   for (let i = 0; i < PROJECTS.length; i++) {
@@ -971,7 +984,7 @@
 
   const PROJECT_GROUPS = [
     { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
-    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'grim-dawn-advisor'] },
+    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'grim-dawn-advisor', 'egostic'] },
     { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
   ];
   const PROJECT_GROUP_MAP = {};

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-04T20:49:41Z",
+  "updated_at": "2026-08-04T20:57:49Z",
   "agents": {
     "faith": "1.45",
     "tomoe": "3.31",
@@ -10,7 +10,7 @@
     "crucible": "2.15",
     "vadim": "1.24",
     "grim-dawn-advisor": "1.26",
-    "egostic": "1.2",
+    "egostic": "1.3",
     "code-foundry": "1.49",
     "factory": "1.45",
     "steward": "1.24",

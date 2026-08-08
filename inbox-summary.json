@@ -40,7 +40,9 @@
     },
     "grim-dawn-advisor": {
       "total": 1,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 1
     },
     "licitapp": {
       "total": 6,
@@ -90,5 +92,5 @@
   "total": 48,
   "actionable": 33,
   "due": 0,
-  "updated_at": "2026-08-08T18:15:32Z"
+  "updated_at": "2026-08-08T18:16:47Z"
 }

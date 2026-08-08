@@ -88,7 +88,9 @@
     },
     "vesper": {
       "total": 5,
-      "actionable": 5
+      "actionable": 5,
+      "due": 0,
+      "informational": 0
     },
     "workshop": {
       "total": 3,
@@ -100,5 +102,5 @@
   "total": 48,
   "actionable": 33,
   "due": 0,
-  "updated_at": "2026-08-08T18:21:59Z"
+  "updated_at": "2026-08-08T18:23:37Z"
 }

@@ -1,22 +1,22 @@
 {
-  "updated_at": "2026-08-07T20:55:28Z",
+  "updated_at": "2026-08-08T00:02:33Z",
   "agents": {
-    "faith": "1.46",
-    "tomoe": "3.32",
-    "anasteria": "1.36",
+    "faith": "1.48",
+    "tomoe": "3.33",
+    "anasteria": "1.37",
     "alfred": "1.34",
     "nabu": "1.30",
     "prism": "1.33",
-    "crucible": "2.16",
+    "crucible": "2.17",
     "vadim": "1.25",
     "grim-dawn-advisor": "1.27",
-    "egostic": "1.4",
-    "code-foundry": "1.50",
-    "factory": "1.46",
-    "steward": "1.25",
+    "egostic": "1.5",
+    "code-foundry": "1.52",
+    "factory": "1.48",
+    "steward": "1.26",
     "business-agent-workshop": "2.26",
-    "licitapp": "1.86",
-    "vesper": "1.57",
-    "template-builder": "1.41"
+    "licitapp": "1.87",
+    "vesper": "1.58",
+    "template-builder": "1.42"
   }
 }

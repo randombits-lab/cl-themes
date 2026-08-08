@@ -67,8 +67,8 @@
       "informational": 0
     },
     "steward": {
-      "total": 0,
-      "actionable": 0,
+      "total": 1,
+      "actionable": 1,
       "due": 0,
       "informational": 0
     },
@@ -103,8 +103,8 @@
       "informational": 2
     }
   },
-  "total": 46,
-  "actionable": 31,
+  "total": 47,
+  "actionable": 32,
   "due": 1,
-  "updated_at": "2026-08-08T19:52:48Z"
+  "updated_at": "2026-08-08T20:14:06Z"
 }

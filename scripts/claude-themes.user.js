@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.29.0
+// @version      6.29.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.29.0';
+  window.__CLAUDE_THEMES_ACTIVE = '6.29.1';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -35,7 +35,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.29.0';
+  const SCRIPT_VERSION = '6.29.1';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -1451,6 +1451,7 @@
       header, main { background-color:transparent !important; }
       @keyframes thm-bg-in { from{opacity:0} to{opacity:1} }
       @keyframes thm-char-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+      @keyframes tm-version-glow { 0%,100%{box-shadow:0 0 0 2px var(--tm-vg),0 0 12px color-mix(in srgb,var(--tm-vg) 45%,transparent)}50%{box-shadow:0 0 0 2px var(--tm-vg),0 0 24px color-mix(in srgb,var(--tm-vg) 70%,transparent),0 0 48px color-mix(in srgb,var(--tm-vg) 25%,transparent)} }
       #${BG_ID} { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-2;pointer-events:none;opacity:0;animation:thm-bg-in 300ms ease-out forwards;${bgCSS} }
       [${THEME_ATTR}] { background:transparent !important;background-color:transparent !important;background-image:none !important; }
       [${THEME_ATTR}] > * { background-color:transparent !important; }
@@ -1461,8 +1462,8 @@
       [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
       [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { box-shadow:0 0 0 2px #c9a84c50, 0 0 16px #c9a84c25 !important;border-color:#c9a84c40 !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="missing"] { box-shadow:0 0 0 2px #c45c4c50, 0 0 16px #c45c4c25 !important;border-color:#c45c4c40 !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { --tm-vg:#c9a84c;border-color:#c9a84c !important;animation:tm-version-glow 2.5s ease-in-out infinite !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"] { --tm-vg:#c45c4c;border-color:#c45c4c !important;animation:tm-version-glow 2s ease-in-out infinite !important; }
       #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.28.0
+// @version      6.29.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.28.0';
+  window.__CLAUDE_THEMES_ACTIVE = '6.29.0';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -35,7 +35,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.28.0';
+  const SCRIPT_VERSION = '6.29.0';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -315,6 +315,8 @@
       if (!d || (Date.now() - (d._fetchedAt || 0)) > 300000) fetchInboxSummary();
       const rd = getReflectData();
       if (!rd || (Date.now() - (rd._fetchedAt || 0)) > 300000) fetchReflectionSummary();
+      const vd = getVersionData();
+      if (!vd || (Date.now() - (vd._fetchedAt || 0)) > 300000) fetchVersionSummary();
     }
   });
 
@@ -385,6 +387,83 @@
     const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
     setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
   }
+
+  // =========================================================================
+  // VERSION INDICATOR — deployed vs registry version comparison (Account A)
+  // =========================================================================
+  const VERSION_KEY = 'claude-theme-versions';
+  const VERSION_URL = BASE + 'version-summary.json';
+
+  function fetchVersionSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: VERSION_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(VERSION_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getVersionData() {
+    try { const r = localStorage.getItem(VERSION_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let versionFetched = false;
+  function ensureVersionFetch() {
+    if (versionFetched) return;
+    versionFetched = true;
+    fetchVersionSummary();
+  }
+
+  function parseVersionFromCard() {
+    for (const el of document.querySelectorAll('div, span, h2, h3, p, button')) {
+      if (el.children.length > 0) continue;
+      if ((el.textContent || '').trim() !== 'Instructions') continue;
+      let card = el.parentElement;
+      while (card && card !== document.body && (card.textContent || '').length < 200) card = card.parentElement;
+      if (!card || card === document.body) continue;
+      const full = card.textContent || '';
+      const idx = full.indexOf('Instructions');
+      if (idx === -1) continue;
+      const header = full.substring(idx + 12, idx + 112).trim();
+      const m = header.match(/\|v(\d+\.\d+)\|/);
+      return m ? m[1] : null;
+    }
+    return null;
+  }
+
+  function refreshVersionIndicator(project) {
+    if (ACCOUNT !== 'A') return;
+    const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const fieldset = container.querySelector('fieldset');
+    if (!fieldset) return;
+    const vData = getVersionData();
+    const regId = project.registryId || project.id;
+    if (!vData || !vData.agents || !vData.agents[regId]) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = '';
+      return;
+    }
+    const registryVersion = vData.agents[regId];
+    const cardVersion = parseVersionFromCard();
+    if (!cardVersion) {
+      fieldset.setAttribute('data-tm-version', 'missing');
+      fieldset.title = 'No |v...| token in prompt \u2014 registry: v' + registryVersion;
+      return;
+    }
+    if (cardVersion === registryVersion) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = 'v' + cardVersion + ' \u2014 current';
+      return;
+    }
+    fieldset.setAttribute('data-tm-version', 'mismatch');
+    fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
+  }
+
 
   // =========================================================================
   // QUICK-NAV — pinned project shortcuts, always visible
@@ -586,21 +665,24 @@
       const iData = getInboxData();
       const iCount = inboxEl.querySelector('span');
       const iSvg = inboxEl.querySelector('svg');
-      const iActionable = typeof iData?.actionable === 'number' ? iData.actionable : iData?.total || 0;
-      if (iData && iActionable > 0) {
-        if (iCount) iCount.textContent = iActionable;
+      const iDue = typeof iData?.due === 'number' ? iData.due : 0;
+      const iAttention = (typeof iData?.actionable === 'number' ? iData.actionable : iData?.total || 0) + iDue;
+      if (iData && iAttention > 0) {
+        if (iCount) iCount.textContent = iAttention;
         const stale = iData.updated_at && (Date.now() - new Date(iData.updated_at).getTime()) > 86400000;
         const iColor = stale ? '#c9a84c80' : '#c9a84c';
         inboxEl.style.opacity = stale ? '0.5' : '0.7';
         if (iSvg) iSvg.style.color = iColor;
         if (iCount) iCount.style.color = iColor;
         const age = iData.updated_at ? formatAge(new Date(iData.updated_at)) : 'unknown';
-        inboxEl.title = iActionable + ' actionable' + (iData.total > iActionable ? ' of ' + iData.total + ' total' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
+        const iAct = typeof iData?.actionable === 'number' ? iData.actionable : iAttention;
+        const breakdown = iDue > 0 ? iAct + ' actionable, ' + iDue + ' due' : iAttention + ' actionable';
+        inboxEl.title = breakdown + (iData.total > iAttention ? ' of ' + iData.total + ' total' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
       } else {
         if (iCount) iCount.textContent = '';
         inboxEl.style.opacity = '0.3';
         if (iSvg) iSvg.style.color = '#8a8a9a';
-        const deferred = iData?.total ? iData.total - iActionable : 0;
+        const deferred = iData?.total ? iData.total - iAttention : 0;
         inboxEl.title = iData ? (deferred > 0 ? deferred + ' deferred, none actionable' : 'All inboxes clear') : 'Inbox data not loaded';
       }
     }
@@ -840,7 +922,7 @@
       homepage: { backgroundImage: NABU_BG, characterUrl: NABU_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-60px', characterRight: '-40px' },
     },
     {
-      id: 'workshop', projectId: '019c9ef3-69c4-70de-a65e-9a3c0225188b', label: 'Workshop',
+      id: 'workshop', registryId: 'business-agent-workshop', projectId: '019c9ef3-69c4-70de-a65e-9a3c0225188b', label: 'Workshop',
       accentColor: '#c47832', chatBackground: 'linear-gradient(160deg, #141210 0%, #1a1714 30%, #12110f 60%, #0d0c0a 100%)',
       card: { imageUrl: WORKSHOP_CARD, titleColor: '#c47832', letterSpacing: '0.5px', textTransform: null },
       chat: { backgroundImage: WORKSHOP_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
@@ -871,7 +953,7 @@
       chat: { backgroundImage: CRUCIBLE_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
       homepage: { backgroundImage: CRUCIBLE_BG, characterUrl: CRUCIBLE_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-40px', characterRight: '-20px' },
     },
-    { id: 'foundry', projectId: '019d638f-5d0b-72d1-b060-96438a50d1b7', label: 'Foundry', extends: 'foundry' },
+    { id: 'foundry', registryId: 'code-foundry', projectId: '019d638f-5d0b-72d1-b060-96438a50d1b7', label: 'Foundry', extends: 'foundry' },
     { id: 'licitapp', projectId: '019d26a7-d716-7675-af51-76dd9d2ce4eb', label: 'LicitApp', extends: 'foundry' },
     { id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper', extends: 'foundry' },
     { id: 'template-builder', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'Template Builder', extends: 'foundry' },
@@ -1379,6 +1461,8 @@
       [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
       [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { box-shadow:0 0 0 2px #c9a84c50, 0 0 16px #c9a84c25 !important;border-color:#c9a84c40 !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"] { box-shadow:0 0 0 2px #c45c4c50, 0 0 16px #c45c4c25 !important;border-color:#c45c4c40 !important; }
       #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }
@@ -1653,6 +1737,7 @@
     }
     ensureInboxFetch();
     ensureReflectFetch();
+    ensureVersionFetch();
     manageCardStyles();
     refreshQuickNav();
     const ctx = detectContext();
@@ -1664,6 +1749,7 @@
       else if (url.includes('/chat/')) { nullDetections++; if (nullDetections >= 6) { nullDetections = 0; cleanup(); } }
     }
     updateHealthBeacon();
+    if (ACCOUNT === 'A' && currentMode === 'homepage' && currentProject) refreshVersionIndicator(currentProject);
     if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }

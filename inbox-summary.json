@@ -2,7 +2,9 @@
   "agents": {
     "alfred": {
       "total": 5,
-      "actionable": 5
+      "actionable": 5,
+      "due": 0,
+      "informational": 0
     },
     "anasteria": {
       "total": 0,
@@ -98,5 +100,5 @@
   "total": 48,
   "actionable": 33,
   "due": 0,
-  "updated_at": "2026-08-08T18:19:55Z"
+  "updated_at": "2026-08-08T18:21:59Z"
 }

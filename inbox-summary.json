@@ -6,15 +6,21 @@
     },
     "anasteria": {
       "total": 0,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
     },
     "crucible": {
       "total": 0,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
     },
     "egostic": {
       "total": 0,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
     },
     "factory": {
       "total": 6,
@@ -24,7 +30,9 @@
     },
     "faith": {
       "total": 0,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
     },
     "foundry": {
       "total": 16,
@@ -40,11 +48,15 @@
     },
     "nabu": {
       "total": 0,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
     },
     "prism": {
       "total": 0,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
     },
     "steward": {
       "total": 1,
@@ -62,7 +74,9 @@
     },
     "vadim": {
       "total": 0,
-      "actionable": 0
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
     },
     "vesper": {
       "total": 5,
@@ -76,5 +90,5 @@
   "total": 48,
   "actionable": 33,
   "due": 0,
-  "updated_at": "2026-08-08T17:54:25Z"
+  "updated_at": "2026-08-08T18:15:32Z"
 }

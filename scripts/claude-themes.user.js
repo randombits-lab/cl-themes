@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.29.7
+// @version      6.29.8
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   if (window.__CLAUDE_THEMES_ACTIVE) return;
-  window.__CLAUDE_THEMES_ACTIVE = '6.29.7';
+  window.__CLAUDE_THEMES_ACTIVE = '6.29.8';
 
   const HAS_MENU = typeof GM_registerMenuCommand === 'function';
   if (GM_getValue('theme_disabled', false)) {
@@ -35,7 +35,7 @@
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
   const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-  const SCRIPT_VERSION = '6.29.7';
+  const SCRIPT_VERSION = '6.29.8';
 
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
   const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
@@ -1374,6 +1374,7 @@
     document.getElementById(BG_ID)?.remove();
     document.getElementById(VOICE_STYLE_ID)?.remove();
     document.getElementById(TOPLINE_ID)?.remove();
+    document.querySelectorAll('fieldset[data-tm-version]').forEach(el => el.removeAttribute('data-tm-version'));
     if (themedContainer) themedContainer.removeAttribute(THEME_ATTR);
     themedContainer = null;
     currentThemeKey = null; currentProject = null; currentMode = null;
@@ -1462,11 +1463,11 @@
       [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
       [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative !important; }
+${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative !important; }
       [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { border-color:#c9a84c88 !important;box-shadow:0 0 8px #c9a84c30 !important; }
       [${THEME_ATTR}] fieldset[data-tm-version="mismatch"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c9a84cf0 0%,#c9a84ca0 25%,#c9a84c60 50%,#c9a84c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 2.5s ease-in-out infinite; }
       [${THEME_ATTR}] fieldset[data-tm-version="missing"] { border-color:#c45c4c88 !important;box-shadow:0 0 8px #c45c4c30 !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }` : ""}
       #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }

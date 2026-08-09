@@ -73,8 +73,8 @@
       "informational": 0
     },
     "template-builder": {
-      "total": 3,
-      "actionable": 3,
+      "total": 4,
+      "actionable": 4,
       "due": 0,
       "informational": 0
     },
@@ -91,8 +91,8 @@
       "informational": 0
     },
     "vesper": {
-      "total": 5,
-      "actionable": 5,
+      "total": 6,
+      "actionable": 6,
       "due": 0,
       "informational": 0
     },
@@ -103,8 +103,8 @@
       "informational": 2
     }
   },
-  "total": 42,
-  "actionable": 28,
+  "total": 44,
+  "actionable": 30,
   "due": 0,
-  "updated_at": "2026-08-09T00:30:07Z"
+  "updated_at": "2026-08-09T00:30:28Z"
 }

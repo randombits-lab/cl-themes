@@ -49,8 +49,8 @@
       "informational": 1
     },
     "licitapp": {
-      "total": 6,
-      "actionable": 6,
+      "total": 7,
+      "actionable": 7,
       "due": 0,
       "informational": 0
     },
@@ -103,8 +103,8 @@
       "informational": 2
     }
   },
-  "total": 41,
-  "actionable": 27,
+  "total": 42,
+  "actionable": 28,
   "due": 0,
-  "updated_at": "2026-08-09T00:14:30Z"
+  "updated_at": "2026-08-09T00:30:07Z"
 }

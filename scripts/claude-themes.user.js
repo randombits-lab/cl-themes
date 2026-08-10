@@ -37,7 +37,7 @@
   const CARD_STYLE_ID  = 'claude-theme-cards-style';
   const VOICE_STYLE_ID = 'claude-theme-voice-style';
   const USAGE_ID       = 'claude-theme-usage-meter';
-  const UTILBAR_ID$1     = 'claude-theme-utilbar';
+  const UTILBAR_ID     = 'claude-theme-utilbar';
   const NAV_ID         = 'claude-theme-quicknav';
   const LEGEND_ID      = 'claude-theme-lanelegend';
   const ACTION_ALERT_ID  = 'claude-theme-action-alert';
@@ -152,54 +152,6 @@
     if (!panel) return false;
     const r = panel.getBoundingClientRect();
     return r.width > 200 && r.height > 400;
-  }
-
-  function buildStylesheet(project, mode, cfg) {
-    const accent = project.accentColor;
-    const isChat = mode === 'chat';
-    const isVoiceChat = !!(project.voices && isChat);
-
-    let bgCSS = '';
-    if (cfg.backgroundImage) bgCSS = `background-image:url("${vurl(cfg.backgroundImage)}");background-size:cover;background-position:center;background-repeat:no-repeat;`;
-    else if (project.chatBackground) bgCSS = `background:${project.chatBackground};`;
-
-    const hasStaticChar = CHARACTERS_ENABLED && !!cfg.characterUrl && !isVoiceChat;
-    const sizing = isChat ? `height:${cfg.characterHeight};width:auto;` : `width:${cfg.characterWidth};height:auto;`;
-    const imgSizing = isChat ? 'height:100%;width:auto;' : 'width:100%;height:auto;';
-
-    return `
-      body { position:relative !important; z-index:0 !important; background-color:transparent !important; }
-      header, main { background-color:transparent !important; }
-      @keyframes thm-bg-in { from{opacity:0} to{opacity:1} }
-      @keyframes thm-char-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
-      @keyframes tm-version-pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
-      #${BG_ID} { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-2;pointer-events:none;opacity:0;animation:thm-bg-in 300ms ease-out forwards;${bgCSS} }
-      [${THEME_ATTR}] { background:transparent !important;background-color:transparent !important;background-image:none !important; }
-      [${THEME_ATTR}] > * { background-color:transparent !important; }
-      :root { --tm-accent: ${accent}; }
-      [${THEME_ATTR}] { scrollbar-color:color-mix(in srgb, var(--tm-accent) 65%, transparent) transparent !important;scrollbar-width:thin !important; }
-      [${THEME_ATTR}]::-webkit-scrollbar { width:8px; }
-      [${THEME_ATTR}]::-webkit-scrollbar-track { background:transparent; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
-      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
-      [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
-${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { border-color:#c9a84c88 !important;box-shadow:0 0 8px #c9a84c30 !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c9a84cf0 0%,#c9a84ca0 25%,#c9a84c60 50%,#c9a84c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 2.5s ease-in-out infinite; }
-      [${THEME_ATTR}] fieldset[data-tm-version="missing"] { border-color:#c45c4c88 !important;box-shadow:0 0 8px #c45c4c30 !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }` : ""}
-      #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
-      #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
-      #${CHARACTER_ID} img.is-active { opacity:1; }
-      #${CHARACTER_ID} img:not(.is-active) { opacity:0;position:absolute;top:0;right:0; }
-      ${hasStaticChar ? `
-      #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:-1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
-      #${CHARACTER_ID} img { ${imgSizing} }` : ''}
-      @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
-      #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
-      p[${OB_ATTR}="setup"]{color:${OB_SETUP_COLOR} !important;border-left:3px solid ${OB_SETUP_COLOR};padding-left:8px;background:${OB_SETUP_COLOR}0d;border-radius:2px;font-size:0.85em;letter-spacing:0.3px;}
-      p[${OB_ATTR}="launch"]{color:${OB_LAUNCH_COLOR} !important;border-left:3px solid ${OB_LAUNCH_COLOR};padding-left:8px;background:${OB_LAUNCH_COLOR}0d;border-radius:2px;font-size:0.85em;letter-spacing:0.3px;}
-    `;
   }
 
   // =========================================================================
@@ -1472,30 +1424,30 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
   // =========================================================================
   function refreshUtilBar() {
     const disclaimer = findDisclaimer();
-    let bar = document.getElementById(UTILBAR_ID$1);
+    let bar = document.getElementById(UTILBAR_ID);
     if (!disclaimer) { if (bar) bar.style.display = 'none'; return; }
     const r = disclaimer.getBoundingClientRect();
     if (!bar) {
       bar = document.createElement('div');
-      bar.id = UTILBAR_ID$1;
+      bar.id = UTILBAR_ID;
       bar.dataset.tmUi = '1';
       bar.style.cssText = 'position:fixed;z-index:6;display:flex;align-items:center;gap:8px;pointer-events:auto;';
       const counter = document.createElement('span');
-      counter.id = UTILBAR_ID$1 + '-counter';
+      counter.id = UTILBAR_ID + '-counter';
       counter.style.cssText = 'font-size:11px;color:#8a8a9a;opacity:0.6;letter-spacing:0.3px;font-variant-numeric:tabular-nums;padding-left:8px;white-space:nowrap;';
       bar.appendChild(counter);
       const consumDot = document.createElement('span');
-      consumDot.id = UTILBAR_ID$1 + '-consum';
+      consumDot.id = UTILBAR_ID + '-consum';
       consumDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
       bar.appendChild(consumDot);
       const inboxBadge = document.createElement('span');
-      inboxBadge.id = UTILBAR_ID$1 + '-inbox';
+      inboxBadge.id = UTILBAR_ID + '-inbox';
       inboxBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
       inboxBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M1 9h4l1.5 2h3L11 9h4" stroke="currentColor" fill="none" stroke-width="1.5"/><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       inboxBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleInboxPopup(inboxBadge); });
       bar.appendChild(inboxBadge);
       const reflectBadge = document.createElement('span');
-      reflectBadge.id = UTILBAR_ID$1 + '-reflect';
+      reflectBadge.id = UTILBAR_ID + '-reflect';
       reflectBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
       reflectBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 1.5a4 4 0 0 0-1.5 7.7V11h3V9.2A4 4 0 0 0 8 1.5z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="6.5" y1="12.5" x2="9.5" y2="12.5" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="14" x2="9" y2="14" stroke="currentColor" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       reflectBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleReflectPopup(reflectBadge); });
@@ -1513,8 +1465,8 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
     const chatPath = window.location.pathname;
     if (chatPath !== S.replyCountPath) { S.replyCountPath = chatPath; S.maxDataIndex = -1; S.maxTokenEstimate = 0; S.actionAlertedIdx = -1; }
-    const counterEl = document.getElementById(UTILBAR_ID$1 + '-counter');
-    const consumDotEl = document.getElementById(UTILBAR_ID$1 + '-consum');
+    const counterEl = document.getElementById(UTILBAR_ID + '-counter');
+    const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
     if (counterEl) {
       const counterScope = S.themedContainer || document;
       const msgs = getMessageNodes(counterScope);
@@ -1536,7 +1488,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       }
     }
 
-    const inboxEl = document.getElementById(UTILBAR_ID$1 + '-inbox');
+    const inboxEl = document.getElementById(UTILBAR_ID + '-inbox');
     if (inboxEl) {
       const iData = getInboxData();
       const iCount = inboxEl.querySelector('span');
@@ -1562,7 +1514,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
         inboxEl.title = iData ? (deferred > 0 ? deferred + ' deferred, none actionable' : 'All inboxes clear') : 'Inbox data not loaded';
       }
     }
-    const reflectEl = document.getElementById(UTILBAR_ID$1 + '-reflect');
+    const reflectEl = document.getElementById(UTILBAR_ID + '-reflect');
     if (reflectEl) {
       const rData = getReflectData();
       const rCount = reflectEl.querySelector('span');
@@ -1585,7 +1537,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID$1)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');
@@ -1597,6 +1549,180 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     const ok = !!bgEl && !bgFallback && containerOk;
     ver.style.color = ok ? '#8ac8a8' : '#c9a84c';
     ver.title = ok ? 'Theme layers healthy' : ('Theme degraded: ' + [!bgEl ? 'background missing' : null, bgFallback ? 'background on gradient fallback' : null, !containerOk ? 'container not found' : null].filter(Boolean).join(', '));
+  }
+
+  function buildStylesheet(project, mode, cfg) {
+    const accent = project.accentColor;
+    const isChat = mode === 'chat';
+    const isVoiceChat = !!(project.voices && isChat);
+
+    let bgCSS = '';
+    if (cfg.backgroundImage) bgCSS = `background-image:url("${vurl(cfg.backgroundImage)}");background-size:cover;background-position:center;background-repeat:no-repeat;`;
+    else if (project.chatBackground) bgCSS = `background:${project.chatBackground};`;
+
+    const hasStaticChar = CHARACTERS_ENABLED && !!cfg.characterUrl && !isVoiceChat;
+    const sizing = isChat ? `height:${cfg.characterHeight};width:auto;` : `width:${cfg.characterWidth};height:auto;`;
+    const imgSizing = isChat ? 'height:100%;width:auto;' : 'width:100%;height:auto;';
+
+    return `
+      body { position:relative !important; z-index:0 !important; background-color:transparent !important; }
+      header, main { background-color:transparent !important; }
+      @keyframes thm-bg-in { from{opacity:0} to{opacity:1} }
+      @keyframes thm-char-in { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+      @keyframes tm-version-pulse { 0%,100%{opacity:0.4} 50%{opacity:1} }
+      #${BG_ID} { position:fixed;top:0;left:0;width:100vw;height:100vh;z-index:-2;pointer-events:none;opacity:0;animation:thm-bg-in 300ms ease-out forwards;${bgCSS} }
+      [${THEME_ATTR}] { background:transparent !important;background-color:transparent !important;background-image:none !important; }
+      [${THEME_ATTR}] > * { background-color:transparent !important; }
+      :root { --tm-accent: ${accent}; }
+      [${THEME_ATTR}] { scrollbar-color:color-mix(in srgb, var(--tm-accent) 65%, transparent) transparent !important;scrollbar-width:thin !important; }
+      [${THEME_ATTR}]::-webkit-scrollbar { width:8px; }
+      [${THEME_ATTR}]::-webkit-scrollbar-track { background:transparent; }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb { background:color-mix(in srgb, var(--tm-accent) 65%, transparent);border-radius:4px; }
+      [${THEME_ATTR}]::-webkit-scrollbar-thumb:hover { background:color-mix(in srgb, var(--tm-accent) 85%, transparent); }
+      [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
+${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { border-color:#c9a84c88 !important;box-shadow:0 0 8px #c9a84c30 !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c9a84cf0 0%,#c9a84ca0 25%,#c9a84c60 50%,#c9a84c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 2.5s ease-in-out infinite; }
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"] { border-color:#c45c4c88 !important;box-shadow:0 0 8px #c45c4c30 !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }` : ""}
+      #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
+      #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
+      #${CHARACTER_ID} img.is-active { opacity:1; }
+      #${CHARACTER_ID} img:not(.is-active) { opacity:0;position:absolute;top:0;right:0; }
+      ${hasStaticChar ? `
+      #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:-1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
+      #${CHARACTER_ID} img { ${imgSizing} }` : ''}
+      @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
+      #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
+      p[${OB_ATTR}="setup"]{color:${OB_SETUP_COLOR} !important;border-left:3px solid ${OB_SETUP_COLOR};padding-left:8px;background:${OB_SETUP_COLOR}0d;border-radius:2px;font-size:0.85em;letter-spacing:0.3px;}
+      p[${OB_ATTR}="launch"]{color:${OB_LAUNCH_COLOR} !important;border-left:3px solid ${OB_LAUNCH_COLOR};padding-left:8px;background:${OB_LAUNCH_COLOR}0d;border-radius:2px;font-size:0.85em;letter-spacing:0.3px;}
+    `;
+  }
+
+  function adoptAccount(acc) {
+    const changed = acc !== S.ACCOUNT;
+    S.ACCOUNT = acc; S.ACCOUNT_ASSUMED = false;
+    sessionStorage.setItem(ACCOUNT_TAB_KEY, acc);
+    GM_setValue(ACCOUNT_PIN_KEY, acc);
+    if (changed) { selectAccountProjects(); cleanup(); }
+    document.getElementById(NAV_ID)?.remove();
+  }
+
+  if (REDUCED_MOTION) {
+    const rm = document.createElement('style');
+    rm.textContent = '#' + BG_ID + ', #' + CHARACTER_ID + ' { animation: none !important; opacity: 1 !important; } #' + CHARACTER_ID + ' img { animation: none !important; }';
+    document.head.appendChild(rm);
+  }
+
+
+
+
+  // =========================================================================
+  // THEME LIFECYCLE
+  // =========================================================================
+  function cleanup() {
+    document.getElementById(STYLE_ID)?.remove();
+    document.getElementById(CHARACTER_ID)?.remove();
+    document.getElementById(BG_ID)?.remove();
+    document.getElementById(VOICE_STYLE_ID)?.remove();
+    document.getElementById(TOPLINE_ID)?.remove();
+    document.querySelectorAll('fieldset[data-tm-version]').forEach(el => el.removeAttribute('data-tm-version'));
+    if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
+    S.themedContainer = null;
+    S.currentThemeKey = null; S.currentProject = null; S.currentMode = null;
+    S.currentComboKey = null; S.voiceCharReady = false;
+    S.currentStateName = null;
+    S.cachedMainContainer = null;
+    S.maxDataIndex = -1;
+    S.replyCountPath = null;
+    S.maxTokenEstimate = 0;
+    S.actionAlertedIdx = -1;
+  }
+
+
+  function injectBackground(project, cfg) {
+    if (document.getElementById(BG_ID)) return;
+    const bgDiv = document.createElement('div'); bgDiv.id = BG_ID;
+    if (cfg.backgroundImage && project.chatBackground) {
+      const img = new Image();
+      img.onerror = () => { bgDiv.style.backgroundImage = 'none'; bgDiv.style.background = project.chatBackground; };
+      img.src = vurl(cfg.backgroundImage);
+    }
+    document.body.appendChild(bgDiv);
+  }
+
+  function injectCharacter(cfg) {
+    if (!CHARACTERS_ENABLED || !cfg.characterUrl || document.getElementById(CHARACTER_ID)) return;
+    const d = document.createElement('div'); d.id = CHARACTER_ID;
+    for (const layer of ['a', 'b']) {
+      const img = document.createElement('img');
+      img.alt = ''; img.draggable = false; img.dataset.layer = layer;
+      img.onerror = () => { d.style.display = 'none'; };
+      d.appendChild(img);
+    }
+    const first = d.querySelector('img[data-layer="a"]');
+    first.src = vurl(cfg.characterUrl);
+    first.classList.add('is-active');
+    document.body.appendChild(d);
+  }
+
+  function applyTheme(project, mode) {
+    const key = project.id + ':' + mode;
+    if (S.currentThemeKey === key) return;
+    cleanup();
+    S.currentThemeKey = key; S.currentProject = project; S.currentMode = mode;
+    const cfg = project[mode]; if (!cfg) return;
+    const isVoiceChat = !!(project.voices && mode === 'chat');
+    const isStateChat = !!(project.states && mode === 'chat');
+    const st = document.createElement('style'); st.id = STYLE_ID;
+    st.textContent = buildStylesheet(project, mode, cfg);
+    document.head.appendChild(st);
+    const cc = findMainChatContainer(true);
+    if (cc) { S.themedContainer = cc; cc.setAttribute(THEME_ATTR, project.id); }
+    injectBackground(project, cfg);
+    if (!isVoiceChat) injectCharacter(cfg);
+    if (isVoiceChat) preloadVoiceImages(project);
+    if (isStateChat) preloadStateImages(project);
+    if (mode === 'chat') {
+      if (!document.getElementById(TOPLINE_ID)) { const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl); }
+    }
+  }
+
+  function refreshTheme() {
+    if (!S.currentProject || !S.currentMode) return;
+    const cfg = S.currentProject[S.currentMode]; if (!cfg) return;
+    const isVoiceChat = !!(S.currentProject.voices && S.currentMode === 'chat');
+    const isStateChat = !!(S.currentProject.states && S.currentMode === 'chat');
+    const cc = findMainChatContainer();
+    if (cc && cc !== S.themedContainer) {
+      if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
+      S.themedContainer = cc; cc.setAttribute(THEME_ATTR, S.currentProject.id);
+    }
+    if (S.themedContainer && !S.themedContainer.hasAttribute(THEME_ATTR)) S.themedContainer.setAttribute(THEME_ATTR, S.currentProject.id);
+    if (!document.getElementById(BG_ID)) injectBackground(S.currentProject, cfg);
+    if (isVoiceChat) {
+      const nearBottom = !S.themedContainer || (S.themedContainer.scrollHeight - S.themedContainer.scrollTop - S.themedContainer.clientHeight < 300);
+      const state = nearBottom ? detectVoiceState(S.currentProject) : null;
+      if (state && nearBottom) {
+        const comboKey = getComboKey(state);
+        const resolved = resolveVoiceConfig(S.currentProject, comboKey, state.primary);
+        if (resolved) applyVoiceState(S.currentProject, comboKey, resolved.accent, resolved.sprite);
+      }
+      if (!state && !S.currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; }
+      if (!state && S.currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : ''; }
+      colorVoiceText(S.currentProject);
+    } else if (isStateChat) {
+      refreshStateCharacter(S.currentProject);
+      hideStateMarkers(S.currentProject);
+      if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
+      const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
+    } else {
+      if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
+      const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
+    }
+    if (S.currentMode === 'chat' && !document.getElementById(TOPLINE_ID)) {
+      const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl);
+    }
   }
 
   function boot() {
@@ -1638,131 +1764,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
 
 
-    function adoptAccount(acc) {
-      const changed = acc !== S.ACCOUNT;
-      S.ACCOUNT = acc; S.ACCOUNT_ASSUMED = false;
-      sessionStorage.setItem(ACCOUNT_TAB_KEY, acc);
-      GM_setValue(ACCOUNT_PIN_KEY, acc);
-      if (changed) { selectAccountProjects(); cleanup(); }
-      document.getElementById(NAV_ID)?.remove();
-    }
-
-    if (REDUCED_MOTION) {
-      const rm = document.createElement('style');
-      rm.textContent = '#' + BG_ID + ', #' + CHARACTER_ID + ' { animation: none !important; opacity: 1 !important; } #' + CHARACTER_ID + ' img { animation: none !important; }';
-      document.head.appendChild(rm);
-    }
-
-
-
-
-    // =========================================================================
-    // THEME LIFECYCLE
-    // =========================================================================
-    function cleanup() {
-      document.getElementById(STYLE_ID)?.remove();
-      document.getElementById(CHARACTER_ID)?.remove();
-      document.getElementById(BG_ID)?.remove();
-      document.getElementById(VOICE_STYLE_ID)?.remove();
-      document.getElementById(TOPLINE_ID)?.remove();
-      document.querySelectorAll('fieldset[data-tm-version]').forEach(el => el.removeAttribute('data-tm-version'));
-      if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
-      S.themedContainer = null;
-      S.currentThemeKey = null; S.currentProject = null; S.currentMode = null;
-      S.currentComboKey = null; S.voiceCharReady = false;
-      S.currentStateName = null;
-      S.cachedMainContainer = null;
-      S.maxDataIndex = -1;
-      S.replyCountPath = null;
-      S.maxTokenEstimate = 0;
-      S.actionAlertedIdx = -1;
-    }
-
-
-    function injectBackground(project, cfg) {
-      if (document.getElementById(BG_ID)) return;
-      const bgDiv = document.createElement('div'); bgDiv.id = BG_ID;
-      if (cfg.backgroundImage && project.chatBackground) {
-        const img = new Image();
-        img.onerror = () => { bgDiv.style.backgroundImage = 'none'; bgDiv.style.background = project.chatBackground; };
-        img.src = vurl(cfg.backgroundImage);
-      }
-      document.body.appendChild(bgDiv);
-    }
-
-    function injectCharacter(cfg) {
-      if (!CHARACTERS_ENABLED || !cfg.characterUrl || document.getElementById(CHARACTER_ID)) return;
-      const d = document.createElement('div'); d.id = CHARACTER_ID;
-      for (const layer of ['a', 'b']) {
-        const img = document.createElement('img');
-        img.alt = ''; img.draggable = false; img.dataset.layer = layer;
-        img.onerror = () => { d.style.display = 'none'; };
-        d.appendChild(img);
-      }
-      const first = d.querySelector('img[data-layer="a"]');
-      first.src = vurl(cfg.characterUrl);
-      first.classList.add('is-active');
-      document.body.appendChild(d);
-    }
-
-    function applyTheme(project, mode) {
-      const key = project.id + ':' + mode;
-      if (S.currentThemeKey === key) return;
-      cleanup();
-      S.currentThemeKey = key; S.currentProject = project; S.currentMode = mode;
-      const cfg = project[mode]; if (!cfg) return;
-      const isVoiceChat = !!(project.voices && mode === 'chat');
-      const isStateChat = !!(project.states && mode === 'chat');
-      const st = document.createElement('style'); st.id = STYLE_ID;
-      st.textContent = buildStylesheet(project, mode, cfg);
-      document.head.appendChild(st);
-      const cc = findMainChatContainer(true);
-      if (cc) { S.themedContainer = cc; cc.setAttribute(THEME_ATTR, project.id); }
-      injectBackground(project, cfg);
-      if (!isVoiceChat) injectCharacter(cfg);
-      if (isVoiceChat) preloadVoiceImages(project);
-      if (isStateChat) preloadStateImages(project);
-      if (mode === 'chat') {
-        if (!document.getElementById(TOPLINE_ID)) { const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl); }
-      }
-    }
-
-    function refreshTheme() {
-      if (!S.currentProject || !S.currentMode) return;
-      const cfg = S.currentProject[S.currentMode]; if (!cfg) return;
-      const isVoiceChat = !!(S.currentProject.voices && S.currentMode === 'chat');
-      const isStateChat = !!(S.currentProject.states && S.currentMode === 'chat');
-      const cc = findMainChatContainer();
-      if (cc && cc !== S.themedContainer) {
-        if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
-        S.themedContainer = cc; cc.setAttribute(THEME_ATTR, S.currentProject.id);
-      }
-      if (S.themedContainer && !S.themedContainer.hasAttribute(THEME_ATTR)) S.themedContainer.setAttribute(THEME_ATTR, S.currentProject.id);
-      if (!document.getElementById(BG_ID)) injectBackground(S.currentProject, cfg);
-      if (isVoiceChat) {
-        const nearBottom = !S.themedContainer || (S.themedContainer.scrollHeight - S.themedContainer.scrollTop - S.themedContainer.clientHeight < 300);
-        const state = nearBottom ? detectVoiceState(S.currentProject) : null;
-        if (state && nearBottom) {
-          const comboKey = getComboKey(state);
-          const resolved = resolveVoiceConfig(S.currentProject, comboKey, state.primary);
-          if (resolved) applyVoiceState(S.currentProject, comboKey, resolved.accent, resolved.sprite);
-        }
-        if (!state && !S.currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; }
-        if (!state && S.currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : ''; }
-        colorVoiceText(S.currentProject);
-      } else if (isStateChat) {
-        refreshStateCharacter(S.currentProject);
-        hideStateMarkers(S.currentProject);
-        if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
-        const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
-      } else {
-        if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
-        const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
-      }
-      if (S.currentMode === 'chat' && !document.getElementById(TOPLINE_ID)) {
-        const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl);
-      }
-    }
 
 
 

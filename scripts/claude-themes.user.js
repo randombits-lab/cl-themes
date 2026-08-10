@@ -79,61 +79,6 @@
   // === Path suppression ===
   const SUPPRESSED_PATHS = ['/design', '/code/'];
 
-  const TOMOE_CHAT = BASE + 'tomoe_chat.png';
-  const TOMOE_HOME = BASE + 'tomoe_project.png';
-  const TOMOE_BG = BASE + 'tomoe_background.png';
-  const TOMOE_CARD = BASE + 'tomoe_card.png';
-  const PRISM_CHAT = BASE + 'prism_chat.png';
-  const PRISM_HOME = BASE + 'prism_project.png';
-  const PRISM_BG = BASE + 'prism_background.png';
-  const PRISM_CARD = BASE + 'prism_card.png';
-  const FAITH_CHAT = BASE + 'faith_chat.png';
-  const FAITH_HOME = BASE + 'faith_project.png';
-  const FAITH_BG = BASE + 'faith_background.png';
-  const FAITH_CARD = BASE + 'faith_card.png';
-  const ALFRED_CHAT = BASE + 'alfred_chat.png';
-  const ALFRED_HOME = BASE + 'alfred_project.png';
-  const ALFRED_BG = BASE + 'alfred_background.png';
-  const ALFRED_CARD = BASE + 'alfred_card.png';
-  const NABU_CHAT = BASE + 'nabu_chat.png';
-  const NABU_HOME = BASE + 'nabu_project.png';
-  const NABU_BG = BASE + 'nabu_background.png';
-  const NABU_CARD = BASE + 'nabu_card.png';
-  const WORKSHOP_BG = BASE + 'workshop_background.png';
-  const WORKSHOP_CARD = BASE + 'workshop_card.png';
-  const FACTORY_BG = BASE + 'factory_background.png';
-  const FACTORY_CARD = BASE + 'factory_card.png';
-  const CRUCIBLE_SYLVANAS_CHAT = BASE + 'crucible_sylvanas_chat.png';
-  const CRUCIBLE_GROM_CHAT = BASE + 'crucible_grom_chat.png';
-  const CRUCIBLE_FAITH_SYLVANAS_CHAT = BASE + 'crucible_faith_sylvanas_chat.png';
-  const CRUCIBLE_FAITH_GROM_CHAT = BASE + 'crucible_faith_grom_chat.png';
-  const CRUCIBLE_FAITH_COUNCIL_CHAT = BASE + 'crucible_faith_council_chat.png';
-  const CRUCIBLE_GROM_SYLVANAS_CHAT = BASE + 'crucible_grom_sylvanas_chat.png';
-  const CRUCIBLE_HOME = BASE + 'crucible_project.png';
-  const CRUCIBLE_BG = BASE + 'crucible_background.png';
-  const CRUCIBLE_CARD = BASE + 'crucible_card.png';
-  const FOUNDRY_BG = BASE + 'foundry_background.png';
-  const FOUNDRY_CARD = BASE + 'foundry_card.png';
-  const ANASTERIA_CHAT = BASE + 'anasteria_chat.png';
-  const ANASTERIA_HOME = BASE + 'anasteria_project.png';
-  const ANASTERIA_BG = BASE + 'anasteria_background.png';
-  const ANASTERIA_CARD = BASE + 'anasteria_card.png';
-  const VADIM_AUTORITAR = BASE + 'vadim_autoritar.png';
-  const VADIM_DEZGUSTAT = BASE + 'vadim_dezgustat.png';
-  const VADIM_MULTUMIT = BASE + 'vadim_multumit.png';
-  const VADIM_IMPRESIONAT = BASE + 'vadim_impresionat.png';
-  const VADIM_HOME = BASE + 'vadim_project.png';
-  const VADIM_BG = BASE + 'vadim_background.png';
-  const VADIM_CARD = BASE + 'vadim_card.png';
-  const STEWARD_CHAT = BASE + 'steward_chat.png';
-  const STEWARD_HOME = BASE + 'steward_project.png';
-  const STEWARD_BG = BASE + 'steward_background.png';
-  const STEWARD_CARD = BASE + 'steward_card.png';
-  const EGOSTIC_CHAT = BASE + 'egostic_chat.png';
-  const EGOSTIC_HOME = BASE + 'egostic_project.png';
-  const EGOSTIC_BG = BASE + 'egostic_background.png';
-  const EGOSTIC_CARD = BASE + 'egostic_card.png';
-
   const S = {
     currentThemeKey: null,
     currentProject: null,
@@ -436,6 +381,331 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
   }
 
+  const TOMOE_CHAT = BASE + 'tomoe_chat.png';
+  const TOMOE_HOME = BASE + 'tomoe_project.png';
+  const TOMOE_BG = BASE + 'tomoe_background.png';
+  const TOMOE_CARD = BASE + 'tomoe_card.png';
+  const PRISM_CHAT = BASE + 'prism_chat.png';
+  const PRISM_HOME = BASE + 'prism_project.png';
+  const PRISM_BG = BASE + 'prism_background.png';
+  const PRISM_CARD = BASE + 'prism_card.png';
+  const FAITH_CHAT = BASE + 'faith_chat.png';
+  const FAITH_HOME = BASE + 'faith_project.png';
+  const FAITH_BG = BASE + 'faith_background.png';
+  const FAITH_CARD = BASE + 'faith_card.png';
+  const ALFRED_CHAT = BASE + 'alfred_chat.png';
+  const ALFRED_HOME = BASE + 'alfred_project.png';
+  const ALFRED_BG = BASE + 'alfred_background.png';
+  const ALFRED_CARD = BASE + 'alfred_card.png';
+  const NABU_CHAT = BASE + 'nabu_chat.png';
+  const NABU_HOME = BASE + 'nabu_project.png';
+  const NABU_BG = BASE + 'nabu_background.png';
+  const NABU_CARD = BASE + 'nabu_card.png';
+  const WORKSHOP_BG = BASE + 'workshop_background.png';
+  const WORKSHOP_CARD = BASE + 'workshop_card.png';
+  const FACTORY_BG = BASE + 'factory_background.png';
+  const FACTORY_CARD = BASE + 'factory_card.png';
+  const CRUCIBLE_SYLVANAS_CHAT = BASE + 'crucible_sylvanas_chat.png';
+  const CRUCIBLE_GROM_CHAT = BASE + 'crucible_grom_chat.png';
+  const CRUCIBLE_FAITH_SYLVANAS_CHAT = BASE + 'crucible_faith_sylvanas_chat.png';
+  const CRUCIBLE_FAITH_GROM_CHAT = BASE + 'crucible_faith_grom_chat.png';
+  const CRUCIBLE_FAITH_COUNCIL_CHAT = BASE + 'crucible_faith_council_chat.png';
+  const CRUCIBLE_GROM_SYLVANAS_CHAT = BASE + 'crucible_grom_sylvanas_chat.png';
+  const CRUCIBLE_HOME = BASE + 'crucible_project.png';
+  const CRUCIBLE_BG = BASE + 'crucible_background.png';
+  const CRUCIBLE_CARD = BASE + 'crucible_card.png';
+  const FOUNDRY_BG = BASE + 'foundry_background.png';
+  const FOUNDRY_CARD = BASE + 'foundry_card.png';
+  const ANASTERIA_CHAT = BASE + 'anasteria_chat.png';
+  const ANASTERIA_HOME = BASE + 'anasteria_project.png';
+  const ANASTERIA_BG = BASE + 'anasteria_background.png';
+  const ANASTERIA_CARD = BASE + 'anasteria_card.png';
+  const VADIM_AUTORITAR = BASE + 'vadim_autoritar.png';
+  const VADIM_DEZGUSTAT = BASE + 'vadim_dezgustat.png';
+  const VADIM_MULTUMIT = BASE + 'vadim_multumit.png';
+  const VADIM_IMPRESIONAT = BASE + 'vadim_impresionat.png';
+  const VADIM_HOME = BASE + 'vadim_project.png';
+  const VADIM_BG = BASE + 'vadim_background.png';
+  const VADIM_CARD = BASE + 'vadim_card.png';
+  const STEWARD_CHAT = BASE + 'steward_chat.png';
+  const STEWARD_HOME = BASE + 'steward_project.png';
+  const STEWARD_BG = BASE + 'steward_background.png';
+  const STEWARD_CARD = BASE + 'steward_card.png';
+  const EGOSTIC_CHAT = BASE + 'egostic_chat.png';
+  const EGOSTIC_HOME = BASE + 'egostic_project.png';
+  const EGOSTIC_BG = BASE + 'egostic_background.png';
+  const EGOSTIC_CARD = BASE + 'egostic_card.png';
+
+  const PREFIX_COLORS = { 'meta': '#c45c4c' };
+
+
+  // =========================================================================
+  // PROJECT CONFIGS
+  // =========================================================================
+  const BASE_THEMES = {
+    'foundry': {
+      accentColor: '#4a7ac8',
+      chatBackground: 'linear-gradient(160deg, #0a0c10 0%, #0c1018 30%, #090c14 60%, #070810 100%)',
+      card: { imageUrl: FOUNDRY_CARD, titleColor: '#4a7ac8', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+  };
+
+  function resolveTheme(config) {
+    if (!config.extends) return config;
+    const base = BASE_THEMES[config.extends];
+    if (!base) return config;
+    const resolved = {};
+    for (const key of Object.keys(base)) {
+      if (typeof base[key] === 'object' && base[key] !== null && !Array.isArray(base[key])) {
+        resolved[key] = { ...base[key], ...(config[key] || {}) };
+      } else {
+        resolved[key] = key in config ? config[key] : base[key];
+      }
+    }
+    for (const key of Object.keys(config)) {
+      if (!(key in resolved)) resolved[key] = config[key];
+    }
+    return resolved;
+  }
+
+  const PROJECTS = [
+    {
+      id: 'tomoe', projectId: '019d05dc-759a-7319-849f-c79a47909884', label: 'Tomoe',
+      accentColor: '#c9a84c', interjectionColor: '#e0d0a0', interjectionBorder: '#c9a84c', chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #1a1a0e 30%, #12130c 60%, #0a0a06 100%)',
+      card: { imageUrl: TOMOE_CARD, titleColor: '#c9a84c', letterSpacing: '1px', textTransform: null },
+      chat: { backgroundImage: TOMOE_BG, characterUrl: TOMOE_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
+      homepage: { backgroundImage: TOMOE_BG, characterUrl: TOMOE_HOME, characterOpacity: 1.0, characterWidth: '650px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'prism', projectId: '019d4919-fdb8-70a6-9ab0-742306733d2c', label: 'Prism',
+      accentColor: '#00e5ff', interjectionColor: '#a0e8f0', interjectionBorder: '#00e5ff', chatBackground: 'linear-gradient(160deg, #0a0e14 0%, #0d1a24 30%, #0a1218 60%, #080c10 100%)',
+      card: { imageUrl: PRISM_CARD, titleColor: '#00e5ff', letterSpacing: '0.8px', textTransform: null },
+      chat: { backgroundImage: PRISM_BG, characterUrl: PRISM_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
+      homepage: { backgroundImage: PRISM_BG, characterUrl: PRISM_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'faith', projectId: '019ce6da-3c0d-72ab-ad7e-245a15e093c5', label: 'Faith',
+      accentColor: '#c4877a', interjectionColor: '#e0c4b8', interjectionBorder: '#c4877a', chatBackground: 'linear-gradient(160deg, #1a1410 0%, #2a1f18 30%, #1e1812 60%, #141010 100%)',
+      card: { imageUrl: FAITH_CARD, titleColor: '#c4877a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: FAITH_BG, characterUrl: FAITH_CHAT, characterOpacity: 1.0, characterHeight: '66vh', characterBottom: '-80px', characterRight: '-200px' },
+      homepage: { backgroundImage: FAITH_BG, characterUrl: FAITH_HOME, characterOpacity: 1.0, characterWidth: '600px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'alfred', projectId: '019d14b7-0d31-723e-b526-4fb064ce241f', label: 'Alfred',
+      accentColor: '#5a7a9a', interjectionColor: '#a8c0d4', interjectionBorder: '#5a7a9a', chatBackground: 'linear-gradient(160deg, #1a1209 0%, #0f0d0a 30%, #0a0f14 60%, #0d1117 100%)',
+      card: { imageUrl: ALFRED_CARD, titleColor: '#5a7a9a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: ALFRED_BG, characterUrl: ALFRED_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
+      homepage: { backgroundImage: ALFRED_BG, characterUrl: ALFRED_HOME, characterOpacity: 1.0, characterWidth: '700px', characterBottom: '-80px', characterRight: '-60px' },
+    },
+    {
+      id: 'nabu', projectId: '019cb41e-993e-7236-bf04-f40c21d82d2f', label: "N'abu",
+      accentColor: '#9a8a5a', interjectionColor: '#d4c8a0', interjectionBorder: '#9a8a5a', chatBackground: 'linear-gradient(160deg, #14120e 0%, #221e16 30%, #1a1610 60%, #100e0a 100%)',
+      card: { imageUrl: NABU_CARD, titleColor: '#9a8a5a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: NABU_BG, characterUrl: NABU_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-60px', characterRight: '-180px' },
+      homepage: { backgroundImage: NABU_BG, characterUrl: NABU_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-60px', characterRight: '-40px' },
+    },
+    {
+      id: 'workshop', registryId: 'business-agent-workshop', projectId: '019c9ef3-69c4-70de-a65e-9a3c0225188b', label: 'Workshop',
+      accentColor: '#c47832', chatBackground: 'linear-gradient(160deg, #141210 0%, #1a1714 30%, #12110f 60%, #0d0c0a 100%)',
+      card: { imageUrl: WORKSHOP_CARD, titleColor: '#c47832', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: WORKSHOP_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: WORKSHOP_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'factory', projectId: '019c9f87-1b6d-7146-b3b8-a03ebcc80e91', label: 'Factory',
+      accentColor: '#4a9a7a', chatBackground: 'linear-gradient(160deg, #0c1210 0%, #0e1a18 30%, #0b1412 60%, #080e0c 100%)',
+      card: { imageUrl: FACTORY_CARD, titleColor: '#4a9a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: FACTORY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: FACTORY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'crucible', projectId: '019d59ce-c7d6-7584-bee7-455cc8147931', label: 'Crucible',
+      accentColor: '#c44828', chatBackground: 'linear-gradient(160deg, #1a1008 0%, #241408 30%, #1a0e06 60%, #100a04 100%)',
+      voices: {
+        'faith':    { accentColor: '#d4956a', textColor: '#e0c4a0', characterUrl: FAITH_CHAT, characterHeight: '66vh', characterBottom: '-80px', characterRight: '-160px' },
+        'sylvanas': { accentColor: '#8b7abd', textColor: '#b8aad4', characterUrl: CRUCIBLE_SYLVANAS_CHAT, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
+        'grom':     { accentColor: '#b83a2a', textColor: '#d4a090', characterUrl: CRUCIBLE_GROM_CHAT, characterHeight: '68vh', characterBottom: '-100px', characterRight: '-180px' },
+      },
+      voiceCombos: {
+        'faith_sylvanas': { characterUrl: CRUCIBLE_FAITH_SYLVANAS_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-160px' },
+        'faith_grom':     { characterUrl: CRUCIBLE_FAITH_GROM_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+        'grom_sylvanas':  { characterUrl: CRUCIBLE_GROM_SYLVANAS_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+        'council':        { characterUrl: CRUCIBLE_FAITH_COUNCIL_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-160px' },
+      },
+      card: { imageUrl: CRUCIBLE_CARD, titleColor: '#c44828', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: CRUCIBLE_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: CRUCIBLE_BG, characterUrl: CRUCIBLE_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    { id: 'foundry', registryId: 'code-foundry', projectId: '019d638f-5d0b-72d1-b060-96438a50d1b7', label: 'Foundry', extends: 'foundry' },
+    { id: 'licitapp', projectId: '019d26a7-d716-7675-af51-76dd9d2ce4eb', label: 'LicitApp', extends: 'foundry' },
+    { id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper', extends: 'foundry' },
+    { id: 'template-builder', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'Template Builder', extends: 'foundry' },
+    {
+      id: 'grim-dawn-advisor', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Grim Dawn',
+      accentColor: '#8a6a3c',
+      chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #141210 30%, #0e0c0a 60%, #0a0908 100%)',
+      card: { imageUrl: null, titleColor: '#8a6a3c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'anasteria', projectId: '019d6e94-5386-7432-898a-8d4408cd98b6', label: 'Anasteria',
+      accentColor: '#b05a78', interjectionColor: '#d4a0b8', interjectionBorder: '#b05a78', chatBackground: 'linear-gradient(160deg, #1a0c0e 0%, #241014 30%, #1a0c10 60%, #10080a 100%)',
+      card: { imageUrl: ANASTERIA_CARD, titleColor: '#b05a78', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: ANASTERIA_BG, characterUrl: ANASTERIA_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: ANASTERIA_BG, characterUrl: ANASTERIA_HOME, characterOpacity: 1.0, characterWidth: '350px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'vadim', projectId: '019db6df-1df1-73ba-bd38-b41cf419cbe3', label: 'Vadim',
+      accentColor: '#6a7a3c', interjectionColor: '#b0c490', interjectionBorder: '#6a7a3c',
+      chatBackground: 'linear-gradient(160deg, #12140e 0%, #1a1c14 30%, #14160f 60%, #0c0e0a 100%)',
+      states: {
+        'autoritar':   { characterUrl: VADIM_AUTORITAR },
+        'dezgustat':   { characterUrl: VADIM_DEZGUSTAT },
+        'multumit':    { characterUrl: VADIM_MULTUMIT },
+        'impresionat': { characterUrl: VADIM_IMPRESIONAT },
+      },
+      defaultState: 'autoritar',
+      card: { imageUrl: VADIM_CARD, titleColor: '#6a7a3c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: VADIM_BG, characterUrl: VADIM_AUTORITAR, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: VADIM_BG, characterUrl: VADIM_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'steward', projectId: '019e1478-d849-71ee-ad74-bc96ffedf585', label: 'Steward',
+      accentColor: '#7a5a8c', interjectionColor: '#b8a0c8', interjectionBorder: '#7a5a8c',
+      chatBackground: 'linear-gradient(160deg, #0e0a12 0%, #14101a 30%, #100c16 60%, #0a080e 100%)',
+      card: { imageUrl: STEWARD_CARD, titleColor: '#7a5a8c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'egostic', projectId: '019fccf4-99e1-77b2-9272-904646d733aa', label: 'Egostic',
+      accentColor: '#c43030', interjectionColor: '#d4a0a0', interjectionBorder: '#c43030',
+      chatBackground: 'linear-gradient(160deg, #14080a 0%, #1a0c10 30%, #120a0e 60%, #0a0608 100%)',
+      card: { imageUrl: EGOSTIC_CARD, titleColor: '#c43030', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+  ];
+
+  for (let i = 0; i < PROJECTS.length; i++) {
+    PROJECTS[i] = resolveTheme(PROJECTS[i]);
+  }
+
+  // Account branching — A (personal) vs B (KLG corporate)
+  for (const p of PROJECTS) { if (!p.account) p.account = 'A'; }
+  const ALL_PROJECTS = PROJECTS.slice();
+  const ACCOUNT_TAB_KEY = 'claude-theme-account';
+  const ACCOUNT_PIN_KEY = 'account_pin';
+  const ORG_B_RE = /ope\s*Logistics\s*S\.?\s*R\.?\s*L?\.?/i;
+
+  function detectAccountFromDOM() {
+    const nav = document.querySelector('nav');
+    if (!nav) return null;
+    return ORG_B_RE.test(nav.textContent || '') ? 'B' : null;
+  }
+
+  function selectAccountProjects() {
+    const filtered = ALL_PROJECTS.filter(p => p.account === S.ACCOUNT);
+    PROJECTS.length = 0;
+    PROJECTS.push(...filtered);
+    S.activeNav = QUICK_NAV.filter(i => !i.account || i.account === S.ACCOUNT);
+  }
+
+  function initAccount() {
+    if (S.ACCOUNT) return true;
+    const tabVal = sessionStorage.getItem(ACCOUNT_TAB_KEY);
+    const pinVal = GM_getValue(ACCOUNT_PIN_KEY, null);
+    if (tabVal === 'A' || tabVal === 'B') {
+      S.ACCOUNT = tabVal; S.ACCOUNT_ASSUMED = false;
+    } else if (pinVal === 'A' || pinVal === 'B') {
+      S.ACCOUNT = pinVal; S.ACCOUNT_ASSUMED = false;
+      sessionStorage.setItem(ACCOUNT_TAB_KEY, pinVal);
+    } else {
+      const detected = detectAccountFromDOM();
+      if (detected) {
+        S.ACCOUNT = detected; S.ACCOUNT_ASSUMED = false;
+        sessionStorage.setItem(ACCOUNT_TAB_KEY, detected);
+        GM_setValue(ACCOUNT_PIN_KEY, detected);
+      } else {
+        S.ACCOUNT = 'A'; S.ACCOUNT_ASSUMED = true;
+      }
+    }
+    selectAccountProjects();
+    return true;
+  }
+
+  // =========================================================================
+  // QUICK-NAV — pinned project shortcuts, always visible
+  // =========================================================================
+  const QUICK_NAV = [
+    {
+      label: 'Projects',
+      url: '/projects',
+      color: '#9a9aaa',
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.3"/></svg>',
+    },
+    {
+      label: 'Prism',
+      url: '/project/019d4919-fdb8-70a6-9ab0-742306733d2c',
+      color: '#00e5ff',
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polygon points="12,3 3,20 21,20" fill="none" stroke="currentColor" stroke-width="1.8" opacity="0.7"/><line x1="6" y1="13" x2="2" y2="11" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><line x1="6" y1="13" x2="1" y2="14" stroke="currentColor" stroke-width="1.2" opacity="0.4"/><line x1="6" y1="13" x2="2" y2="17" stroke="currentColor" stroke-width="1.2" opacity="0.3"/><line x1="16" y1="13" x2="22" y2="9" stroke="currentColor" stroke-width="1" opacity="0.8"/><line x1="16" y1="13" x2="23" y2="12" stroke="currentColor" stroke-width="1" opacity="0.6"/><line x1="16" y1="13" x2="22" y2="15" stroke="currentColor" stroke-width="1" opacity="0.5"/><line x1="16" y1="13" x2="21" y2="18" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg>',
+    },
+    {
+      label: 'Workshop',
+      url: '/project/019c9ef3-69c4-70de-a65e-9a3c0225188b',
+      color: '#c47832',
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 17h18v3H3z" fill="currentColor" opacity="0.5"/><path d="M5 13h14c1.1 0 2 .9 2 2v2H3v-2c0-1.1.9-2 2-2z" fill="currentColor"/><path d="M7 9h10v4H7z" fill="currentColor" opacity="0.85"/><path d="M10 3h4v2h-4z" fill="currentColor" opacity="0.7"/><path d="M11 5h2v4h-2z" fill="currentColor" opacity="0.6"/></svg>',
+    },
+    {
+      label: 'Code Foundry',
+      url: '/project/019d638f-5d0b-72d1-b060-96438a50d1b7',
+      color: '#4a7ac8',
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2" fill="currentColor" opacity="0.35"/><rect x="6" y="4" width="12" height="4" rx="1" fill="currentColor" opacity="0.7"/><rect x="6" y="10" width="12" height="4" rx="1" fill="currentColor" opacity="0.7"/><rect x="6" y="16" width="12" height="4" rx="1" fill="currentColor" opacity="0.7"/><circle cx="8.5" cy="6" r="1" fill="currentColor"/><circle cx="8.5" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="18" r="1" fill="currentColor"/><rect x="13" y="5.5" width="3" height="1" rx="0.5" fill="currentColor"/><rect x="13" y="11.5" width="3" height="1" rx="0.5" fill="currentColor"/><rect x="13" y="17.5" width="3" height="1" rx="0.5" fill="currentColor"/></svg>',
+    },
+    {
+      label: 'Factory',
+      url: '/project/019c9f87-1b6d-7146-b3b8-a03ebcc80e91',
+      color: '#4a9a7a',
+      svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="5" rx="6" ry="2.5" fill="currentColor" opacity="0.6"/><path d="M6 5v14c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V5" stroke="currentColor" stroke-width="2" fill="none" opacity="0.7"/><ellipse cx="12" cy="19" rx="6" ry="2.5" fill="currentColor" opacity="0.4"/><ellipse cx="12" cy="14" rx="3.5" ry="5" fill="currentColor" opacity="0.3"/><ellipse cx="12" cy="13" rx="2" ry="3" fill="currentColor" opacity="0.6"/></svg>',
+    },
+  ];
+
+  for (const i of QUICK_NAV) { if (i.label !== 'Projects') i.account = 'A'; }
+
+
+  const PROJECT_GROUPS = [
+    { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
+    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'grim-dawn-advisor', 'egostic'] },
+    { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
+  ];
+  const PROJECT_GROUP_MAP = {};
+  for (const g of PROJECT_GROUPS) { for (const mid of g.members) { const proj = PROJECTS.find(p => p.id === mid); if (proj) PROJECT_GROUP_MAP[proj.projectId] = g; } }
+
+
+
+  function detectContext() {
+    const url = window.location.pathname;
+    for (const p of PROJECTS) {
+      if (p.projectId && url.includes('/project/' + p.projectId)) return { project: p, mode: 'homepage' };
+    }
+    if (!url.includes('/chat/')) return null;
+    const links = document.querySelectorAll('a[href*="/project/"]');
+    for (const link of links) {
+      if (link.closest('nav') || link.closest('[class*="sidebar"]') || link.closest('#' + NAV_ID)) continue;
+      const r = link.getBoundingClientRect();
+      if (r.top < 80 && r.top >= 0) {
+        const href = link.getAttribute('href') || '';
+        for (const p of PROJECTS) {
+          if (p.projectId && href.includes('/project/' + p.projectId)) return { project: p, mode: 'chat' };
+        }
+      }
+    }
+    return null;
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -455,8 +725,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); S.actionAudioEnabled = v; });
     }
 
-
-    const PREFIX_COLORS = { 'meta': '#c45c4c' };
 
     // =========================================================================
     // USAGE METER — reads from DOM on /settings/usage, caches in localStorage
@@ -802,44 +1070,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
 
 
-    // =========================================================================
-    // QUICK-NAV — pinned project shortcuts, always visible
-    // =========================================================================
-    const QUICK_NAV = [
-      {
-        label: 'Projects',
-        url: '/projects',
-        color: '#9a9aaa',
-        svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.7"/><rect x="13" y="3" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="3" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.5"/><rect x="13" y="13" width="8" height="8" rx="1.5" fill="currentColor" opacity="0.3"/></svg>',
-      },
-      {
-        label: 'Prism',
-        url: '/project/019d4919-fdb8-70a6-9ab0-742306733d2c',
-        color: '#00e5ff',
-        svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><polygon points="12,3 3,20 21,20" fill="none" stroke="currentColor" stroke-width="1.8" opacity="0.7"/><line x1="6" y1="13" x2="2" y2="11" stroke="currentColor" stroke-width="1.2" opacity="0.5"/><line x1="6" y1="13" x2="1" y2="14" stroke="currentColor" stroke-width="1.2" opacity="0.4"/><line x1="6" y1="13" x2="2" y2="17" stroke="currentColor" stroke-width="1.2" opacity="0.3"/><line x1="16" y1="13" x2="22" y2="9" stroke="currentColor" stroke-width="1" opacity="0.8"/><line x1="16" y1="13" x2="23" y2="12" stroke="currentColor" stroke-width="1" opacity="0.6"/><line x1="16" y1="13" x2="22" y2="15" stroke="currentColor" stroke-width="1" opacity="0.5"/><line x1="16" y1="13" x2="21" y2="18" stroke="currentColor" stroke-width="1" opacity="0.4"/></svg>',
-      },
-      {
-        label: 'Workshop',
-        url: '/project/019c9ef3-69c4-70de-a65e-9a3c0225188b',
-        color: '#c47832',
-        svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M3 17h18v3H3z" fill="currentColor" opacity="0.5"/><path d="M5 13h14c1.1 0 2 .9 2 2v2H3v-2c0-1.1.9-2 2-2z" fill="currentColor"/><path d="M7 9h10v4H7z" fill="currentColor" opacity="0.85"/><path d="M10 3h4v2h-4z" fill="currentColor" opacity="0.7"/><path d="M11 5h2v4h-2z" fill="currentColor" opacity="0.6"/></svg>',
-      },
-      {
-        label: 'Code Foundry',
-        url: '/project/019d638f-5d0b-72d1-b060-96438a50d1b7',
-        color: '#4a7ac8',
-        svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="2" width="16" height="20" rx="2" fill="currentColor" opacity="0.35"/><rect x="6" y="4" width="12" height="4" rx="1" fill="currentColor" opacity="0.7"/><rect x="6" y="10" width="12" height="4" rx="1" fill="currentColor" opacity="0.7"/><rect x="6" y="16" width="12" height="4" rx="1" fill="currentColor" opacity="0.7"/><circle cx="8.5" cy="6" r="1" fill="currentColor"/><circle cx="8.5" cy="12" r="1" fill="currentColor"/><circle cx="8.5" cy="18" r="1" fill="currentColor"/><rect x="13" y="5.5" width="3" height="1" rx="0.5" fill="currentColor"/><rect x="13" y="11.5" width="3" height="1" rx="0.5" fill="currentColor"/><rect x="13" y="17.5" width="3" height="1" rx="0.5" fill="currentColor"/></svg>',
-      },
-      {
-        label: 'Factory',
-        url: '/project/019c9f87-1b6d-7146-b3b8-a03ebcc80e91',
-        color: '#4a9a7a',
-        svg: '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><ellipse cx="12" cy="5" rx="6" ry="2.5" fill="currentColor" opacity="0.6"/><path d="M6 5v14c0 1.4 2.7 2.5 6 2.5s6-1.1 6-2.5V5" stroke="currentColor" stroke-width="2" fill="none" opacity="0.7"/><ellipse cx="12" cy="19" rx="6" ry="2.5" fill="currentColor" opacity="0.4"/><ellipse cx="12" cy="14" rx="3.5" ry="5" fill="currentColor" opacity="0.3"/><ellipse cx="12" cy="13" rx="2" ry="3" fill="currentColor" opacity="0.6"/></svg>',
-      },
-    ];
-
-    for (const i of QUICK_NAV) { if (i.label !== 'Projects') i.account = 'A'; }
-
     function isPathSuppressed() {
       const p = window.location.pathname;
       return SUPPRESSED_PATHS.some(s => p.startsWith(s));
@@ -1021,203 +1251,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
     function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
 
-    // =========================================================================
-    // PROJECT CONFIGS
-    // =========================================================================
-    const BASE_THEMES = {
-      'foundry': {
-        accentColor: '#4a7ac8',
-        chatBackground: 'linear-gradient(160deg, #0a0c10 0%, #0c1018 30%, #090c14 60%, #070810 100%)',
-        card: { imageUrl: FOUNDRY_CARD, titleColor: '#4a7ac8', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-        homepage: { backgroundImage: FOUNDRY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-      },
-    };
-
-    function resolveTheme(config) {
-      if (!config.extends) return config;
-      const base = BASE_THEMES[config.extends];
-      if (!base) return config;
-      const resolved = {};
-      for (const key of Object.keys(base)) {
-        if (typeof base[key] === 'object' && base[key] !== null && !Array.isArray(base[key])) {
-          resolved[key] = { ...base[key], ...(config[key] || {}) };
-        } else {
-          resolved[key] = key in config ? config[key] : base[key];
-        }
-      }
-      for (const key of Object.keys(config)) {
-        if (!(key in resolved)) resolved[key] = config[key];
-      }
-      return resolved;
-    }
-
-    const PROJECTS = [
-      {
-        id: 'tomoe', projectId: '019d05dc-759a-7319-849f-c79a47909884', label: 'Tomoe',
-        accentColor: '#c9a84c', interjectionColor: '#e0d0a0', interjectionBorder: '#c9a84c', chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #1a1a0e 30%, #12130c 60%, #0a0a06 100%)',
-        card: { imageUrl: TOMOE_CARD, titleColor: '#c9a84c', letterSpacing: '1px', textTransform: null },
-        chat: { backgroundImage: TOMOE_BG, characterUrl: TOMOE_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
-        homepage: { backgroundImage: TOMOE_BG, characterUrl: TOMOE_HOME, characterOpacity: 1.0, characterWidth: '650px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-      {
-        id: 'prism', projectId: '019d4919-fdb8-70a6-9ab0-742306733d2c', label: 'Prism',
-        accentColor: '#00e5ff', interjectionColor: '#a0e8f0', interjectionBorder: '#00e5ff', chatBackground: 'linear-gradient(160deg, #0a0e14 0%, #0d1a24 30%, #0a1218 60%, #080c10 100%)',
-        card: { imageUrl: PRISM_CARD, titleColor: '#00e5ff', letterSpacing: '0.8px', textTransform: null },
-        chat: { backgroundImage: PRISM_BG, characterUrl: PRISM_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
-        homepage: { backgroundImage: PRISM_BG, characterUrl: PRISM_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-      {
-        id: 'faith', projectId: '019ce6da-3c0d-72ab-ad7e-245a15e093c5', label: 'Faith',
-        accentColor: '#c4877a', interjectionColor: '#e0c4b8', interjectionBorder: '#c4877a', chatBackground: 'linear-gradient(160deg, #1a1410 0%, #2a1f18 30%, #1e1812 60%, #141010 100%)',
-        card: { imageUrl: FAITH_CARD, titleColor: '#c4877a', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: FAITH_BG, characterUrl: FAITH_CHAT, characterOpacity: 1.0, characterHeight: '66vh', characterBottom: '-80px', characterRight: '-200px' },
-        homepage: { backgroundImage: FAITH_BG, characterUrl: FAITH_HOME, characterOpacity: 1.0, characterWidth: '600px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-      {
-        id: 'alfred', projectId: '019d14b7-0d31-723e-b526-4fb064ce241f', label: 'Alfred',
-        accentColor: '#5a7a9a', interjectionColor: '#a8c0d4', interjectionBorder: '#5a7a9a', chatBackground: 'linear-gradient(160deg, #1a1209 0%, #0f0d0a 30%, #0a0f14 60%, #0d1117 100%)',
-        card: { imageUrl: ALFRED_CARD, titleColor: '#5a7a9a', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: ALFRED_BG, characterUrl: ALFRED_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
-        homepage: { backgroundImage: ALFRED_BG, characterUrl: ALFRED_HOME, characterOpacity: 1.0, characterWidth: '700px', characterBottom: '-80px', characterRight: '-60px' },
-      },
-      {
-        id: 'nabu', projectId: '019cb41e-993e-7236-bf04-f40c21d82d2f', label: "N'abu",
-        accentColor: '#9a8a5a', interjectionColor: '#d4c8a0', interjectionBorder: '#9a8a5a', chatBackground: 'linear-gradient(160deg, #14120e 0%, #221e16 30%, #1a1610 60%, #100e0a 100%)',
-        card: { imageUrl: NABU_CARD, titleColor: '#9a8a5a', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: NABU_BG, characterUrl: NABU_CHAT, characterOpacity: 1.0, characterHeight: '76vh', characterBottom: '-60px', characterRight: '-180px' },
-        homepage: { backgroundImage: NABU_BG, characterUrl: NABU_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-60px', characterRight: '-40px' },
-      },
-      {
-        id: 'workshop', registryId: 'business-agent-workshop', projectId: '019c9ef3-69c4-70de-a65e-9a3c0225188b', label: 'Workshop',
-        accentColor: '#c47832', chatBackground: 'linear-gradient(160deg, #141210 0%, #1a1714 30%, #12110f 60%, #0d0c0a 100%)',
-        card: { imageUrl: WORKSHOP_CARD, titleColor: '#c47832', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: WORKSHOP_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-        homepage: { backgroundImage: WORKSHOP_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-      },
-      {
-        id: 'factory', projectId: '019c9f87-1b6d-7146-b3b8-a03ebcc80e91', label: 'Factory',
-        accentColor: '#4a9a7a', chatBackground: 'linear-gradient(160deg, #0c1210 0%, #0e1a18 30%, #0b1412 60%, #080e0c 100%)',
-        card: { imageUrl: FACTORY_CARD, titleColor: '#4a9a7a', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: FACTORY_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-        homepage: { backgroundImage: FACTORY_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-      },
-      {
-        id: 'crucible', projectId: '019d59ce-c7d6-7584-bee7-455cc8147931', label: 'Crucible',
-        accentColor: '#c44828', chatBackground: 'linear-gradient(160deg, #1a1008 0%, #241408 30%, #1a0e06 60%, #100a04 100%)',
-        voices: {
-          'faith':    { accentColor: '#d4956a', textColor: '#e0c4a0', characterUrl: FAITH_CHAT, characterHeight: '66vh', characterBottom: '-80px', characterRight: '-160px' },
-          'sylvanas': { accentColor: '#8b7abd', textColor: '#b8aad4', characterUrl: CRUCIBLE_SYLVANAS_CHAT, characterHeight: '76vh', characterBottom: '-100px', characterRight: '-200px' },
-          'grom':     { accentColor: '#b83a2a', textColor: '#d4a090', characterUrl: CRUCIBLE_GROM_CHAT, characterHeight: '68vh', characterBottom: '-100px', characterRight: '-180px' },
-        },
-        voiceCombos: {
-          'faith_sylvanas': { characterUrl: CRUCIBLE_FAITH_SYLVANAS_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-160px' },
-          'faith_grom':     { characterUrl: CRUCIBLE_FAITH_GROM_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-          'grom_sylvanas':  { characterUrl: CRUCIBLE_GROM_SYLVANAS_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-          'council':        { characterUrl: CRUCIBLE_FAITH_COUNCIL_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-160px' },
-        },
-        card: { imageUrl: CRUCIBLE_CARD, titleColor: '#c44828', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: CRUCIBLE_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-        homepage: { backgroundImage: CRUCIBLE_BG, characterUrl: CRUCIBLE_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-      { id: 'foundry', registryId: 'code-foundry', projectId: '019d638f-5d0b-72d1-b060-96438a50d1b7', label: 'Foundry', extends: 'foundry' },
-      { id: 'licitapp', projectId: '019d26a7-d716-7675-af51-76dd9d2ce4eb', label: 'LicitApp', extends: 'foundry' },
-      { id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper', extends: 'foundry' },
-      { id: 'template-builder', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'Template Builder', extends: 'foundry' },
-      {
-        id: 'grim-dawn-advisor', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Grim Dawn',
-        accentColor: '#8a6a3c',
-        chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #141210 30%, #0e0c0a 60%, #0a0908 100%)',
-        card: { imageUrl: null, titleColor: '#8a6a3c', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-        homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-      },
-      {
-        id: 'anasteria', projectId: '019d6e94-5386-7432-898a-8d4408cd98b6', label: 'Anasteria',
-        accentColor: '#b05a78', interjectionColor: '#d4a0b8', interjectionBorder: '#b05a78', chatBackground: 'linear-gradient(160deg, #1a0c0e 0%, #241014 30%, #1a0c10 60%, #10080a 100%)',
-        card: { imageUrl: ANASTERIA_CARD, titleColor: '#b05a78', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: ANASTERIA_BG, characterUrl: ANASTERIA_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-        homepage: { backgroundImage: ANASTERIA_BG, characterUrl: ANASTERIA_HOME, characterOpacity: 1.0, characterWidth: '350px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-      {
-        id: 'vadim', projectId: '019db6df-1df1-73ba-bd38-b41cf419cbe3', label: 'Vadim',
-        accentColor: '#6a7a3c', interjectionColor: '#b0c490', interjectionBorder: '#6a7a3c',
-        chatBackground: 'linear-gradient(160deg, #12140e 0%, #1a1c14 30%, #14160f 60%, #0c0e0a 100%)',
-        states: {
-          'autoritar':   { characterUrl: VADIM_AUTORITAR },
-          'dezgustat':   { characterUrl: VADIM_DEZGUSTAT },
-          'multumit':    { characterUrl: VADIM_MULTUMIT },
-          'impresionat': { characterUrl: VADIM_IMPRESIONAT },
-        },
-        defaultState: 'autoritar',
-        card: { imageUrl: VADIM_CARD, titleColor: '#6a7a3c', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: VADIM_BG, characterUrl: VADIM_AUTORITAR, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-        homepage: { backgroundImage: VADIM_BG, characterUrl: VADIM_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-      {
-        id: 'steward', projectId: '019e1478-d849-71ee-ad74-bc96ffedf585', label: 'Steward',
-        accentColor: '#7a5a8c', interjectionColor: '#b8a0c8', interjectionBorder: '#7a5a8c',
-        chatBackground: 'linear-gradient(160deg, #0e0a12 0%, #14101a 30%, #100c16 60%, #0a080e 100%)',
-        card: { imageUrl: STEWARD_CARD, titleColor: '#7a5a8c', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-        homepage: { backgroundImage: STEWARD_BG, characterUrl: STEWARD_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-      {
-        id: 'egostic', projectId: '019fccf4-99e1-77b2-9272-904646d733aa', label: 'Egostic',
-        accentColor: '#c43030', interjectionColor: '#d4a0a0', interjectionBorder: '#c43030',
-        chatBackground: 'linear-gradient(160deg, #14080a 0%, #1a0c10 30%, #120a0e 60%, #0a0608 100%)',
-        card: { imageUrl: EGOSTIC_CARD, titleColor: '#c43030', letterSpacing: '0.5px', textTransform: null },
-        chat: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-        homepage: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
-      },
-    ];
-
-    for (let i = 0; i < PROJECTS.length; i++) {
-      PROJECTS[i] = resolveTheme(PROJECTS[i]);
-    }
-
-    // Account branching — A (personal) vs B (KLG corporate)
-    for (const p of PROJECTS) { if (!p.account) p.account = 'A'; }
-    const ALL_PROJECTS = PROJECTS.slice();
-    const ACCOUNT_TAB_KEY = 'claude-theme-account';
-    const ACCOUNT_PIN_KEY = 'account_pin';
-    const ORG_B_RE = /ope\s*Logistics\s*S\.?\s*R\.?\s*L?\.?/i;
-
-    function detectAccountFromDOM() {
-      const nav = document.querySelector('nav');
-      if (!nav) return null;
-      return ORG_B_RE.test(nav.textContent || '') ? 'B' : null;
-    }
-
-    function selectAccountProjects() {
-      const filtered = ALL_PROJECTS.filter(p => p.account === S.ACCOUNT);
-      PROJECTS.length = 0;
-      PROJECTS.push(...filtered);
-      S.activeNav = QUICK_NAV.filter(i => !i.account || i.account === S.ACCOUNT);
-    }
-
-    function initAccount() {
-      if (S.ACCOUNT) return true;
-      const tabVal = sessionStorage.getItem(ACCOUNT_TAB_KEY);
-      const pinVal = GM_getValue(ACCOUNT_PIN_KEY, null);
-      if (tabVal === 'A' || tabVal === 'B') {
-        S.ACCOUNT = tabVal; S.ACCOUNT_ASSUMED = false;
-      } else if (pinVal === 'A' || pinVal === 'B') {
-        S.ACCOUNT = pinVal; S.ACCOUNT_ASSUMED = false;
-        sessionStorage.setItem(ACCOUNT_TAB_KEY, pinVal);
-      } else {
-        const detected = detectAccountFromDOM();
-        if (detected) {
-          S.ACCOUNT = detected; S.ACCOUNT_ASSUMED = false;
-          sessionStorage.setItem(ACCOUNT_TAB_KEY, detected);
-          GM_setValue(ACCOUNT_PIN_KEY, detected);
-        } else {
-          S.ACCOUNT = 'A'; S.ACCOUNT_ASSUMED = true;
-        }
-      }
-      selectAccountProjects();
-      return true;
-    }
 
     function adoptAccount(acc) {
       const changed = acc !== S.ACCOUNT;
@@ -1228,15 +1261,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       document.getElementById(NAV_ID)?.remove();
     }
 
-    const PROJECT_GROUPS = [
-      { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
-      { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'grim-dawn-advisor', 'egostic'] },
-      { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
-    ];
-    const PROJECT_GROUP_MAP = {};
-    for (const g of PROJECT_GROUPS) { for (const mid of g.members) { const proj = PROJECTS.find(p => p.id === mid); if (proj) PROJECT_GROUP_MAP[proj.projectId] = g; } }
-
-
     if (REDUCED_MOTION) {
       const rm = document.createElement('style');
       rm.textContent = '#' + BG_ID + ', #' + CHARACTER_ID + ' { animation: none !important; opacity: 1 !important; } #' + CHARACTER_ID + ' img { animation: none !important; }';
@@ -1244,25 +1268,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
 
 
-    function detectContext() {
-      const url = window.location.pathname;
-      for (const p of PROJECTS) {
-        if (p.projectId && url.includes('/project/' + p.projectId)) return { project: p, mode: 'homepage' };
-      }
-      if (!url.includes('/chat/')) return null;
-      const links = document.querySelectorAll('a[href*="/project/"]');
-      for (const link of links) {
-        if (link.closest('nav') || link.closest('[class*="sidebar"]') || link.closest('#' + NAV_ID)) continue;
-        const r = link.getBoundingClientRect();
-        if (r.top < 80 && r.top >= 0) {
-          const href = link.getAttribute('href') || '';
-          for (const p of PROJECTS) {
-            if (p.projectId && href.includes('/project/' + p.projectId)) return { project: p, mode: 'chat' };
-          }
-        }
-      }
-      return null;
-    }
 
 
     // =========================================================================

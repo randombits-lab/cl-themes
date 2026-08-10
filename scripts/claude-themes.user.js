@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.31.1
+// @version      6.31.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.31.1';
+  const SCRIPT_VERSION = '6.31.2';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -154,6 +154,12 @@
   const EGOSTIC_HOME = BASE + 'egostic_project.png';
   const EGOSTIC_BG = BASE + 'egostic_background.png';
   const EGOSTIC_CARD = BASE + 'egostic_card.png';
+  const VOSS_CHAT = BASE + 'voss_chat.png';
+  const VOSS_HOME = BASE + 'voss_project.png';
+  const VOSS_BG = BASE + 'voss_background.png';
+  const VOSS_CARD = BASE + 'voss_card.png';
+  const MERIDIAN_BG = BASE + 'meridian_background.png';
+  const MERIDIAN_CARD = BASE + 'meridian_card.png';
 
   const PREFIX_COLORS = { 'meta': '#c45c4c' };
 
@@ -264,10 +270,10 @@
     {
       id: 'voss', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Voss',
       accentColor: '#8a6a3c',
-      chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #141210 30%, #0e0c0a 60%, #0a0908 100%)',
-      card: { imageUrl: null, titleColor: '#8a6a3c', letterSpacing: '0.5px', textTransform: null },
-      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+      chatBackground: 'linear-gradient(160deg, #1a1408 0%, #141008 30%, #0e0c06 60%, #0a0804 100%)',
+      card: { imageUrl: VOSS_CARD, titleColor: '#8a6a3c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: VOSS_BG, characterUrl: VOSS_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: VOSS_BG, characterUrl: VOSS_HOME, characterOpacity: 1.0, characterWidth: '500px', characterBottom: '-40px', characterRight: '-20px' },
     },
     {
       id: 'anasteria', projectId: '019d6e94-5386-7432-898a-8d4408cd98b6', label: 'Anasteria',
@@ -310,10 +316,10 @@
     {
       id: 'meridian', projectId: '019e02cd-3466-73bd-ac0e-f17988f2f3a8', label: 'Meridian',
       accentColor: '#4a8a8c',
-      chatBackground: 'linear-gradient(160deg, #0a0e10 0%, #0c1214 30%, #0a1012 60%, #080c0e 100%)',
-      card: { imageUrl: null, titleColor: '#4a8a8c', letterSpacing: '0.5px', textTransform: null },
-      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+      chatBackground: 'linear-gradient(160deg, #080a12 0%, #0a0e1a 30%, #080c14 60%, #06080e 100%)',
+      card: { imageUrl: MERIDIAN_CARD, titleColor: '#4a8a8c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: MERIDIAN_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: MERIDIAN_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
     },
   ];
 

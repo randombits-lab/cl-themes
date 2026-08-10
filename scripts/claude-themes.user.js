@@ -1032,6 +1032,49 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     for (const gid of collapsed) grid.classList.add('tm-hide-' + gid);
   }
 
+  function colorChatLinks() {
+    const colorMap = {};
+    for (const p of PROJECTS) colorMap[p.label.toLowerCase()] = p.accentColor;
+    for (const [k, v] of Object.entries(PREFIX_COLORS)) colorMap[k.toLowerCase()] = v;
+    for (const link of document.querySelectorAll('nav a[href*="/chat/"], [class*="sidebar"] a[href*="/chat/"]')) {
+      const text = (link.textContent||'').trim(), si = text.indexOf('|');
+      if (si === -1) { if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); } continue; }
+      const prefix = text.substring(0, si).trim().toLowerCase(), color = colorMap[prefix];
+      if (color) { link.style.color = color; link.setAttribute(SIDEBAR_ATTR, prefix); }
+      else if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); }
+    }
+    if (window.location.pathname === '/recents' || window.location.pathname === '/cowork/recents') {
+      // Recents table layout: TD with overlay a[href] + visible content in span siblings
+      // Title: span.text-primary.truncate, project label: span[class*="max-w-"]
+      for (const td of document.querySelectorAll('td')) {
+        const link = td.querySelector('a[href*="/chat/"]');
+        if (!link) continue;
+        const titleSpan = td.querySelector('span[class*="text-primary"]');
+        if (!titleSpan || titleSpan.hasAttribute(SIDEBAR_ATTR)) continue;
+        const titleText = (titleSpan.textContent || '').trim();
+        const si = titleText.indexOf('|');
+        if (si !== -1) {
+          const prefix = titleText.substring(0, si).trim().toLowerCase(), color = colorMap[prefix];
+          if (color) { titleSpan.style.color = color; titleSpan.setAttribute(SIDEBAR_ATTR, prefix); }
+          continue;
+        }
+        const labelSpan = td.querySelector('span[class*="max-w-"]');
+        if (!labelSpan) continue;
+        const labelText = (labelSpan.textContent || '').trim().toLowerCase();
+        if (!labelText) continue;
+        let matched = null;
+        for (const p of PROJECTS) {
+          if (labelText === p.label.toLowerCase() || labelText.includes(p.label.toLowerCase())) { matched = p; break; }
+        }
+        if (!matched) continue;
+        titleSpan.style.color = matched.accentColor;
+        titleSpan.setAttribute(SIDEBAR_ATTR, matched.id);
+        labelSpan.style.color = matched.accentColor;
+        labelSpan.style.opacity = '0.7';
+      }
+    }
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -1705,48 +1748,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
 
 
-    function colorChatLinks() {
-      const colorMap = {};
-      for (const p of PROJECTS) colorMap[p.label.toLowerCase()] = p.accentColor;
-      for (const [k, v] of Object.entries(PREFIX_COLORS)) colorMap[k.toLowerCase()] = v;
-      for (const link of document.querySelectorAll('nav a[href*="/chat/"], [class*="sidebar"] a[href*="/chat/"]')) {
-        const text = (link.textContent||'').trim(), si = text.indexOf('|');
-        if (si === -1) { if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); } continue; }
-        const prefix = text.substring(0, si).trim().toLowerCase(), color = colorMap[prefix];
-        if (color) { link.style.color = color; link.setAttribute(SIDEBAR_ATTR, prefix); }
-        else if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); }
-      }
-      if (window.location.pathname === '/recents' || window.location.pathname === '/cowork/recents') {
-        // Recents table layout: TD with overlay a[href] + visible content in span siblings
-        // Title: span.text-primary.truncate, project label: span[class*="max-w-"]
-        for (const td of document.querySelectorAll('td')) {
-          const link = td.querySelector('a[href*="/chat/"]');
-          if (!link) continue;
-          const titleSpan = td.querySelector('span[class*="text-primary"]');
-          if (!titleSpan || titleSpan.hasAttribute(SIDEBAR_ATTR)) continue;
-          const titleText = (titleSpan.textContent || '').trim();
-          const si = titleText.indexOf('|');
-          if (si !== -1) {
-            const prefix = titleText.substring(0, si).trim().toLowerCase(), color = colorMap[prefix];
-            if (color) { titleSpan.style.color = color; titleSpan.setAttribute(SIDEBAR_ATTR, prefix); }
-            continue;
-          }
-          const labelSpan = td.querySelector('span[class*="max-w-"]');
-          if (!labelSpan) continue;
-          const labelText = (labelSpan.textContent || '').trim().toLowerCase();
-          if (!labelText) continue;
-          let matched = null;
-          for (const p of PROJECTS) {
-            if (labelText === p.label.toLowerCase() || labelText.includes(p.label.toLowerCase())) { matched = p; break; }
-          }
-          if (!matched) continue;
-          titleSpan.style.color = matched.accentColor;
-          titleSpan.setAttribute(SIDEBAR_ATTR, matched.id);
-          labelSpan.style.color = matched.accentColor;
-          labelSpan.style.opacity = '0.7';
-        }
-      }
-    }
 
     function cycleWarn(e) { if (!S.cycleWarned) { S.cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
 

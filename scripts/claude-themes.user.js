@@ -706,6 +706,234 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     return null;
   }
 
+  function swapCharacterImage(newSrc, charEl) {
+    if (!charEl) return;
+    newSrc = vurl(newSrc);
+    const current = charEl.querySelector('img.is-active');
+    const staging = charEl.querySelector('img:not(.is-active)');
+    if (!current || !staging) return;
+    if (current.src === newSrc) return;
+    staging.src = newSrc;
+    staging.decode().then(() => {
+      staging.classList.add('is-active');
+      current.classList.remove('is-active');
+    }).catch(() => {
+      staging.classList.add('is-active');
+      current.classList.remove('is-active');
+    });
+  }
+
+
+  // =========================================================================
+  // MULTI-VOICE DETECTION (Crucible-type projects)
+  // =========================================================================
+  function detectVoiceState(project) {
+    if (!project.voices) return null;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return null;
+    const voiceNames = Object.keys(project.voices);
+    const markerStrings = voiceNames.map(n => n.charAt(0).toUpperCase() + n.slice(1) + ':');
+    const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
+    const events = [];
+    let textOffset = 0, node;
+    while ((node = walker.nextNode())) {
+      const text = node.textContent || '';
+      const inBQ = !!node.parentElement?.closest('blockquote');
+      for (let i = 0; i < voiceNames.length; i++) {
+        let from = 0;
+        while (true) {
+          const idx = text.indexOf(markerStrings[i], from);
+          if (idx === -1) break;
+          events.push({ name: voiceNames[i], inBlockquote: inBQ, offset: textOffset + idx });
+          from = idx + markerStrings[i].length;
+        }
+      }
+      textOffset += text.length;
+    }
+    if (!events.length) return null;
+    events.sort((a, b) => a.offset - b.offset);
+    let primaryIdx = -1;
+    for (let i = events.length - 1; i >= 0; i--) { if (!events[i].inBlockquote) { primaryIdx = i; break; } }
+    if (primaryIdx === -1) return null;
+    const primary = events[primaryIdx].name;
+    const interjectors = new Set();
+    for (let i = primaryIdx - 1; i >= 0; i--) {
+      const e = events[i];
+      if (e.inBlockquote) { if (e.name !== primary) interjectors.add(e.name); }
+      else if (e.name !== primary) { interjectors.add(e.name); break; }
+    }
+    for (let i = primaryIdx + 1; i < events.length; i++) {
+      if (events[i].inBlockquote && events[i].name !== primary) interjectors.add(events[i].name);
+    }
+    return { primary, interjectors: [...interjectors].sort() };
+  }
+
+  function getComboKey(state) {
+    if (!state) return null;
+    if (state.interjectors.length === 0) return state.primary;
+    if (state.interjectors.length >= 2) return 'council';
+    return state.primary + '_' + state.interjectors[0];
+  }
+
+  function resolveVoiceConfig(project, comboKey, primaryName) {
+    if (project.voiceCombos?.[comboKey]) {
+      const accent = primaryName ? project.voices[primaryName]?.accentColor : project.accentColor;
+      return { sprite: project.voiceCombos[comboKey], accent: accent || project.accentColor };
+    }
+    if (comboKey?.includes('_')) {
+      const parts = comboKey.split('_'), reversed = parts[1] + '_' + parts[0];
+      if (project.voiceCombos?.[reversed]) {
+        const accent = primaryName ? project.voices[primaryName]?.accentColor : project.accentColor;
+        return { sprite: project.voiceCombos[reversed], accent: accent || project.accentColor };
+      }
+    }
+    if (comboKey?.includes('_') && project.voiceCombos?.council) {
+      const accent = primaryName ? project.voices[primaryName]?.accentColor : project.accentColor;
+      return { sprite: project.voiceCombos.council, accent: accent || project.accentColor };
+    }
+    if (project.voices[comboKey]) return { sprite: project.voices[comboKey], accent: project.voices[comboKey].accentColor };
+    if (primaryName && project.voices[primaryName]) return { sprite: project.voices[primaryName], accent: project.voices[primaryName].accentColor };
+    return null;
+  }
+
+  function preloadVoiceImages(project) {
+    if (project.voices) for (const v of Object.values(project.voices)) { if (v.characterUrl) new Image().src = vurl(v.characterUrl); }
+    if (project.voiceCombos) for (const c of Object.values(project.voiceCombos)) { if (c.characterUrl) new Image().src = vurl(c.characterUrl); }
+  }
+
+  function colorVoiceText(project) {
+    if (!project.voices) return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const voiceNames = Object.keys(project.voices);
+    const ATTR = 'data-voice-colored';
+    for (const el of container.querySelectorAll('strong, b')) {
+      if (el.hasAttribute(ATTR)) continue;
+      const text = (el.textContent || '').trim();
+      for (const name of voiceNames) {
+        const marker = name.charAt(0).toUpperCase() + name.slice(1) + ':';
+        if (text === marker || text.startsWith(marker)) { el.style.color = project.voices[name].accentColor; el.setAttribute(ATTR, name); break; }
+      }
+    }
+    for (const bq of container.querySelectorAll('blockquote')) {
+      if (bq.hasAttribute(ATTR)) continue;
+      const text = bq.textContent || '';
+      for (const name of voiceNames) {
+        const marker = name.charAt(0).toUpperCase() + name.slice(1) + ':';
+        if (text.includes(marker)) { bq.style.color = project.voices[name].textColor || project.voices[name].accentColor; bq.style.borderLeftColor = project.voices[name].accentColor; bq.setAttribute(ATTR, name); break; }
+      }
+    }
+  }
+
+  // === SINGLE-VOICE INTERJECTION COLORING ===
+  function colorInterjections(project) {
+    if (!project.interjectionColor || project.voices) return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const ATTR = 'data-voice-colored';
+    for (const bq of container.querySelectorAll('blockquote')) {
+      if (bq.hasAttribute(ATTR)) continue;
+      bq.style.color = project.interjectionColor;
+      if (project.interjectionBorder) bq.style.borderLeftColor = project.interjectionBorder;
+      bq.setAttribute(ATTR, project.id);
+    }
+  }
+
+  function applyVoiceState(project, comboKey, accent, sprite) {
+    if (!comboKey || !sprite) return;
+    const changed = S.currentComboKey !== comboKey;
+    S.currentComboKey = comboKey;
+    let vs = document.getElementById(VOICE_STYLE_ID);
+    if (!vs) { vs = document.createElement('style'); vs.id = VOICE_STYLE_ID; document.head.appendChild(vs); }
+    if (changed) {
+      vs.textContent = `:root { --tm-accent: ${accent}; }`;
+    }
+    if (!CHARACTERS_ENABLED || !sprite.characterUrl) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; return; }
+    let charEl = document.getElementById(CHARACTER_ID);
+    const isNew = !charEl;
+    if (isNew) {
+      charEl = document.createElement('div'); charEl.id = CHARACTER_ID;
+      for (const layer of ['a', 'b']) {
+        const img = document.createElement('img');
+        img.alt = ''; img.draggable = false; img.dataset.layer = layer;
+        img.style.height = '100%'; img.style.width = 'auto';
+        img.onerror = () => { charEl.style.display = 'none'; };
+        charEl.appendChild(img);
+      }
+      document.body.appendChild(charEl);
+    }
+    charEl.style.cssText = `position:fixed;pointer-events:none;z-index:-1;user-select:none;height:${sprite.characterHeight||'76vh'};width:auto;bottom:${sprite.characterBottom||'-100px'};right:${sprite.characterRight||'-200px'};`;
+    if (isNew) {
+      const first = charEl.querySelector('img[data-layer="a"]');
+      first.src = vurl(sprite.characterUrl);
+      first.classList.add('is-active');
+      charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; S.voiceCharReady = true;
+    } else if (changed) {
+      swapCharacterImage(sprite.characterUrl, charEl);
+    }
+    charEl.style.display = isSidePanelOpen() ? 'none' : '';
+  }
+
+  // =========================================================================
+  // STATE-BASED CHARACTER SWAPPING (Vadim-type projects)
+  // =========================================================================
+  function detectStateMarker(project) {
+    if (!project.states) return null;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return null;
+    const stateNames = Object.keys(project.states);
+    const allText = container.textContent || '';
+    let lastState = null, lastIdx = -1;
+    for (const name of stateNames) {
+      const marker = '[' + name.toUpperCase() + ']';
+      const idx = allText.lastIndexOf(marker);
+      if (idx > lastIdx) { lastIdx = idx; lastState = name; }
+    }
+    return lastState;
+  }
+
+  function hideStateMarkers(project) {
+    if (!project.states) return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const stateNames = Object.keys(project.states);
+    const ATTR = 'data-state-hidden';
+    for (const p of container.querySelectorAll('p')) {
+      if (p.hasAttribute(ATTR)) continue;
+      const text = (p.textContent || '').trim();
+      for (const name of stateNames) {
+        if (text === '[' + name.toUpperCase() + ']') {
+          p.style.display = 'none';
+          p.setAttribute(ATTR, '1');
+          break;
+        }
+      }
+    }
+  }
+
+  function preloadStateImages(project) {
+    if (!project.states) return;
+    for (const s of Object.values(project.states)) { if (s.characterUrl) new Image().src = vurl(s.characterUrl); }
+  }
+
+  function refreshStateCharacter(project) {
+    if (!project.states || S.currentMode !== 'chat') return;
+    const nearBottom = !S.themedContainer || (S.themedContainer.scrollHeight - S.themedContainer.scrollTop - S.themedContainer.clientHeight < 300);
+    if (!nearBottom && S.currentStateName) return;
+    const detected = detectStateMarker(project);
+    const stateName = detected || project.defaultState || Object.keys(project.states)[0];
+    if (stateName === S.currentStateName) return;
+    S.currentStateName = stateName;
+    const stateConfig = project.states[stateName];
+    if (!stateConfig || !CHARACTERS_ENABLED) return;
+    const charEl = document.getElementById(CHARACTER_ID);
+    if (!charEl) return;
+    if (stateConfig.characterUrl) swapCharacterImage(stateConfig.characterUrl, charEl);
+    if (stateConfig.characterHeight) charEl.style.height = stateConfig.characterHeight;
+    if (stateConfig.characterBottom) charEl.style.bottom = stateConfig.characterBottom;
+    if (stateConfig.characterRight) charEl.style.right = stateConfig.characterRight;
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -1271,216 +1499,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
 
     // =========================================================================
-    // MULTI-VOICE DETECTION (Crucible-type projects)
-    // =========================================================================
-    function detectVoiceState(project) {
-      if (!project.voices) return null;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return null;
-      const voiceNames = Object.keys(project.voices);
-      const markerStrings = voiceNames.map(n => n.charAt(0).toUpperCase() + n.slice(1) + ':');
-      const walker = document.createTreeWalker(container, NodeFilter.SHOW_TEXT, null);
-      const events = [];
-      let textOffset = 0, node;
-      while ((node = walker.nextNode())) {
-        const text = node.textContent || '';
-        const inBQ = !!node.parentElement?.closest('blockquote');
-        for (let i = 0; i < voiceNames.length; i++) {
-          let from = 0;
-          while (true) {
-            const idx = text.indexOf(markerStrings[i], from);
-            if (idx === -1) break;
-            events.push({ name: voiceNames[i], inBlockquote: inBQ, offset: textOffset + idx });
-            from = idx + markerStrings[i].length;
-          }
-        }
-        textOffset += text.length;
-      }
-      if (!events.length) return null;
-      events.sort((a, b) => a.offset - b.offset);
-      let primaryIdx = -1;
-      for (let i = events.length - 1; i >= 0; i--) { if (!events[i].inBlockquote) { primaryIdx = i; break; } }
-      if (primaryIdx === -1) return null;
-      const primary = events[primaryIdx].name;
-      const interjectors = new Set();
-      for (let i = primaryIdx - 1; i >= 0; i--) {
-        const e = events[i];
-        if (e.inBlockquote) { if (e.name !== primary) interjectors.add(e.name); }
-        else if (e.name !== primary) { interjectors.add(e.name); break; }
-      }
-      for (let i = primaryIdx + 1; i < events.length; i++) {
-        if (events[i].inBlockquote && events[i].name !== primary) interjectors.add(events[i].name);
-      }
-      return { primary, interjectors: [...interjectors].sort() };
-    }
-
-    function getComboKey(state) {
-      if (!state) return null;
-      if (state.interjectors.length === 0) return state.primary;
-      if (state.interjectors.length >= 2) return 'council';
-      return state.primary + '_' + state.interjectors[0];
-    }
-
-    function resolveVoiceConfig(project, comboKey, primaryName) {
-      if (project.voiceCombos?.[comboKey]) {
-        const accent = primaryName ? project.voices[primaryName]?.accentColor : project.accentColor;
-        return { sprite: project.voiceCombos[comboKey], accent: accent || project.accentColor };
-      }
-      if (comboKey?.includes('_')) {
-        const parts = comboKey.split('_'), reversed = parts[1] + '_' + parts[0];
-        if (project.voiceCombos?.[reversed]) {
-          const accent = primaryName ? project.voices[primaryName]?.accentColor : project.accentColor;
-          return { sprite: project.voiceCombos[reversed], accent: accent || project.accentColor };
-        }
-      }
-      if (comboKey?.includes('_') && project.voiceCombos?.council) {
-        const accent = primaryName ? project.voices[primaryName]?.accentColor : project.accentColor;
-        return { sprite: project.voiceCombos.council, accent: accent || project.accentColor };
-      }
-      if (project.voices[comboKey]) return { sprite: project.voices[comboKey], accent: project.voices[comboKey].accentColor };
-      if (primaryName && project.voices[primaryName]) return { sprite: project.voices[primaryName], accent: project.voices[primaryName].accentColor };
-      return null;
-    }
-
-    function preloadVoiceImages(project) {
-      if (project.voices) for (const v of Object.values(project.voices)) { if (v.characterUrl) new Image().src = vurl(v.characterUrl); }
-      if (project.voiceCombos) for (const c of Object.values(project.voiceCombos)) { if (c.characterUrl) new Image().src = vurl(c.characterUrl); }
-    }
-
-    function colorVoiceText(project) {
-      if (!project.voices) return;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return;
-      const voiceNames = Object.keys(project.voices);
-      const ATTR = 'data-voice-colored';
-      for (const el of container.querySelectorAll('strong, b')) {
-        if (el.hasAttribute(ATTR)) continue;
-        const text = (el.textContent || '').trim();
-        for (const name of voiceNames) {
-          const marker = name.charAt(0).toUpperCase() + name.slice(1) + ':';
-          if (text === marker || text.startsWith(marker)) { el.style.color = project.voices[name].accentColor; el.setAttribute(ATTR, name); break; }
-        }
-      }
-      for (const bq of container.querySelectorAll('blockquote')) {
-        if (bq.hasAttribute(ATTR)) continue;
-        const text = bq.textContent || '';
-        for (const name of voiceNames) {
-          const marker = name.charAt(0).toUpperCase() + name.slice(1) + ':';
-          if (text.includes(marker)) { bq.style.color = project.voices[name].textColor || project.voices[name].accentColor; bq.style.borderLeftColor = project.voices[name].accentColor; bq.setAttribute(ATTR, name); break; }
-        }
-      }
-    }
-
-    // === SINGLE-VOICE INTERJECTION COLORING ===
-    function colorInterjections(project) {
-      if (!project.interjectionColor || project.voices) return;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return;
-      const ATTR = 'data-voice-colored';
-      for (const bq of container.querySelectorAll('blockquote')) {
-        if (bq.hasAttribute(ATTR)) continue;
-        bq.style.color = project.interjectionColor;
-        if (project.interjectionBorder) bq.style.borderLeftColor = project.interjectionBorder;
-        bq.setAttribute(ATTR, project.id);
-      }
-    }
-
-    function applyVoiceState(project, comboKey, accent, sprite) {
-      if (!comboKey || !sprite) return;
-      const changed = S.currentComboKey !== comboKey;
-      S.currentComboKey = comboKey;
-      let vs = document.getElementById(VOICE_STYLE_ID);
-      if (!vs) { vs = document.createElement('style'); vs.id = VOICE_STYLE_ID; document.head.appendChild(vs); }
-      if (changed) {
-        vs.textContent = `:root { --tm-accent: ${accent}; }`;
-      }
-      if (!CHARACTERS_ENABLED || !sprite.characterUrl) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; return; }
-      let charEl = document.getElementById(CHARACTER_ID);
-      const isNew = !charEl;
-      if (isNew) {
-        charEl = document.createElement('div'); charEl.id = CHARACTER_ID;
-        for (const layer of ['a', 'b']) {
-          const img = document.createElement('img');
-          img.alt = ''; img.draggable = false; img.dataset.layer = layer;
-          img.style.height = '100%'; img.style.width = 'auto';
-          img.onerror = () => { charEl.style.display = 'none'; };
-          charEl.appendChild(img);
-        }
-        document.body.appendChild(charEl);
-      }
-      charEl.style.cssText = `position:fixed;pointer-events:none;z-index:-1;user-select:none;height:${sprite.characterHeight||'76vh'};width:auto;bottom:${sprite.characterBottom||'-100px'};right:${sprite.characterRight||'-200px'};`;
-      if (isNew) {
-        const first = charEl.querySelector('img[data-layer="a"]');
-        first.src = vurl(sprite.characterUrl);
-        first.classList.add('is-active');
-        charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; S.voiceCharReady = true;
-      } else if (changed) {
-        swapCharacterImage(sprite.characterUrl, charEl);
-      }
-      charEl.style.display = isSidePanelOpen() ? 'none' : '';
-    }
-
-    // =========================================================================
-    // STATE-BASED CHARACTER SWAPPING (Vadim-type projects)
-    // =========================================================================
-    function detectStateMarker(project) {
-      if (!project.states) return null;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return null;
-      const stateNames = Object.keys(project.states);
-      const allText = container.textContent || '';
-      let lastState = null, lastIdx = -1;
-      for (const name of stateNames) {
-        const marker = '[' + name.toUpperCase() + ']';
-        const idx = allText.lastIndexOf(marker);
-        if (idx > lastIdx) { lastIdx = idx; lastState = name; }
-      }
-      return lastState;
-    }
-
-    function hideStateMarkers(project) {
-      if (!project.states) return;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return;
-      const stateNames = Object.keys(project.states);
-      const ATTR = 'data-state-hidden';
-      for (const p of container.querySelectorAll('p')) {
-        if (p.hasAttribute(ATTR)) continue;
-        const text = (p.textContent || '').trim();
-        for (const name of stateNames) {
-          if (text === '[' + name.toUpperCase() + ']') {
-            p.style.display = 'none';
-            p.setAttribute(ATTR, '1');
-            break;
-          }
-        }
-      }
-    }
-
-    function preloadStateImages(project) {
-      if (!project.states) return;
-      for (const s of Object.values(project.states)) { if (s.characterUrl) new Image().src = vurl(s.characterUrl); }
-    }
-
-    function refreshStateCharacter(project) {
-      if (!project.states || S.currentMode !== 'chat') return;
-      const nearBottom = !S.themedContainer || (S.themedContainer.scrollHeight - S.themedContainer.scrollTop - S.themedContainer.clientHeight < 300);
-      if (!nearBottom && S.currentStateName) return;
-      const detected = detectStateMarker(project);
-      const stateName = detected || project.defaultState || Object.keys(project.states)[0];
-      if (stateName === S.currentStateName) return;
-      S.currentStateName = stateName;
-      const stateConfig = project.states[stateName];
-      if (!stateConfig || !CHARACTERS_ENABLED) return;
-      const charEl = document.getElementById(CHARACTER_ID);
-      if (!charEl) return;
-      if (stateConfig.characterUrl) swapCharacterImage(stateConfig.characterUrl, charEl);
-      if (stateConfig.characterHeight) charEl.style.height = stateConfig.characterHeight;
-      if (stateConfig.characterBottom) charEl.style.bottom = stateConfig.characterBottom;
-      if (stateConfig.characterRight) charEl.style.right = stateConfig.characterRight;
-    }
-
-    // =========================================================================
     // THEME LIFECYCLE
     // =========================================================================
     function cleanup() {
@@ -1502,22 +1520,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       S.actionAlertedIdx = -1;
     }
 
-    function swapCharacterImage(newSrc, charEl) {
-      if (!charEl) return;
-      newSrc = vurl(newSrc);
-      const current = charEl.querySelector('img.is-active');
-      const staging = charEl.querySelector('img:not(.is-active)');
-      if (!current || !staging) return;
-      if (current.src === newSrc) return;
-      staging.src = newSrc;
-      staging.decode().then(() => {
-        staging.classList.add('is-active');
-        current.classList.remove('is-active');
-      }).catch(() => {
-        staging.classList.add('is-active');
-        current.classList.remove('is-active');
-      });
-    }
 
     function injectBackground(project, cfg) {
       if (document.getElementById(BG_ID)) return;

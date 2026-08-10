@@ -134,6 +134,27 @@
   const EGOSTIC_BG = BASE + 'egostic_background.png';
   const EGOSTIC_CARD = BASE + 'egostic_card.png';
 
+  const S = {
+    currentThemeKey: null,
+    currentProject: null,
+    currentMode: null,
+    themedContainer: null,
+    currentComboKey: null,
+    voiceCharReady: false,
+    currentStateName: null,
+    cachedMainContainer: null,
+    maxDataIndex: -1,
+    replyCountPath: null,
+    maxTokenEstimate: 0,
+    actionAlertedIdx: -1,
+    actionAudioEnabled: GM_getValue('action_audio', false),
+    ACCOUNT: null,
+    ACCOUNT_ASSUMED: false,
+    activeNav: [],
+    nullDetections: 0,
+    cycleWarned: false,
+  };
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -148,9 +169,9 @@
       GM_registerMenuCommand('Claude Themes: disable (reloads)', () => { GM_setValue('theme_disabled', true); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle sprites (reloads)', () => { GM_setValue('sprites_enabled', !GM_getValue('sprites_enabled', false)); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle reduced motion (reloads)', () => { GM_setValue('reduced_motion', !GM_getValue('reduced_motion', false)); location.reload(); });
-      GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); GM_setValue('account_pin', next); location.reload(); });
-      GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); GM_setValue('account_pin', cur); location.reload(); });
-      GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); actionAudioEnabled = v; });
+      GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || S.ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); GM_setValue('account_pin', next); location.reload(); });
+      GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = S.ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); GM_setValue('account_pin', cur); location.reload(); });
+      GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); S.actionAudioEnabled = v; });
     }
 
 
@@ -472,8 +493,8 @@
     }
 
     function refreshVersionIndicator(project) {
-      if (ACCOUNT !== 'A') return;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      if (S.ACCOUNT !== 'A') return;
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return;
       const fieldset = container.querySelector('fieldset');
       if (!fieldset) return;
@@ -545,7 +566,7 @@
     }
 
     function injectQuickNav() {
-      if (!ACCOUNT) return;
+      if (!S.ACCOUNT) return;
       if (isPathSuppressed()) { const ex = document.getElementById(NAV_ID); if (ex) ex.style.display = 'none'; return; }
       if (document.getElementById(NAV_ID)) return;
       const bar = document.createElement('div');
@@ -553,7 +574,7 @@
       bar.dataset.tmUi = '1';
       bar.style.cssText = 'position:fixed;top:8px;right:140px;z-index:100;display:flex;flex-wrap:nowrap;gap:6px;align-items:center;pointer-events:auto;transition:right 0.2s ease;';
 
-      for (const item of activeNav) {
+      for (const item of S.activeNav) {
         const isActive = window.location.pathname.includes(item.url);
         const a = document.createElement('a');
         a.href = item.url;
@@ -572,7 +593,7 @@
       }
 
       const ver = document.createElement('span');
-      ver.textContent = 'v' + SCRIPT_VERSION + '-' + (ACCOUNT || '?') + (ACCOUNT_ASSUMED ? '?' : '');
+      ver.textContent = 'v' + SCRIPT_VERSION + '-' + (S.ACCOUNT || '?') + (S.ACCOUNT_ASSUMED ? '?' : '');
       ver.style.cssText = 'font-size:9px;opacity:0.55;color:#ffffff;pointer-events:none;user-select:none;letter-spacing:0.5px;padding-left:2px;';
       bar.appendChild(ver);
 
@@ -589,7 +610,7 @@
       bar.style.right = panelOpen ? '50%' : '140px';
       const links = bar.querySelectorAll('a:not(#' + USAGE_ID + ')');
       links.forEach((a, i) => {
-        const item = activeNav[i];
+        const item = S.activeNav[i];
         if (!item) return;
         const isActive = window.location.pathname.includes(item.url);
         a.style.opacity = isActive ? '1' : '0.65';
@@ -669,16 +690,16 @@
       bar.style.height = r.height + 'px';
       bar.style.background = getComputedStyle(disclaimer).backgroundColor;
       const chatPath = window.location.pathname;
-      if (chatPath !== replyCountPath) { replyCountPath = chatPath; maxDataIndex = -1; actionAlertedIdx = -1; }
+      if (chatPath !== S.replyCountPath) { S.replyCountPath = chatPath; S.maxDataIndex = -1; S.maxTokenEstimate = 0; S.actionAlertedIdx = -1; }
       const counterEl = document.getElementById(UTILBAR_ID + '-counter');
       const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
       if (counterEl) {
-        const counterScope = themedContainer || document;
+        const counterScope = S.themedContainer || document;
         const msgs = getMessageNodes(counterScope);
         let currentMaxIdx = -1;
         for (const m of msgs) { if (m.idx > currentMaxIdx) currentMaxIdx = m.idx; }
-        if (currentMaxIdx > maxDataIndex) maxDataIndex = currentMaxIdx;
-        const assist = maxDataIndex >= 0 ? Math.floor((maxDataIndex + 1) / 2) : counterScope.querySelectorAll('[data-testid="action-bar-retry"]').length;
+        if (currentMaxIdx > S.maxDataIndex) S.maxDataIndex = currentMaxIdx;
+        const assist = S.maxDataIndex >= 0 ? Math.floor((S.maxDataIndex + 1) / 2) : counterScope.querySelectorAll('[data-testid="action-bar-retry"]').length;
         const counterText = '\u2195 ' + assist;
         if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
         const consumColor = assist > 20 ? '#c45c4c' : assist > 14 ? '#c9a84c' : '#4a9a7a';
@@ -749,10 +770,10 @@
     // =========================================================================
     function checkActionRequired() {
       if (!window.location.pathname.includes('/chat/')) return;
-      const msgs = getMessageNodes(themedContainer || document);
+      const msgs = getMessageNodes(S.themedContainer || document);
       let target = null;
       for (const m of msgs) { if (m.assistant && (!target || m.idx > target.idx)) target = m; }
-      if (!target || target.idx <= 0 || target.idx === actionAlertedIdx) return;
+      if (!target || target.idx <= 0 || target.idx === S.actionAlertedIdx) return;
       const el = target.el;
       if (!el) return;
       const paras = [...el.querySelectorAll('p')].filter(p => !p.closest('pre'));
@@ -760,7 +781,7 @@
       const lastP = paras[paras.length - 1];
       const text = (lastP.textContent || '').trim();
       const match = text.match(ACTION_RE);
-      if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); actionAlertedIdx = target.idx; }
+      if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); S.actionAlertedIdx = target.idx; }
     }
 
     function showActionAlert(action, context) {
@@ -779,9 +800,9 @@
       alert.appendChild(msg);
       const audioBtn = document.createElement('button');
       audioBtn.style.cssText = 'background:none;border:1px solid #ff980040;border-radius:4px;color:#ff9800;cursor:pointer;padding:2px 6px;font-size:12px;opacity:0.7;';
-      audioBtn.textContent = actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+      audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
       audioBtn.title = 'Toggle audio notification';
-      audioBtn.addEventListener('click', (e) => { e.stopPropagation(); actionAudioEnabled = !actionAudioEnabled; GM_setValue('action_audio', actionAudioEnabled); audioBtn.textContent = actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'; });
+      audioBtn.addEventListener('click', (e) => { e.stopPropagation(); S.actionAudioEnabled = !S.actionAudioEnabled; GM_setValue('action_audio', S.actionAudioEnabled); audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'; });
       alert.appendChild(audioBtn);
       const dismiss = document.createElement('button');
       dismiss.style.cssText = 'background:none;border:none;color:#ff9800;cursor:pointer;font-size:18px;padding:0 0 0 4px;opacity:0.8;';
@@ -790,7 +811,7 @@
       dismiss.addEventListener('click', () => alert.remove());
       alert.appendChild(dismiss);
       document.body.appendChild(alert);
-      if (actionAudioEnabled) {
+      if (S.actionAudioEnabled) {
         try {
           const actx = new (window.AudioContext || window.webkitAudioContext)();
           const osc = actx.createOscillator(); const gain = actx.createGain();
@@ -833,7 +854,7 @@
 
     function tintCodeBlocks() {
       if (!window.location.pathname.includes('/chat/')) return;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return;
       const ATTR = 'data-lane-tinted';
       for (const pre of container.querySelectorAll('pre')) {
@@ -876,7 +897,7 @@
     // =========================================================================
     function styleOperatorBlocks() {
       if (!window.location.pathname.includes('/chat/')) return;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return;
       for (const p of container.querySelectorAll('p')) {
         if (p.hasAttribute(OB_ATTR)) continue;
@@ -1048,9 +1069,6 @@
     const ACCOUNT_TAB_KEY = 'claude-theme-account';
     const ACCOUNT_PIN_KEY = 'account_pin';
     const ORG_B_RE = /ope\s*Logistics\s*S\.?\s*R\.?\s*L?\.?/i;
-    let ACCOUNT = null;
-    let ACCOUNT_ASSUMED = false;
-    let activeNav = [];
 
     function detectAccountFromDOM() {
       const nav = document.querySelector('nav');
@@ -1059,29 +1077,29 @@
     }
 
     function selectAccountProjects() {
-      const filtered = ALL_PROJECTS.filter(p => p.account === ACCOUNT);
+      const filtered = ALL_PROJECTS.filter(p => p.account === S.ACCOUNT);
       PROJECTS.length = 0;
       PROJECTS.push(...filtered);
-      activeNav = QUICK_NAV.filter(i => !i.account || i.account === ACCOUNT);
+      S.activeNav = QUICK_NAV.filter(i => !i.account || i.account === S.ACCOUNT);
     }
 
     function initAccount() {
-      if (ACCOUNT) return true;
+      if (S.ACCOUNT) return true;
       const tabVal = sessionStorage.getItem(ACCOUNT_TAB_KEY);
       const pinVal = GM_getValue(ACCOUNT_PIN_KEY, null);
       if (tabVal === 'A' || tabVal === 'B') {
-        ACCOUNT = tabVal; ACCOUNT_ASSUMED = false;
+        S.ACCOUNT = tabVal; S.ACCOUNT_ASSUMED = false;
       } else if (pinVal === 'A' || pinVal === 'B') {
-        ACCOUNT = pinVal; ACCOUNT_ASSUMED = false;
+        S.ACCOUNT = pinVal; S.ACCOUNT_ASSUMED = false;
         sessionStorage.setItem(ACCOUNT_TAB_KEY, pinVal);
       } else {
         const detected = detectAccountFromDOM();
         if (detected) {
-          ACCOUNT = detected; ACCOUNT_ASSUMED = false;
+          S.ACCOUNT = detected; S.ACCOUNT_ASSUMED = false;
           sessionStorage.setItem(ACCOUNT_TAB_KEY, detected);
           GM_setValue(ACCOUNT_PIN_KEY, detected);
         } else {
-          ACCOUNT = 'A'; ACCOUNT_ASSUMED = true;
+          S.ACCOUNT = 'A'; S.ACCOUNT_ASSUMED = true;
         }
       }
       selectAccountProjects();
@@ -1089,8 +1107,8 @@
     }
 
     function adoptAccount(acc) {
-      const changed = acc !== ACCOUNT;
-      ACCOUNT = acc; ACCOUNT_ASSUMED = false;
+      const changed = acc !== S.ACCOUNT;
+      S.ACCOUNT = acc; S.ACCOUNT_ASSUMED = false;
       sessionStorage.setItem(ACCOUNT_TAB_KEY, acc);
       GM_setValue(ACCOUNT_PIN_KEY, acc);
       if (changed) { selectAccountProjects(); cleanup(); }
@@ -1112,14 +1130,6 @@
       document.head.appendChild(rm);
     }
 
-    let currentThemeKey = null, currentProject = null, currentMode = null;
-    let currentComboKey = null;
-    let currentStateName = null;
-    let themedContainer = null;
-    let maxDataIndex = -1;
-    let replyCountPath = null;
-    let actionAlertedIdx = -1;
-    let actionAudioEnabled = GM_getValue('action_audio', false);
 
     function detectContext() {
       const url = window.location.pathname;
@@ -1141,9 +1151,8 @@
       return null;
     }
 
-    let cachedMainContainer = null;
     function findMainChatContainer(forceRescan) {
-      if (!forceRescan && cachedMainContainer && document.body.contains(cachedMainContainer)) return cachedMainContainer;
+      if (!forceRescan && S.cachedMainContainer && document.body.contains(S.cachedMainContainer)) return S.cachedMainContainer;
       const vh = window.innerHeight;
       let best = null, bestS = 0;
       let scrollBest = null, scrollBestS = 0;
@@ -1159,8 +1168,8 @@
           if (sc > bestS) { bestS = sc; best = el; }
         }
       });
-      cachedMainContainer = scrollBest || best;
-      return cachedMainContainer;
+      S.cachedMainContainer = scrollBest || best;
+      return S.cachedMainContainer;
     }
 
     function isSidePanelOpen() {
@@ -1175,7 +1184,7 @@
     // =========================================================================
     function detectVoiceState(project) {
       if (!project.voices) return null;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return null;
       const voiceNames = Object.keys(project.voices);
       const markerStrings = voiceNames.map(n => n.charAt(0).toUpperCase() + n.slice(1) + ':');
@@ -1249,7 +1258,7 @@
 
     function colorVoiceText(project) {
       if (!project.voices) return;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return;
       const voiceNames = Object.keys(project.voices);
       const ATTR = 'data-voice-colored';
@@ -1274,7 +1283,7 @@
     // === SINGLE-VOICE INTERJECTION COLORING ===
     function colorInterjections(project) {
       if (!project.interjectionColor || project.voices) return;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return;
       const ATTR = 'data-voice-colored';
       for (const bq of container.querySelectorAll('blockquote')) {
@@ -1287,8 +1296,8 @@
 
     function applyVoiceState(project, comboKey, accent, sprite) {
       if (!comboKey || !sprite) return;
-      const changed = currentComboKey !== comboKey;
-      currentComboKey = comboKey;
+      const changed = S.currentComboKey !== comboKey;
+      S.currentComboKey = comboKey;
       let vs = document.getElementById(VOICE_STYLE_ID);
       if (!vs) { vs = document.createElement('style'); vs.id = VOICE_STYLE_ID; document.head.appendChild(vs); }
       if (changed) {
@@ -1313,7 +1322,8 @@
         const first = charEl.querySelector('img[data-layer="a"]');
         first.src = vurl(sprite.characterUrl);
         first.classList.add('is-active');
-        charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards';    } else if (changed) {
+        charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; S.voiceCharReady = true;
+      } else if (changed) {
         swapCharacterImage(sprite.characterUrl, charEl);
       }
       charEl.style.display = isSidePanelOpen() ? 'none' : '';
@@ -1324,7 +1334,7 @@
     // =========================================================================
     function detectStateMarker(project) {
       if (!project.states) return null;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return null;
       const stateNames = Object.keys(project.states);
       const allText = container.textContent || '';
@@ -1339,7 +1349,7 @@
 
     function hideStateMarkers(project) {
       if (!project.states) return;
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       if (!container) return;
       const stateNames = Object.keys(project.states);
       const ATTR = 'data-state-hidden';
@@ -1362,13 +1372,13 @@
     }
 
     function refreshStateCharacter(project) {
-      if (!project.states || currentMode !== 'chat') return;
-      const nearBottom = !themedContainer || (themedContainer.scrollHeight - themedContainer.scrollTop - themedContainer.clientHeight < 300);
-      if (!nearBottom && currentStateName) return;
+      if (!project.states || S.currentMode !== 'chat') return;
+      const nearBottom = !S.themedContainer || (S.themedContainer.scrollHeight - S.themedContainer.scrollTop - S.themedContainer.clientHeight < 300);
+      if (!nearBottom && S.currentStateName) return;
       const detected = detectStateMarker(project);
       const stateName = detected || project.defaultState || Object.keys(project.states)[0];
-      if (stateName === currentStateName) return;
-      currentStateName = stateName;
+      if (stateName === S.currentStateName) return;
+      S.currentStateName = stateName;
       const stateConfig = project.states[stateName];
       if (!stateConfig || !CHARACTERS_ENABLED) return;
       const charEl = document.getElementById(CHARACTER_ID);
@@ -1389,14 +1399,16 @@
       document.getElementById(VOICE_STYLE_ID)?.remove();
       document.getElementById(TOPLINE_ID)?.remove();
       document.querySelectorAll('fieldset[data-tm-version]').forEach(el => el.removeAttribute('data-tm-version'));
-      if (themedContainer) themedContainer.removeAttribute(THEME_ATTR);
-      themedContainer = null;
-      currentThemeKey = null; currentProject = null; currentMode = null;
-      currentComboKey = null;    currentStateName = null;
-      cachedMainContainer = null;
-      maxDataIndex = -1;
-      replyCountPath = null;
-      actionAlertedIdx = -1;
+      if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
+      S.themedContainer = null;
+      S.currentThemeKey = null; S.currentProject = null; S.currentMode = null;
+      S.currentComboKey = null; S.voiceCharReady = false;
+      S.currentStateName = null;
+      S.cachedMainContainer = null;
+      S.maxDataIndex = -1;
+      S.replyCountPath = null;
+      S.maxTokenEstimate = 0;
+      S.actionAlertedIdx = -1;
     }
 
     function swapCharacterImage(newSrc, charEl) {
@@ -1444,9 +1456,9 @@
 
     function applyTheme(project, mode) {
       const key = project.id + ':' + mode;
-      if (currentThemeKey === key) return;
+      if (S.currentThemeKey === key) return;
       cleanup();
-      currentThemeKey = key; currentProject = project; currentMode = mode;
+      S.currentThemeKey = key; S.currentProject = project; S.currentMode = mode;
       const cfg = project[mode]; if (!cfg) return;
       const isVoiceChat = !!(project.voices && mode === 'chat');
       const isStateChat = !!(project.states && mode === 'chat');
@@ -1494,7 +1506,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     `;
       document.head.appendChild(st);
       const cc = findMainChatContainer(true);
-      if (cc) { themedContainer = cc; cc.setAttribute(THEME_ATTR, project.id); }
+      if (cc) { S.themedContainer = cc; cc.setAttribute(THEME_ATTR, project.id); }
       injectBackground(project, cfg);
       if (!isVoiceChat) injectCharacter(cfg);
       if (isVoiceChat) preloadVoiceImages(project);
@@ -1505,38 +1517,38 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
 
     function refreshTheme() {
-      if (!currentProject || !currentMode) return;
-      const cfg = currentProject[currentMode]; if (!cfg) return;
-      const isVoiceChat = !!(currentProject.voices && currentMode === 'chat');
-      const isStateChat = !!(currentProject.states && currentMode === 'chat');
+      if (!S.currentProject || !S.currentMode) return;
+      const cfg = S.currentProject[S.currentMode]; if (!cfg) return;
+      const isVoiceChat = !!(S.currentProject.voices && S.currentMode === 'chat');
+      const isStateChat = !!(S.currentProject.states && S.currentMode === 'chat');
       const cc = findMainChatContainer();
-      if (cc && cc !== themedContainer) {
-        if (themedContainer) themedContainer.removeAttribute(THEME_ATTR);
-        themedContainer = cc; cc.setAttribute(THEME_ATTR, currentProject.id);
+      if (cc && cc !== S.themedContainer) {
+        if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
+        S.themedContainer = cc; cc.setAttribute(THEME_ATTR, S.currentProject.id);
       }
-      if (themedContainer && !themedContainer.hasAttribute(THEME_ATTR)) themedContainer.setAttribute(THEME_ATTR, currentProject.id);
-      if (!document.getElementById(BG_ID)) injectBackground(currentProject, cfg);
+      if (S.themedContainer && !S.themedContainer.hasAttribute(THEME_ATTR)) S.themedContainer.setAttribute(THEME_ATTR, S.currentProject.id);
+      if (!document.getElementById(BG_ID)) injectBackground(S.currentProject, cfg);
       if (isVoiceChat) {
-        const nearBottom = !themedContainer || (themedContainer.scrollHeight - themedContainer.scrollTop - themedContainer.clientHeight < 300);
-        const state = nearBottom ? detectVoiceState(currentProject) : null;
+        const nearBottom = !S.themedContainer || (S.themedContainer.scrollHeight - S.themedContainer.scrollTop - S.themedContainer.clientHeight < 300);
+        const state = nearBottom ? detectVoiceState(S.currentProject) : null;
         if (state && nearBottom) {
           const comboKey = getComboKey(state);
-          const resolved = resolveVoiceConfig(currentProject, comboKey, state.primary);
-          if (resolved) applyVoiceState(currentProject, comboKey, resolved.accent, resolved.sprite);
+          const resolved = resolveVoiceConfig(S.currentProject, comboKey, state.primary);
+          if (resolved) applyVoiceState(S.currentProject, comboKey, resolved.accent, resolved.sprite);
         }
-        if (!state && !currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; }
-        if (!state && currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : ''; }
-        colorVoiceText(currentProject);
+        if (!state && !S.currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; }
+        if (!state && S.currentComboKey) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : ''; }
+        colorVoiceText(S.currentProject);
       } else if (isStateChat) {
-        refreshStateCharacter(currentProject);
-        hideStateMarkers(currentProject);
+        refreshStateCharacter(S.currentProject);
+        hideStateMarkers(S.currentProject);
         if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
         const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
       } else {
         if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
         const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
       }
-      if (currentMode === 'chat' && !document.getElementById(TOPLINE_ID)) {
+      if (S.currentMode === 'chat' && !document.getElementById(TOPLINE_ID)) {
         const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl);
       }
     }
@@ -1682,9 +1694,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       }
     }
 
-    let cycleWarned = false;
-    function cycleWarn(e) { if (!cycleWarned) { cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
-    let nullDetections = 0;
+    function cycleWarn(e) { if (!S.cycleWarned) { S.cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
 
     function legendColor(id) {
       if (id === 'primary' || id === 't1') return LANE_PRIMARY_COLOR;
@@ -1696,7 +1706,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       const onChat = window.location.pathname.includes('/chat/');
       let box = document.getElementById(LEGEND_ID);
       if (!onChat) { if (box) box.style.display = 'none'; return; }
-      const container = themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
       const lanes = new Set();
       if (container) for (const pre of container.querySelectorAll('pre[data-lane-tinted]')) lanes.add(pre.getAttribute('data-lane-tinted').split(':')[0]);
       if (lanes.size < 2) { if (box) box.style.display = 'none'; return; }
@@ -1724,10 +1734,10 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     function updateHealthBeacon() {
       const ver = document.querySelector('#' + NAV_ID + ' span');
       if (!ver) return;
-      if (!currentThemeKey) { ver.style.color = ''; ver.title = ''; return; }
+      if (!S.currentThemeKey) { ver.style.color = ''; ver.title = ''; return; }
       const bgEl = document.getElementById(BG_ID);
       const bgFallback = !!(bgEl && bgEl.style.background);
-      const containerOk = !!(themedContainer && themedContainer.isConnected);
+      const containerOk = !!(S.themedContainer && S.themedContainer.isConnected);
       const ok = !!bgEl && !bgFallback && containerOk;
       ver.style.color = ok ? '#8ac8a8' : '#c9a84c';
       ver.title = ok ? 'Theme layers healthy' : ('Theme degraded: ' + [!bgEl ? 'background missing' : null, bgFallback ? 'background on gradient fallback' : null, !containerOk ? 'container not found' : null].filter(Boolean).join(', '));
@@ -1737,7 +1747,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     function slowCycle() { if (document.hidden) return; try { slowCycleInner(); } catch (e) { cycleWarn(e); } }
     function slowCycleInner() {
       colorChatLinks();
-      if (currentProject && currentMode && !currentProject.voices) colorInterjections(currentProject);
+      if (S.currentProject && S.currentMode && !S.currentProject.voices) colorInterjections(S.currentProject);
       if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') { styleProjectCardText(); applyProjectGrouping(); }
       tintCodeBlocks();
       styleOperatorBlocks();
@@ -1746,8 +1756,8 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
     function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
     function checkInner() {
-      if (!ACCOUNT) initAccount();
-      else if (ACCOUNT_ASSUMED) {
+      if (!S.ACCOUNT) initAccount();
+      else if (S.ACCOUNT_ASSUMED) {
         const detected = detectAccountFromDOM();
         if (detected) adoptAccount(detected);
       }
@@ -1757,15 +1767,15 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       manageCardStyles();
       refreshQuickNav();
       const ctx = detectContext();
-      if (ctx) { nullDetections = 0; const key = ctx.project.id + ':' + ctx.mode; if (currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
-      else if (currentThemeKey) {
+      if (ctx) { S.nullDetections = 0; const key = ctx.project.id + ':' + ctx.mode; if (S.currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
+      else if (S.currentThemeKey) {
         const url = window.location.pathname;
         const urlStillThemed = url.includes('/chat/') || PROJECTS.some(p => url.includes('/project/' + p.projectId));
-        if (!urlStillThemed) { nullDetections = 0; cleanup(); }
-        else if (url.includes('/chat/')) { nullDetections++; if (nullDetections >= 6) { nullDetections = 0; cleanup(); } }
+        if (!urlStillThemed) { S.nullDetections = 0; cleanup(); }
+        else if (url.includes('/chat/')) { S.nullDetections++; if (S.nullDetections >= 6) { S.nullDetections = 0; cleanup(); } }
       }
       updateHealthBeacon();
-      if (ACCOUNT === 'A' && currentMode === 'homepage' && currentProject) refreshVersionIndicator(currentProject);
+      if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
       if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
       if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
     }

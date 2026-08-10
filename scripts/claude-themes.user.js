@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.31.0
+// @version      6.31.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.31.0';
+  const SCRIPT_VERSION = '6.31.1';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -262,7 +262,7 @@
     { id: 'vesper', projectId: '019da196-0cff-74af-9b38-ee2f3701579c', label: 'Vesper', extends: 'foundry' },
     { id: 'template-builder', projectId: '019dc9fc-5001-741a-9648-4788558df268', label: 'Template Builder', extends: 'foundry' },
     {
-      id: 'grim-dawn-advisor', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Grim Dawn',
+      id: 'voss', projectId: '019d1b30-df37-72a6-8fe1-2d3516800687', label: 'Voss',
       accentColor: '#8a6a3c',
       chatBackground: 'linear-gradient(160deg, #0e0d08 0%, #141210 30%, #0e0c0a 60%, #0a0908 100%)',
       card: { imageUrl: null, titleColor: '#8a6a3c', letterSpacing: '0.5px', textTransform: null },
@@ -306,6 +306,14 @@
       card: { imageUrl: EGOSTIC_CARD, titleColor: '#c43030', letterSpacing: '0.5px', textTransform: null },
       chat: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_CHAT, characterOpacity: 1.0, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
       homepage: { backgroundImage: EGOSTIC_BG, characterUrl: EGOSTIC_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
+    },
+    {
+      id: 'meridian', projectId: '019e02cd-3466-73bd-ac0e-f17988f2f3a8', label: 'Meridian',
+      accentColor: '#4a8a8c',
+      chatBackground: 'linear-gradient(160deg, #0a0e10 0%, #0c1214 30%, #0a1012 60%, #080c0e 100%)',
+      card: { imageUrl: null, titleColor: '#4a8a8c', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
     },
   ];
 
@@ -397,7 +405,7 @@
 
   const PROJECT_GROUPS = [
     { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
-    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'grim-dawn-advisor', 'egostic'] },
+    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'voss', 'egostic', 'meridian'] },
     { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
   ];
   const PROJECT_GROUP_MAP = {};

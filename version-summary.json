@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-10T13:18:47Z",
+  "updated_at": "2026-08-10T13:29:54Z",
   "agents": {
     "faith": "1.52",
     "tomoe": "3.37",
@@ -11,7 +11,7 @@
     "vadim": "1.29",
     "grim-dawn-advisor": "1.32",
     "egostic": "1.9",
-    "code-foundry": "1.59",
+    "code-foundry": "1.60",
     "factory": "1.53",
     "steward": "1.30",
     "business-agent-workshop": "2.30",

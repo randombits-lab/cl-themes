@@ -1075,6 +1075,238 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
   }
 
+  // =========================================================================
+  // INBOX DASHBOARD — fetches pending item counts from cl-themes
+  // =========================================================================
+
+  function fetchInboxSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: INBOX_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(INBOX_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getInboxData() {
+    try { const r = localStorage.getItem(INBOX_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let inboxFetched = false;
+  function ensureInboxFetch() {
+    if (inboxFetched) return;
+    inboxFetched = true;
+    fetchInboxSummary();
+  }
+
+  function formatAge(date) {
+    const ms = Date.now() - date.getTime();
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return 'just now';
+    if (min < 60) return min + 'm ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    return Math.floor(hr / 24) + 'd ago';
+  }
+
+  function toggleInboxPopup(anchorEl) {
+    const existing = document.getElementById(INBOX_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getInboxData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = INBOX_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
+    const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
+    const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
+    const govEntries = entries.filter(([id]) => govMembers.includes(id));
+    const execEntries = entries.filter(([id]) => execMembers.includes(id));
+    const opsEntries = entries.filter(([id]) => !govMembers.includes(id) && !execMembers.includes(id));
+    let html = '';
+    function renderGroup(groupLabel, items) {
+      if (!items.length) return '';
+      let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
+      for (const [agentId, counts] of items) {
+        const proj = ALL_PROJECTS.find(p => p.id === agentId);
+        const color = proj ? proj.accentColor : '#8a8a9a';
+        const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+        const href = proj ? '/project/' + proj.projectId : '';
+        const ac = counts.actionable, tc = counts.total;
+        const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
+        const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
+        if (href) {
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></a>';
+        } else {
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></div>';
+        }
+      }
+      return g;
+    }
+    html += renderGroup('Governance', govEntries);
+    if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Agents', opsEntries);
+    if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Executors', execEntries);
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
+  // =========================================================================
+
+  function fetchReflectionSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: REFLECT_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(REFLECT_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getReflectData() {
+    try { const r = localStorage.getItem(REFLECT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let reflectFetched = false;
+  function ensureReflectFetch() {
+    if (reflectFetched) return;
+    reflectFetched = true;
+    fetchReflectionSummary();
+  }
+
+  function toggleReflectPopup(anchorEl) {
+    const existing = document.getElementById(REFLECT_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getReflectData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = REFLECT_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).sort((a,b) => {
+      if (a[1] === 0 && b[1] > 0) return 1;
+      if (b[1] === 0 && a[1] > 0) return -1;
+      if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]);
+      return b[1] - a[1];
+    });
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
+    for (const [agentId, count] of entries) {
+      const proj = ALL_PROJECTS.find(p => p.id === agentId);
+      const color = proj ? proj.accentColor : '#8a8a9a';
+      const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+      const dim = count === 0 ? 'opacity:0.35;' : '';
+      const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
+      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // VERSION INDICATOR — deployed vs registry version comparison (Account A)
+  // =========================================================================
+
+  function fetchVersionSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: VERSION_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(VERSION_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getVersionData() {
+    try { const r = localStorage.getItem(VERSION_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let versionFetched = false;
+  function ensureVersionFetch() {
+    if (versionFetched) return;
+    versionFetched = true;
+    fetchVersionSummary();
+  }
+
+  function parseVersionFromCard() {
+    for (const el of document.querySelectorAll('div, span, h2, h3, p, button')) {
+      if (el.children.length > 0) continue;
+      if ((el.textContent || '').trim() !== 'Instructions') continue;
+      let card = el.parentElement;
+      while (card && card !== document.body && (card.textContent || '').length < 200) card = card.parentElement;
+      if (!card || card === document.body) continue;
+      const full = card.textContent || '';
+      const idx = full.indexOf('Instructions');
+      if (idx === -1) continue;
+      const header = full.substring(idx + 12, idx + 112).trim();
+      const m = header.match(/\|v(\d+\.\d+)\|/);
+      return m ? m[1] : null;
+    }
+    return null;
+  }
+
+  function refreshVersionIndicator(project) {
+    if (S.ACCOUNT !== 'A') return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const fieldset = container.querySelector('fieldset');
+    if (!fieldset) return;
+    const vData = getVersionData();
+    const regId = project.registryId || project.id;
+    if (!vData || !vData.agents || !vData.agents[regId]) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = '';
+      return;
+    }
+    const registryVersion = vData.agents[regId];
+    const cardVersion = parseVersionFromCard();
+    if (!cardVersion) {
+      fieldset.setAttribute('data-tm-version', 'missing');
+      fieldset.title = 'No |v...| token in prompt \u2014 registry: v' + registryVersion;
+      return;
+    }
+    if (cardVersion === registryVersion) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = 'v' + cardVersion + ' \u2014 current';
+      return;
+    }
+    fieldset.setAttribute('data-tm-version', 'mismatch');
+    fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -1194,98 +1426,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     `;
     }
 
-    // =========================================================================
-    // INBOX DASHBOARD — fetches pending item counts from cl-themes
-    // =========================================================================
-
-    function fetchInboxSummary() {
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: INBOX_URL + '?t=' + Date.now(),
-        onload: function(resp) {
-          if (resp.status === 200) {
-            try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(INBOX_KEY, JSON.stringify(d)); } catch(e) {}
-          }
-        },
-        onerror: function() {}
-      });
-    }
-
-    function getInboxData() {
-      try { const r = localStorage.getItem(INBOX_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-    }
-
-    let inboxFetched = false;
-    function ensureInboxFetch() {
-      if (inboxFetched) return;
-      inboxFetched = true;
-      fetchInboxSummary();
-    }
-
-    function formatAge(date) {
-      const ms = Date.now() - date.getTime();
-      const min = Math.floor(ms / 60000);
-      if (min < 1) return 'just now';
-      if (min < 60) return min + 'm ago';
-      const hr = Math.floor(min / 60);
-      if (hr < 24) return hr + 'h ago';
-      return Math.floor(hr / 24) + 'd ago';
-    }
-
-    function toggleInboxPopup(anchorEl) {
-      const existing = document.getElementById(INBOX_POPUP_ID);
-      if (existing) { existing.remove(); return; }
-      const data = getInboxData();
-      if (!data || !data.agents) return;
-      const popup = document.createElement('div');
-      popup.id = INBOX_POPUP_ID;
-      popup.dataset.tmUi = '1';
-      const rect = anchorEl.getBoundingClientRect();
-      const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
-      const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
-      const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
-      const govEntries = entries.filter(([id]) => govMembers.includes(id));
-      const execEntries = entries.filter(([id]) => execMembers.includes(id));
-      const opsEntries = entries.filter(([id]) => !govMembers.includes(id) && !execMembers.includes(id));
-      let html = '';
-      function renderGroup(groupLabel, items) {
-        if (!items.length) return '';
-        let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
-        for (const [agentId, counts] of items) {
-          const proj = ALL_PROJECTS.find(p => p.id === agentId);
-          const color = proj ? proj.accentColor : '#8a8a9a';
-          const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
-          const href = proj ? '/project/' + proj.projectId : '';
-          const ac = counts.actionable, tc = counts.total;
-          const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
-          const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
-          if (href) {
-            g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></a>';
-          } else {
-            g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></div>';
-          }
-        }
-        return g;
-      }
-      html += renderGroup('Governance', govEntries);
-      if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-      html += renderGroup('Agents', opsEntries);
-      if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-      html += renderGroup('Executors', execEntries);
-      if (data.updated_at) {
-        const age = formatAge(new Date(data.updated_at));
-        const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-        const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
-        html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + '</div>';
-      }
-      popup.innerHTML = html;
-      popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
-      popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-      document.body.appendChild(popup);
-      const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-      const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-      setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-    }
 
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
@@ -1299,144 +1439,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       }
     });
 
-    // =========================================================================
-    // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
-    // =========================================================================
 
-    function fetchReflectionSummary() {
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: REFLECT_URL + '?t=' + Date.now(),
-        onload: function(resp) {
-          if (resp.status === 200) {
-            try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(REFLECT_KEY, JSON.stringify(d)); } catch(e) {}
-          }
-        },
-        onerror: function() {}
-      });
-    }
-
-    function getReflectData() {
-      try { const r = localStorage.getItem(REFLECT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-    }
-
-    let reflectFetched = false;
-    function ensureReflectFetch() {
-      if (reflectFetched) return;
-      reflectFetched = true;
-      fetchReflectionSummary();
-    }
-
-    function toggleReflectPopup(anchorEl) {
-      const existing = document.getElementById(REFLECT_POPUP_ID);
-      if (existing) { existing.remove(); return; }
-      const data = getReflectData();
-      if (!data || !data.agents) return;
-      const popup = document.createElement('div');
-      popup.id = REFLECT_POPUP_ID;
-      popup.dataset.tmUi = '1';
-      const rect = anchorEl.getBoundingClientRect();
-      const entries = Object.entries(data.agents).sort((a,b) => {
-        if (a[1] === 0 && b[1] > 0) return 1;
-        if (b[1] === 0 && a[1] > 0) return -1;
-        if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]);
-        return b[1] - a[1];
-      });
-      let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
-      for (const [agentId, count] of entries) {
-        const proj = ALL_PROJECTS.find(p => p.id === agentId);
-        const color = proj ? proj.accentColor : '#8a8a9a';
-        const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
-        const dim = count === 0 ? 'opacity:0.35;' : '';
-        const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
-        html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
-      }
-      if (data.updated_at) {
-        const age = formatAge(new Date(data.updated_at));
-        const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-        html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
-      }
-      popup.innerHTML = html;
-      popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-      document.body.appendChild(popup);
-      const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-      const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-      setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-    }
-
-    // =========================================================================
-    // VERSION INDICATOR — deployed vs registry version comparison (Account A)
-    // =========================================================================
-
-    function fetchVersionSummary() {
-      GM_xmlhttpRequest({
-        method: 'GET',
-        url: VERSION_URL + '?t=' + Date.now(),
-        onload: function(resp) {
-          if (resp.status === 200) {
-            try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(VERSION_KEY, JSON.stringify(d)); } catch(e) {}
-          }
-        },
-        onerror: function() {}
-      });
-    }
-
-    function getVersionData() {
-      try { const r = localStorage.getItem(VERSION_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-    }
-
-    let versionFetched = false;
-    function ensureVersionFetch() {
-      if (versionFetched) return;
-      versionFetched = true;
-      fetchVersionSummary();
-    }
-
-    function parseVersionFromCard() {
-      for (const el of document.querySelectorAll('div, span, h2, h3, p, button')) {
-        if (el.children.length > 0) continue;
-        if ((el.textContent || '').trim() !== 'Instructions') continue;
-        let card = el.parentElement;
-        while (card && card !== document.body && (card.textContent || '').length < 200) card = card.parentElement;
-        if (!card || card === document.body) continue;
-        const full = card.textContent || '';
-        const idx = full.indexOf('Instructions');
-        if (idx === -1) continue;
-        const header = full.substring(idx + 12, idx + 112).trim();
-        const m = header.match(/\|v(\d+\.\d+)\|/);
-        return m ? m[1] : null;
-      }
-      return null;
-    }
-
-    function refreshVersionIndicator(project) {
-      if (S.ACCOUNT !== 'A') return;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return;
-      const fieldset = container.querySelector('fieldset');
-      if (!fieldset) return;
-      const vData = getVersionData();
-      const regId = project.registryId || project.id;
-      if (!vData || !vData.agents || !vData.agents[regId]) {
-        fieldset.removeAttribute('data-tm-version');
-        fieldset.title = '';
-        return;
-      }
-      const registryVersion = vData.agents[regId];
-      const cardVersion = parseVersionFromCard();
-      if (!cardVersion) {
-        fieldset.setAttribute('data-tm-version', 'missing');
-        fieldset.title = 'No |v...| token in prompt \u2014 registry: v' + registryVersion;
-        return;
-      }
-      if (cardVersion === registryVersion) {
-        fieldset.removeAttribute('data-tm-version');
-        fieldset.title = 'v' + cardVersion + ' \u2014 current';
-        return;
-      }
-      fieldset.setAttribute('data-tm-version', 'mismatch');
-      fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
-    }
 
 
     function isPathSuppressed() {

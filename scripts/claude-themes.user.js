@@ -155,6 +155,60 @@
     cycleWarned: false,
   };
 
+  function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
+
+  let cachedDisclaimer = null;
+  function findDisclaimer() {
+    if (cachedDisclaimer && cachedDisclaimer.isConnected) return cachedDisclaimer;
+    cachedDisclaimer = null;
+    for (const el of document.querySelectorAll('div')) {
+      if (el.children.length > 3) continue;
+      if (!(el.textContent || '').includes('can make mistakes')) continue;
+      const r = el.getBoundingClientRect();
+      if (r.height > 15 && r.height < 60 && r.width > 400) { cachedDisclaimer = el; return el; }
+    }
+    return null;
+  }
+
+  function getMessageNodes(scope) {
+    const out = [];
+    for (const el of (scope || document).querySelectorAll('[data-index]')) {
+      if (!el.querySelector(MSG_SEL)) continue;
+      const idx = parseInt(el.getAttribute('data-index'), 10);
+      if (!Number.isFinite(idx)) continue;
+      out.push({ idx, el, assistant: !!el.querySelector('.font-claude-response, .font-claude-message') });
+    }
+    return out;
+  }
+
+  function findMainChatContainer(forceRescan) {
+    if (!forceRescan && S.cachedMainContainer && document.body.contains(S.cachedMainContainer)) return S.cachedMainContainer;
+    const vh = window.innerHeight;
+    let best = null, bestS = 0;
+    let scrollBest = null, scrollBestS = 0;
+    document.querySelectorAll('div[class*="overflow"]').forEach(el => {
+      const s = window.getComputedStyle(el);
+      if (s.overflowY !== 'auto' && s.overflowY !== 'scroll') return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 400 && r.height > 300 && r.height <= vh * 1.5) {
+        const sc = r.width * r.height;
+        if (el.scrollHeight > el.clientHeight + 20) {
+          if (sc > scrollBestS) { scrollBestS = sc; scrollBest = el; }
+        }
+        if (sc > bestS) { bestS = sc; best = el; }
+      }
+    });
+    S.cachedMainContainer = scrollBest || best;
+    return S.cachedMainContainer;
+  }
+
+  function isSidePanelOpen() {
+    const panel = document.querySelector('div[class*="z-20"]');
+    if (!panel) return false;
+    const r = panel.getBoundingClientRect();
+    return r.width > 200 && r.height > 400;
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -176,7 +230,6 @@
 
 
     const PREFIX_COLORS = { 'meta': '#c45c4c' };
-    function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
 
     // =========================================================================
     // USAGE METER — reads from DOM on /settings/usage, caches in localStorage
@@ -624,30 +677,6 @@
     // =========================================================================
     // UTILITY BAR — chat-only toolbar overlaying the disclaimer strip
     // =========================================================================
-    let cachedDisclaimer = null;
-    function findDisclaimer() {
-      if (cachedDisclaimer && cachedDisclaimer.isConnected) return cachedDisclaimer;
-      cachedDisclaimer = null;
-      for (const el of document.querySelectorAll('div')) {
-        if (el.children.length > 3) continue;
-        if (!(el.textContent || '').includes('can make mistakes')) continue;
-        const r = el.getBoundingClientRect();
-        if (r.height > 15 && r.height < 60 && r.width > 400) { cachedDisclaimer = el; return el; }
-      }
-      return null;
-    }
-
-    function getMessageNodes(scope) {
-      const out = [];
-      for (const el of (scope || document).querySelectorAll('[data-index]')) {
-        if (!el.querySelector(MSG_SEL)) continue;
-        const idx = parseInt(el.getAttribute('data-index'), 10);
-        if (!Number.isFinite(idx)) continue;
-        out.push({ idx, el, assistant: !!el.querySelector('.font-claude-response, .font-claude-message') });
-      }
-      return out;
-    }
-
     function refreshUtilBar() {
       const disclaimer = findDisclaimer();
       let bar = document.getElementById(UTILBAR_ID);
@@ -1151,33 +1180,6 @@
       return null;
     }
 
-    function findMainChatContainer(forceRescan) {
-      if (!forceRescan && S.cachedMainContainer && document.body.contains(S.cachedMainContainer)) return S.cachedMainContainer;
-      const vh = window.innerHeight;
-      let best = null, bestS = 0;
-      let scrollBest = null, scrollBestS = 0;
-      document.querySelectorAll('div[class*="overflow"]').forEach(el => {
-        const s = window.getComputedStyle(el);
-        if (s.overflowY !== 'auto' && s.overflowY !== 'scroll') return;
-        const r = el.getBoundingClientRect();
-        if (r.width > 400 && r.height > 300 && r.height <= vh * 1.5) {
-          const sc = r.width * r.height;
-          if (el.scrollHeight > el.clientHeight + 20) {
-            if (sc > scrollBestS) { scrollBestS = sc; scrollBest = el; }
-          }
-          if (sc > bestS) { bestS = sc; best = el; }
-        }
-      });
-      S.cachedMainContainer = scrollBest || best;
-      return S.cachedMainContainer;
-    }
-
-    function isSidePanelOpen() {
-      const panel = document.querySelector('div[class*="z-20"]');
-      if (!panel) return false;
-      const r = panel.getBoundingClientRect();
-      return r.width > 200 && r.height > 400;
-    }
 
     // =========================================================================
     // MULTI-VOICE DETECTION (Crucible-type projects)

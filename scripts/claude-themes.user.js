@@ -79,6 +79,61 @@
   // === Path suppression ===
   const SUPPRESSED_PATHS = ['/design', '/code/'];
 
+  const TOMOE_CHAT = BASE + 'tomoe_chat.png';
+  const TOMOE_HOME = BASE + 'tomoe_project.png';
+  const TOMOE_BG = BASE + 'tomoe_background.png';
+  const TOMOE_CARD = BASE + 'tomoe_card.png';
+  const PRISM_CHAT = BASE + 'prism_chat.png';
+  const PRISM_HOME = BASE + 'prism_project.png';
+  const PRISM_BG = BASE + 'prism_background.png';
+  const PRISM_CARD = BASE + 'prism_card.png';
+  const FAITH_CHAT = BASE + 'faith_chat.png';
+  const FAITH_HOME = BASE + 'faith_project.png';
+  const FAITH_BG = BASE + 'faith_background.png';
+  const FAITH_CARD = BASE + 'faith_card.png';
+  const ALFRED_CHAT = BASE + 'alfred_chat.png';
+  const ALFRED_HOME = BASE + 'alfred_project.png';
+  const ALFRED_BG = BASE + 'alfred_background.png';
+  const ALFRED_CARD = BASE + 'alfred_card.png';
+  const NABU_CHAT = BASE + 'nabu_chat.png';
+  const NABU_HOME = BASE + 'nabu_project.png';
+  const NABU_BG = BASE + 'nabu_background.png';
+  const NABU_CARD = BASE + 'nabu_card.png';
+  const WORKSHOP_BG = BASE + 'workshop_background.png';
+  const WORKSHOP_CARD = BASE + 'workshop_card.png';
+  const FACTORY_BG = BASE + 'factory_background.png';
+  const FACTORY_CARD = BASE + 'factory_card.png';
+  const CRUCIBLE_SYLVANAS_CHAT = BASE + 'crucible_sylvanas_chat.png';
+  const CRUCIBLE_GROM_CHAT = BASE + 'crucible_grom_chat.png';
+  const CRUCIBLE_FAITH_SYLVANAS_CHAT = BASE + 'crucible_faith_sylvanas_chat.png';
+  const CRUCIBLE_FAITH_GROM_CHAT = BASE + 'crucible_faith_grom_chat.png';
+  const CRUCIBLE_FAITH_COUNCIL_CHAT = BASE + 'crucible_faith_council_chat.png';
+  const CRUCIBLE_GROM_SYLVANAS_CHAT = BASE + 'crucible_grom_sylvanas_chat.png';
+  const CRUCIBLE_HOME = BASE + 'crucible_project.png';
+  const CRUCIBLE_BG = BASE + 'crucible_background.png';
+  const CRUCIBLE_CARD = BASE + 'crucible_card.png';
+  const FOUNDRY_BG = BASE + 'foundry_background.png';
+  const FOUNDRY_CARD = BASE + 'foundry_card.png';
+  const ANASTERIA_CHAT = BASE + 'anasteria_chat.png';
+  const ANASTERIA_HOME = BASE + 'anasteria_project.png';
+  const ANASTERIA_BG = BASE + 'anasteria_background.png';
+  const ANASTERIA_CARD = BASE + 'anasteria_card.png';
+  const VADIM_AUTORITAR = BASE + 'vadim_autoritar.png';
+  const VADIM_DEZGUSTAT = BASE + 'vadim_dezgustat.png';
+  const VADIM_MULTUMIT = BASE + 'vadim_multumit.png';
+  const VADIM_IMPRESIONAT = BASE + 'vadim_impresionat.png';
+  const VADIM_HOME = BASE + 'vadim_project.png';
+  const VADIM_BG = BASE + 'vadim_background.png';
+  const VADIM_CARD = BASE + 'vadim_card.png';
+  const STEWARD_CHAT = BASE + 'steward_chat.png';
+  const STEWARD_HOME = BASE + 'steward_project.png';
+  const STEWARD_BG = BASE + 'steward_background.png';
+  const STEWARD_CARD = BASE + 'steward_card.png';
+  const EGOSTIC_CHAT = BASE + 'egostic_chat.png';
+  const EGOSTIC_HOME = BASE + 'egostic_project.png';
+  const EGOSTIC_BG = BASE + 'egostic_background.png';
+  const EGOSTIC_CARD = BASE + 'egostic_card.png';
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -98,72 +153,6 @@
       GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); actionAudioEnabled = v; });
     }
 
-
-    const TOMOE_CHAT = BASE + 'tomoe_chat.png';
-    const TOMOE_HOME = BASE + 'tomoe_project.png';
-    const TOMOE_BG   = BASE + 'tomoe_background.png';
-    const TOMOE_CARD = BASE + 'tomoe_card.png';
-
-    const PRISM_CHAT = BASE + 'prism_chat.png';
-    const PRISM_HOME = BASE + 'prism_project.png';
-    const PRISM_BG   = BASE + 'prism_background.png';
-    const PRISM_CARD = BASE + 'prism_card.png';
-
-    const FAITH_CHAT = BASE + 'faith_chat.png';
-    const FAITH_HOME = BASE + 'faith_project.png';
-    const FAITH_BG   = BASE + 'faith_background.png';
-    const FAITH_CARD = BASE + 'faith_card.png';
-
-    const ALFRED_CHAT = BASE + 'alfred_chat.png';
-    const ALFRED_HOME = BASE + 'alfred_project.png';
-    const ALFRED_BG   = BASE + 'alfred_background.png';
-    const ALFRED_CARD = BASE + 'alfred_card.png';
-
-    const NABU_CHAT = BASE + 'nabu_chat.png';
-    const NABU_HOME = BASE + 'nabu_project.png';
-    const NABU_BG   = BASE + 'nabu_background.png';
-    const NABU_CARD = BASE + 'nabu_card.png';
-
-    const WORKSHOP_BG   = BASE + 'workshop_background.png';
-    const WORKSHOP_CARD = BASE + 'workshop_card.png';
-
-    const FACTORY_BG   = BASE + 'factory_background.png';
-    const FACTORY_CARD = BASE + 'factory_card.png';
-
-    const CRUCIBLE_SYLVANAS_CHAT       = BASE + 'crucible_sylvanas_chat.png';
-    const CRUCIBLE_GROM_CHAT           = BASE + 'crucible_grom_chat.png';
-    const CRUCIBLE_FAITH_SYLVANAS_CHAT = BASE + 'crucible_faith_sylvanas_chat.png';
-    const CRUCIBLE_FAITH_GROM_CHAT     = BASE + 'crucible_faith_grom_chat.png';
-    const CRUCIBLE_FAITH_COUNCIL_CHAT  = BASE + 'crucible_faith_council_chat.png';
-    const CRUCIBLE_GROM_SYLVANAS_CHAT  = BASE + 'crucible_grom_sylvanas_chat.png';
-    const CRUCIBLE_HOME                = BASE + 'crucible_project.png';
-    const CRUCIBLE_BG                  = BASE + 'crucible_background.png';
-    const CRUCIBLE_CARD                = BASE + 'crucible_card.png';
-
-    const FOUNDRY_BG   = BASE + 'foundry_background.png';
-    const FOUNDRY_CARD = BASE + 'foundry_card.png';
-
-    const ANASTERIA_CHAT = BASE + 'anasteria_chat.png';
-    const ANASTERIA_HOME = BASE + 'anasteria_project.png';
-    const ANASTERIA_BG   = BASE + 'anasteria_background.png';
-    const ANASTERIA_CARD = BASE + 'anasteria_card.png';
-
-    const VADIM_AUTORITAR   = BASE + 'vadim_autoritar.png';
-    const VADIM_DEZGUSTAT   = BASE + 'vadim_dezgustat.png';
-    const VADIM_MULTUMIT    = BASE + 'vadim_multumit.png';
-    const VADIM_IMPRESIONAT = BASE + 'vadim_impresionat.png';
-    const VADIM_HOME        = BASE + 'vadim_project.png';
-    const VADIM_BG          = BASE + 'vadim_background.png';
-    const VADIM_CARD        = BASE + 'vadim_card.png';
-    const STEWARD_CHAT = BASE + 'steward_chat.png';
-    const STEWARD_HOME = BASE + 'steward_project.png';
-    const STEWARD_BG   = BASE + 'steward_background.png';
-    const STEWARD_CARD = BASE + 'steward_card.png';
-
-    const EGOSTIC_CHAT = BASE + 'egostic_chat.png';
-    const EGOSTIC_HOME = BASE + 'egostic_project.png';
-    const EGOSTIC_BG   = BASE + 'egostic_background.png';
-    const EGOSTIC_CARD = BASE + 'egostic_card.png';
 
     const PREFIX_COLORS = { 'meta': '#c45c4c' };
     function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }

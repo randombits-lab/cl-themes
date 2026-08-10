@@ -17,10 +17,72 @@
 (function () {
   'use strict';
 
+  // === Script identity ===
+  const SCRIPT_VERSION = '6.29.8';
+
+  // === Asset base ===
+  const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
+  const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
+
+  // === Runtime flags ===
+  const REDUCED_MOTION = GM_getValue('reduced_motion', false);
+  const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined
+    ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
+
+  // === Element IDs ===
+  const STYLE_ID       = 'claude-theme-style';
+  const CHARACTER_ID   = 'claude-theme-character';
+  const BG_ID          = 'claude-theme-bg';
+  const TOPLINE_ID     = 'claude-theme-topline';
+  const CARD_STYLE_ID  = 'claude-theme-cards-style';
+  const VOICE_STYLE_ID = 'claude-theme-voice-style';
+  const USAGE_ID       = 'claude-theme-usage-meter';
+  const UTILBAR_ID     = 'claude-theme-utilbar';
+  const NAV_ID         = 'claude-theme-quicknav';
+  const LEGEND_ID      = 'claude-theme-lanelegend';
+  const ACTION_ALERT_ID  = 'claude-theme-action-alert';
+  const INBOX_POPUP_ID   = 'claude-theme-inbox-popup';
+  const REFLECT_POPUP_ID = 'claude-theme-reflect-popup';
+
+  // === Data attributes ===
+  const THEME_ATTR   = 'data-claude-theme';
+  const SIDEBAR_ATTR = 'data-theme-colored';
+
+  // === localStorage keys ===
+  const USAGE_KEY   = 'claude-theme-usage';
+  const INBOX_KEY   = 'claude-theme-inbox';
+  const REFLECT_KEY = 'claude-theme-reflect';
+  const VERSION_KEY = 'claude-theme-versions';
+
+  // === Remote data URLs ===
+  const INBOX_URL   = BASE + 'inbox-summary.json';
+  const REFLECT_URL = BASE + 'reflection-summary.json';
+  const VERSION_URL = BASE + 'version-summary.json';
+
+  // === Operator block constants ===
+  const OB_SETUP_COLOR  = '#9b8ec4';
+  const OB_LAUNCH_COLOR = '#d4845a';
+  const OB_RE   = /^\[T[123] \. (SETUP|LAUNCH) \. (?:Base Terminal|New Terminal)\]$/;
+  const OB_ATTR = 'data-operator-block';
+
+  // === Lane tinting constants ===
+  const LANE_PRIMARY_COLOR = '#4a7ac8';
+  const LANE_COLORS = ['#c9a84c', '#2dd4bf'];
+
+  // === Action notification constants ===
+  const ACTION_RE = /^\[ACTION-REQUIRED:\s*([a-z/-]+)(?:\s*\|\s*([^\]]+))?\]$/;
+  const ACTION_REGISTRY = { '/ship': true };
+
+  // === Message selector ===
+  const MSG_SEL = '[data-testid="user-message"], .font-claude-response, .font-claude-message';
+
+  // === Path suppression ===
+  const SUPPRESSED_PATHS = ['/design', '/code/'];
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
-    window.__CLAUDE_THEMES_ACTIVE = '6.29.8';
+    window.__CLAUDE_THEMES_ACTIVE = SCRIPT_VERSION;
 
     const HAS_MENU = typeof GM_registerMenuCommand === 'function';
     if (GM_getValue('theme_disabled', false)) {
@@ -35,13 +97,7 @@
       GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); GM_setValue('account_pin', cur); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); actionAudioEnabled = v; });
     }
-    const REDUCED_MOTION = GM_getValue('reduced_motion', false);
 
-    const CHARACTERS_ENABLED = window.__CLAUDE_THEMES_SPRITES !== undefined ? window.__CLAUDE_THEMES_SPRITES : GM_getValue('sprites_enabled', false);
-    const SCRIPT_VERSION = '6.29.8';
-
-    const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
-    const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
 
     const TOMOE_CHAT = BASE + 'tomoe_chat.png';
     const TOMOE_HOME = BASE + 'tomoe_project.png';
@@ -116,9 +172,6 @@
     // USAGE METER — reads from DOM on /settings/usage, caches in localStorage
     // No network requests. Only reads pages the user has already navigated to.
     // =========================================================================
-    const USAGE_KEY = 'claude-theme-usage';
-    const USAGE_ID  = 'claude-theme-usage-meter';
-    const UTILBAR_ID = 'claude-theme-utilbar';
 
     function usageBarColor(pct) {
       if (pct >= 80) return '#c45c4c';
@@ -153,7 +206,6 @@
         return raw ? JSON.parse(raw) : null;
       } catch(e) { return null; }
     }
-
 
 
     const tmPulse = document.createElement('style');
@@ -218,9 +270,6 @@
     // =========================================================================
     // INBOX DASHBOARD — fetches pending item counts from cl-themes
     // =========================================================================
-    const INBOX_KEY = 'claude-theme-inbox';
-    const INBOX_URL = BASE + 'inbox-summary.json';
-    const INBOX_POPUP_ID = 'claude-theme-inbox-popup';
 
     function fetchInboxSummary() {
       GM_xmlhttpRequest({
@@ -326,9 +375,6 @@
     // =========================================================================
     // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
     // =========================================================================
-    const REFLECT_KEY = 'claude-theme-reflect';
-    const REFLECT_URL = BASE + 'reflection-summary.json';
-    const REFLECT_POPUP_ID = 'claude-theme-reflect-popup';
 
     function fetchReflectionSummary() {
       GM_xmlhttpRequest({
@@ -394,8 +440,6 @@
     // =========================================================================
     // VERSION INDICATOR — deployed vs registry version comparison (Account A)
     // =========================================================================
-    const VERSION_KEY = 'claude-theme-versions';
-    const VERSION_URL = BASE + 'version-summary.json';
 
     function fetchVersionSummary() {
       GM_xmlhttpRequest({
@@ -471,7 +515,6 @@
     // =========================================================================
     // QUICK-NAV — pinned project shortcuts, always visible
     // =========================================================================
-    const NAV_ID = 'claude-theme-quicknav';
     const QUICK_NAV = [
       {
         label: 'Projects',
@@ -507,7 +550,6 @@
 
     for (const i of QUICK_NAV) { if (i.label !== 'Projects') i.account = 'A'; }
 
-    const SUPPRESSED_PATHS = ['/design', '/code/'];
     function isPathSuppressed() {
       const p = window.location.pathname;
       return SUPPRESSED_PATHS.some(s => p.startsWith(s));
@@ -585,7 +627,6 @@
       return null;
     }
 
-    const MSG_SEL = '[data-testid="user-message"], .font-claude-response, .font-claude-message';
     function getMessageNodes(scope) {
       const out = [];
       for (const el of (scope || document).querySelectorAll('[data-index]')) {
@@ -1075,14 +1116,6 @@
     const PROJECT_GROUP_MAP = {};
     for (const g of PROJECT_GROUPS) { for (const mid of g.members) { const proj = PROJECTS.find(p => p.id === mid); if (proj) PROJECT_GROUP_MAP[proj.projectId] = g; } }
 
-    const STYLE_ID       = 'claude-theme-style';
-    const CHARACTER_ID   = 'claude-theme-character';
-    const BG_ID          = 'claude-theme-bg';
-    const TOPLINE_ID     = 'claude-theme-topline';
-    const CARD_STYLE_ID  = 'claude-theme-cards-style';
-    const VOICE_STYLE_ID = 'claude-theme-voice-style';
-    const THEME_ATTR     = 'data-claude-theme';
-    const SIDEBAR_ATTR   = 'data-theme-colored';
 
     if (REDUCED_MOTION) {
       const rm = document.createElement('style');
@@ -1098,15 +1131,6 @@
     let replyCountPath = null;
     let actionAlertedIdx = -1;
     let actionAudioEnabled = GM_getValue('action_audio', false);
-    const ACTION_ALERT_ID = 'claude-theme-action-alert';
-    const ACTION_RE = /^\[ACTION-REQUIRED:\s*([a-z/-]+)(?:\s*\|\s*([^\]]+))?\]$/;
-    const ACTION_REGISTRY = { '/ship': true };
-    const OB_SETUP_COLOR = '#9b8ec4';
-    const OB_LAUNCH_COLOR = '#d4845a';
-    const OB_RE = /^\[T[123] \. (SETUP|LAUNCH) \. (?:Base Terminal|New Terminal)\]$/;
-    const OB_ATTR = 'data-operator-block';
-    const LANE_PRIMARY_COLOR = '#4a7ac8';
-    const LANE_COLORS = ['#c9a84c', '#2dd4bf'];
 
     function detectContext() {
       const url = window.location.pathname;
@@ -1673,7 +1697,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     function cycleWarn(e) { if (!cycleWarned) { cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
     let nullDetections = 0;
 
-    const LEGEND_ID = 'claude-theme-lanelegend';
     function legendColor(id) {
       if (id === 'primary' || id === 't1') return LANE_PRIMARY_COLOR;
       const t = id.match(/^t(\d+)$/);

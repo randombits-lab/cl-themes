@@ -257,6 +257,185 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     `;
   }
 
+  // =========================================================================
+  // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
+  // =========================================================================
+  function checkActionRequired() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const msgs = getMessageNodes(S.themedContainer || document);
+    let target = null;
+    for (const m of msgs) { if (m.assistant && (!target || m.idx > target.idx)) target = m; }
+    if (!target || target.idx <= 0 || target.idx === S.actionAlertedIdx) return;
+    const el = target.el;
+    if (!el) return;
+    const paras = [...el.querySelectorAll('p')].filter(p => !p.closest('pre'));
+    if (!paras.length) return;
+    const lastP = paras[paras.length - 1];
+    const text = (lastP.textContent || '').trim();
+    const match = text.match(ACTION_RE);
+    if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); S.actionAlertedIdx = target.idx; }
+  }
+
+  function showActionAlert(action, context) {
+    if (document.getElementById(ACTION_ALERT_ID)) return;
+    const alert = document.createElement('div');
+    alert.id = ACTION_ALERT_ID;
+    alert.dataset.tmUi = '1';
+    alert.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:8px;background:#1a0e00;border:2px solid #ff9800;animation:tm-action-pulse 1.5s ease-in-out infinite;font-family:-apple-system,BlinkMacSystemFont,sans-serif;pointer-events:auto;';
+    const icon = document.createElement('span');
+    icon.textContent = '\u26A1';
+    icon.style.cssText = 'font-size:20px;';
+    alert.appendChild(icon);
+    const msg = document.createElement('span');
+    msg.style.cssText = 'color:#ffb74d;font-size:14px;font-weight:600;letter-spacing:0.5px;';
+    msg.textContent = 'Run ' + action + (context ? ' \u2014 ' + context : '');
+    alert.appendChild(msg);
+    const audioBtn = document.createElement('button');
+    audioBtn.style.cssText = 'background:none;border:1px solid #ff980040;border-radius:4px;color:#ff9800;cursor:pointer;padding:2px 6px;font-size:12px;opacity:0.7;';
+    audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+    audioBtn.title = 'Toggle audio notification';
+    audioBtn.addEventListener('click', (e) => { e.stopPropagation(); S.actionAudioEnabled = !S.actionAudioEnabled; GM_setValue('action_audio', S.actionAudioEnabled); audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'; });
+    alert.appendChild(audioBtn);
+    const dismiss = document.createElement('button');
+    dismiss.style.cssText = 'background:none;border:none;color:#ff9800;cursor:pointer;font-size:18px;padding:0 0 0 4px;opacity:0.8;';
+    dismiss.textContent = '\u00D7';
+    dismiss.title = 'Dismiss';
+    dismiss.addEventListener('click', () => alert.remove());
+    alert.appendChild(dismiss);
+    document.body.appendChild(alert);
+    if (S.actionAudioEnabled) {
+      try {
+        const actx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = actx.createOscillator(); const gain = actx.createGain();
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.frequency.setValueAtTime(880, actx.currentTime);
+        osc.frequency.setValueAtTime(1100, actx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, actx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
+        osc.start(actx.currentTime); osc.stop(actx.currentTime + 0.3);
+      } catch(e) {}
+    }
+  }
+
+  // =========================================================================
+  // TERMINAL LANE TINTING — colors code blocks by execution lane
+  // =========================================================================
+  function getLaneColor(wt) {
+    if (!wt) return LANE_PRIMARY_COLOR;
+    const m = wt.match(/^worktree-(\d+)$/);
+    if (m) { const idx = Math.max(0, parseInt(m[1], 10) - 1); return LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)]; }
+    return LANE_COLORS[LANE_COLORS.length - 1];
+  }
+
+  function findTerminalNumber(pre) {
+    const wrapper = pre.parentElement?.parentElement;
+    if (!wrapper) return null;
+    let el = wrapper.previousElementSibling;
+    let steps = 0;
+    while (el && steps < 6) {
+      if (/^(P|H[1-6])$/.test(el.tagName)) {
+        const m = (el.textContent || '').trim().match(/^T(\d+)\b.*?[—\-]/);
+        if (m) return parseInt(m[1], 10);
+      }
+      if (el.querySelector?.('pre')) break;
+      el = el.previousElementSibling;
+      steps++;
+    }
+    return null;
+  }
+
+  function tintCodeBlocks() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const ATTR = 'data-lane-tinted';
+    for (const pre of container.querySelectorAll('pre')) {
+      if (pre.hasAttribute(ATTR)) continue;
+      const code = pre.querySelector('code');
+      if (!code) continue;
+      const firstLine = (code.textContent || '').split('\n')[0].trim();
+      const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
+      if (!match) continue;
+      let color, laneId;
+      let tNum = null;
+      const ti = firstLine.match(/\.\s*T(\d+)\s*\./);
+      if (ti) tNum = parseInt(ti[1], 10);
+      if (tNum === null) tNum = findTerminalNumber(pre);
+      if (tNum !== null) {
+        if (tNum > 1) {
+          const idx = tNum - 2;
+          color = LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)];
+          laneId = 't' + tNum;
+        } else {
+          color = LANE_PRIMARY_COLOR;
+          laneId = 'primary';
+        }
+      } else if (match[1]) {
+        color = getLaneColor(match[1]);
+        laneId = match[1];
+      } else {
+        color = LANE_PRIMARY_COLOR;
+        laneId = 'primary';
+      }
+      const isPlan = /\.\s*Plan\s+Mode\s*\./.test(firstLine);
+      pre.style.borderLeft = '3px ' + (isPlan ? 'dashed' : 'solid') + ' ' + color;
+      pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40' + (isPlan ? ', inset 0 0 30px ' + color + '0a' : '');
+      pre.setAttribute(ATTR, laneId + (isPlan ? ':plan' : ''));
+    }
+  }
+
+  // =========================================================================
+  // OPERATOR-BLOCK LABEL STYLING
+  // =========================================================================
+  function styleOperatorBlocks() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    for (const p of container.querySelectorAll('p')) {
+      if (p.hasAttribute(OB_ATTR)) continue;
+      const text = (p.textContent || '').trim();
+      const m = text.match(OB_RE);
+      if (!m) continue;
+      p.setAttribute(OB_ATTR, m[1].toLowerCase());
+    }
+  }
+
+
+  function legendColor(id) {
+    if (id === 'primary' || id === 't1') return LANE_PRIMARY_COLOR;
+    const t = id.match(/^t(\d+)$/);
+    if (t) return LANE_COLORS[Math.min(parseInt(t[1], 10) - 2, LANE_COLORS.length - 1)];
+    return getLaneColor(id);
+  }
+  function refreshLaneLegend() {
+    const onChat = window.location.pathname.includes('/chat/');
+    let box = document.getElementById(LEGEND_ID);
+    if (!onChat) { if (box) box.style.display = 'none'; return; }
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    const lanes = new Set();
+    if (container) for (const pre of container.querySelectorAll('pre[data-lane-tinted]')) lanes.add(pre.getAttribute('data-lane-tinted').split(':')[0]);
+    if (lanes.size < 2) { if (box) box.style.display = 'none'; return; }
+    if (!box) {
+      box = document.createElement('div'); box.id = LEGEND_ID; box.dataset.tmUi = '1';
+      box.style.cssText = 'position:fixed;top:52px;right:16px;z-index:5;display:flex;gap:8px;align-items:center;padding:3px 8px;border-radius:5px;background:#00000055;pointer-events:none;';
+      document.body.appendChild(box);
+    }
+    box.style.display = 'flex';
+    const key = [...lanes].sort().join(',');
+    if (box.dataset.lanes === key) return;
+    box.dataset.lanes = key;
+    box.textContent = '';
+    for (const id of [...lanes].sort()) {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#c8c8d0;letter-spacing:0.3px;';
+      const dot = document.createElement('span');
+      dot.style.cssText = 'width:7px;height:7px;border-radius:2px;background:' + legendColor(id) + ';display:inline-block;';
+      chip.appendChild(dot);
+      chip.appendChild(document.createTextNode(id));
+      box.appendChild(chip);
+    }
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -841,149 +1020,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
 
     function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
-
-    // =========================================================================
-    // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
-    // =========================================================================
-    function checkActionRequired() {
-      if (!window.location.pathname.includes('/chat/')) return;
-      const msgs = getMessageNodes(S.themedContainer || document);
-      let target = null;
-      for (const m of msgs) { if (m.assistant && (!target || m.idx > target.idx)) target = m; }
-      if (!target || target.idx <= 0 || target.idx === S.actionAlertedIdx) return;
-      const el = target.el;
-      if (!el) return;
-      const paras = [...el.querySelectorAll('p')].filter(p => !p.closest('pre'));
-      if (!paras.length) return;
-      const lastP = paras[paras.length - 1];
-      const text = (lastP.textContent || '').trim();
-      const match = text.match(ACTION_RE);
-      if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); S.actionAlertedIdx = target.idx; }
-    }
-
-    function showActionAlert(action, context) {
-      if (document.getElementById(ACTION_ALERT_ID)) return;
-      const alert = document.createElement('div');
-      alert.id = ACTION_ALERT_ID;
-      alert.dataset.tmUi = '1';
-      alert.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:8px;background:#1a0e00;border:2px solid #ff9800;animation:tm-action-pulse 1.5s ease-in-out infinite;font-family:-apple-system,BlinkMacSystemFont,sans-serif;pointer-events:auto;';
-      const icon = document.createElement('span');
-      icon.textContent = '\u26A1';
-      icon.style.cssText = 'font-size:20px;';
-      alert.appendChild(icon);
-      const msg = document.createElement('span');
-      msg.style.cssText = 'color:#ffb74d;font-size:14px;font-weight:600;letter-spacing:0.5px;';
-      msg.textContent = 'Run ' + action + (context ? ' \u2014 ' + context : '');
-      alert.appendChild(msg);
-      const audioBtn = document.createElement('button');
-      audioBtn.style.cssText = 'background:none;border:1px solid #ff980040;border-radius:4px;color:#ff9800;cursor:pointer;padding:2px 6px;font-size:12px;opacity:0.7;';
-      audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
-      audioBtn.title = 'Toggle audio notification';
-      audioBtn.addEventListener('click', (e) => { e.stopPropagation(); S.actionAudioEnabled = !S.actionAudioEnabled; GM_setValue('action_audio', S.actionAudioEnabled); audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'; });
-      alert.appendChild(audioBtn);
-      const dismiss = document.createElement('button');
-      dismiss.style.cssText = 'background:none;border:none;color:#ff9800;cursor:pointer;font-size:18px;padding:0 0 0 4px;opacity:0.8;';
-      dismiss.textContent = '\u00D7';
-      dismiss.title = 'Dismiss';
-      dismiss.addEventListener('click', () => alert.remove());
-      alert.appendChild(dismiss);
-      document.body.appendChild(alert);
-      if (S.actionAudioEnabled) {
-        try {
-          const actx = new (window.AudioContext || window.webkitAudioContext)();
-          const osc = actx.createOscillator(); const gain = actx.createGain();
-          osc.connect(gain); gain.connect(actx.destination);
-          osc.frequency.setValueAtTime(880, actx.currentTime);
-          osc.frequency.setValueAtTime(1100, actx.currentTime + 0.1);
-          gain.gain.setValueAtTime(0.15, actx.currentTime);
-          gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
-          osc.start(actx.currentTime); osc.stop(actx.currentTime + 0.3);
-        } catch(e) {}
-      }
-    }
-
-    // =========================================================================
-    // TERMINAL LANE TINTING — colors code blocks by execution lane
-    // =========================================================================
-    function getLaneColor(wt) {
-      if (!wt) return LANE_PRIMARY_COLOR;
-      const m = wt.match(/^worktree-(\d+)$/);
-      if (m) { const idx = Math.max(0, parseInt(m[1], 10) - 1); return LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)]; }
-      return LANE_COLORS[LANE_COLORS.length - 1];
-    }
-
-    function findTerminalNumber(pre) {
-      const wrapper = pre.parentElement?.parentElement;
-      if (!wrapper) return null;
-      let el = wrapper.previousElementSibling;
-      let steps = 0;
-      while (el && steps < 6) {
-        if (/^(P|H[1-6])$/.test(el.tagName)) {
-          const m = (el.textContent || '').trim().match(/^T(\d+)\b.*?[—\-]/);
-          if (m) return parseInt(m[1], 10);
-        }
-        if (el.querySelector?.('pre')) break;
-        el = el.previousElementSibling;
-        steps++;
-      }
-      return null;
-    }
-
-    function tintCodeBlocks() {
-      if (!window.location.pathname.includes('/chat/')) return;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return;
-      const ATTR = 'data-lane-tinted';
-      for (const pre of container.querySelectorAll('pre')) {
-        if (pre.hasAttribute(ATTR)) continue;
-        const code = pre.querySelector('code');
-        if (!code) continue;
-        const firstLine = (code.textContent || '').split('\n')[0].trim();
-        const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
-        if (!match) continue;
-        let color, laneId;
-        let tNum = null;
-        const ti = firstLine.match(/\.\s*T(\d+)\s*\./);
-        if (ti) tNum = parseInt(ti[1], 10);
-        if (tNum === null) tNum = findTerminalNumber(pre);
-        if (tNum !== null) {
-          if (tNum > 1) {
-            const idx = tNum - 2;
-            color = LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)];
-            laneId = 't' + tNum;
-          } else {
-            color = LANE_PRIMARY_COLOR;
-            laneId = 'primary';
-          }
-        } else if (match[1]) {
-          color = getLaneColor(match[1]);
-          laneId = match[1];
-        } else {
-          color = LANE_PRIMARY_COLOR;
-          laneId = 'primary';
-        }
-        const isPlan = /\.\s*Plan\s+Mode\s*\./.test(firstLine);
-        pre.style.borderLeft = '3px ' + (isPlan ? 'dashed' : 'solid') + ' ' + color;
-        pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40' + (isPlan ? ', inset 0 0 30px ' + color + '0a' : '');
-        pre.setAttribute(ATTR, laneId + (isPlan ? ':plan' : ''));
-      }
-    }
-
-    // =========================================================================
-    // OPERATOR-BLOCK LABEL STYLING
-    // =========================================================================
-    function styleOperatorBlocks() {
-      if (!window.location.pathname.includes('/chat/')) return;
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      if (!container) return;
-      for (const p of container.querySelectorAll('p')) {
-        if (p.hasAttribute(OB_ATTR)) continue;
-        const text = (p.textContent || '').trim();
-        const m = text.match(OB_RE);
-        if (!m) continue;
-        p.setAttribute(OB_ATTR, m[1].toLowerCase());
-      }
-    }
 
     // =========================================================================
     // PROJECT CONFIGS
@@ -1705,41 +1741,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
 
     function cycleWarn(e) { if (!S.cycleWarned) { S.cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
-
-    function legendColor(id) {
-      if (id === 'primary' || id === 't1') return LANE_PRIMARY_COLOR;
-      const t = id.match(/^t(\d+)$/);
-      if (t) return LANE_COLORS[Math.min(parseInt(t[1], 10) - 2, LANE_COLORS.length - 1)];
-      return getLaneColor(id);
-    }
-    function refreshLaneLegend() {
-      const onChat = window.location.pathname.includes('/chat/');
-      let box = document.getElementById(LEGEND_ID);
-      if (!onChat) { if (box) box.style.display = 'none'; return; }
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      const lanes = new Set();
-      if (container) for (const pre of container.querySelectorAll('pre[data-lane-tinted]')) lanes.add(pre.getAttribute('data-lane-tinted').split(':')[0]);
-      if (lanes.size < 2) { if (box) box.style.display = 'none'; return; }
-      if (!box) {
-        box = document.createElement('div'); box.id = LEGEND_ID; box.dataset.tmUi = '1';
-        box.style.cssText = 'position:fixed;top:52px;right:16px;z-index:5;display:flex;gap:8px;align-items:center;padding:3px 8px;border-radius:5px;background:#00000055;pointer-events:none;';
-        document.body.appendChild(box);
-      }
-      box.style.display = 'flex';
-      const key = [...lanes].sort().join(',');
-      if (box.dataset.lanes === key) return;
-      box.dataset.lanes = key;
-      box.textContent = '';
-      for (const id of [...lanes].sort()) {
-        const chip = document.createElement('span');
-        chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#c8c8d0;letter-spacing:0.3px;';
-        const dot = document.createElement('span');
-        dot.style.cssText = 'width:7px;height:7px;border-radius:2px;background:' + legendColor(id) + ';display:inline-block;';
-        chip.appendChild(dot);
-        chip.appendChild(document.createTextNode(id));
-        box.appendChild(chip);
-      }
-    }
 
     function updateHealthBeacon() {
       const ver = document.querySelector('#' + NAV_ID + ' span');

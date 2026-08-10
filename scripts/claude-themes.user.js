@@ -100,239 +100,6 @@
     cycleWarned: false,
   };
 
-  function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
-
-  let cachedDisclaimer = null;
-  function findDisclaimer() {
-    if (cachedDisclaimer && cachedDisclaimer.isConnected) return cachedDisclaimer;
-    cachedDisclaimer = null;
-    for (const el of document.querySelectorAll('div')) {
-      if (el.children.length > 3) continue;
-      if (!(el.textContent || '').includes('can make mistakes')) continue;
-      const r = el.getBoundingClientRect();
-      if (r.height > 15 && r.height < 60 && r.width > 400) { cachedDisclaimer = el; return el; }
-    }
-    return null;
-  }
-
-  function getMessageNodes(scope) {
-    const out = [];
-    for (const el of (scope || document).querySelectorAll('[data-index]')) {
-      if (!el.querySelector(MSG_SEL)) continue;
-      const idx = parseInt(el.getAttribute('data-index'), 10);
-      if (!Number.isFinite(idx)) continue;
-      out.push({ idx, el, assistant: !!el.querySelector('.font-claude-response, .font-claude-message') });
-    }
-    return out;
-  }
-
-  function findMainChatContainer(forceRescan) {
-    if (!forceRescan && S.cachedMainContainer && document.body.contains(S.cachedMainContainer)) return S.cachedMainContainer;
-    const vh = window.innerHeight;
-    let best = null, bestS = 0;
-    let scrollBest = null, scrollBestS = 0;
-    document.querySelectorAll('div[class*="overflow"]').forEach(el => {
-      const s = window.getComputedStyle(el);
-      if (s.overflowY !== 'auto' && s.overflowY !== 'scroll') return;
-      const r = el.getBoundingClientRect();
-      if (r.width > 400 && r.height > 300 && r.height <= vh * 1.5) {
-        const sc = r.width * r.height;
-        if (el.scrollHeight > el.clientHeight + 20) {
-          if (sc > scrollBestS) { scrollBestS = sc; scrollBest = el; }
-        }
-        if (sc > bestS) { bestS = sc; best = el; }
-      }
-    });
-    S.cachedMainContainer = scrollBest || best;
-    return S.cachedMainContainer;
-  }
-
-  function isSidePanelOpen() {
-    const panel = document.querySelector('div[class*="z-20"]');
-    if (!panel) return false;
-    const r = panel.getBoundingClientRect();
-    return r.width > 200 && r.height > 400;
-  }
-
-  // =========================================================================
-  // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
-  // =========================================================================
-  function checkActionRequired() {
-    if (!window.location.pathname.includes('/chat/')) return;
-    const msgs = getMessageNodes(S.themedContainer || document);
-    let target = null;
-    for (const m of msgs) { if (m.assistant && (!target || m.idx > target.idx)) target = m; }
-    if (!target || target.idx <= 0 || target.idx === S.actionAlertedIdx) return;
-    const el = target.el;
-    if (!el) return;
-    const paras = [...el.querySelectorAll('p')].filter(p => !p.closest('pre'));
-    if (!paras.length) return;
-    const lastP = paras[paras.length - 1];
-    const text = (lastP.textContent || '').trim();
-    const match = text.match(ACTION_RE);
-    if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); S.actionAlertedIdx = target.idx; }
-  }
-
-  function showActionAlert(action, context) {
-    if (document.getElementById(ACTION_ALERT_ID)) return;
-    const alert = document.createElement('div');
-    alert.id = ACTION_ALERT_ID;
-    alert.dataset.tmUi = '1';
-    alert.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:8px;background:#1a0e00;border:2px solid #ff9800;animation:tm-action-pulse 1.5s ease-in-out infinite;font-family:-apple-system,BlinkMacSystemFont,sans-serif;pointer-events:auto;';
-    const icon = document.createElement('span');
-    icon.textContent = '\u26A1';
-    icon.style.cssText = 'font-size:20px;';
-    alert.appendChild(icon);
-    const msg = document.createElement('span');
-    msg.style.cssText = 'color:#ffb74d;font-size:14px;font-weight:600;letter-spacing:0.5px;';
-    msg.textContent = 'Run ' + action + (context ? ' \u2014 ' + context : '');
-    alert.appendChild(msg);
-    const audioBtn = document.createElement('button');
-    audioBtn.style.cssText = 'background:none;border:1px solid #ff980040;border-radius:4px;color:#ff9800;cursor:pointer;padding:2px 6px;font-size:12px;opacity:0.7;';
-    audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
-    audioBtn.title = 'Toggle audio notification';
-    audioBtn.addEventListener('click', (e) => { e.stopPropagation(); S.actionAudioEnabled = !S.actionAudioEnabled; GM_setValue('action_audio', S.actionAudioEnabled); audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'; });
-    alert.appendChild(audioBtn);
-    const dismiss = document.createElement('button');
-    dismiss.style.cssText = 'background:none;border:none;color:#ff9800;cursor:pointer;font-size:18px;padding:0 0 0 4px;opacity:0.8;';
-    dismiss.textContent = '\u00D7';
-    dismiss.title = 'Dismiss';
-    dismiss.addEventListener('click', () => alert.remove());
-    alert.appendChild(dismiss);
-    document.body.appendChild(alert);
-    if (S.actionAudioEnabled) {
-      try {
-        const actx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = actx.createOscillator(); const gain = actx.createGain();
-        osc.connect(gain); gain.connect(actx.destination);
-        osc.frequency.setValueAtTime(880, actx.currentTime);
-        osc.frequency.setValueAtTime(1100, actx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.15, actx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
-        osc.start(actx.currentTime); osc.stop(actx.currentTime + 0.3);
-      } catch(e) {}
-    }
-  }
-
-  // =========================================================================
-  // TERMINAL LANE TINTING — colors code blocks by execution lane
-  // =========================================================================
-  function getLaneColor(wt) {
-    if (!wt) return LANE_PRIMARY_COLOR;
-    const m = wt.match(/^worktree-(\d+)$/);
-    if (m) { const idx = Math.max(0, parseInt(m[1], 10) - 1); return LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)]; }
-    return LANE_COLORS[LANE_COLORS.length - 1];
-  }
-
-  function findTerminalNumber(pre) {
-    const wrapper = pre.parentElement?.parentElement;
-    if (!wrapper) return null;
-    let el = wrapper.previousElementSibling;
-    let steps = 0;
-    while (el && steps < 6) {
-      if (/^(P|H[1-6])$/.test(el.tagName)) {
-        const m = (el.textContent || '').trim().match(/^T(\d+)\b.*?[—\-]/);
-        if (m) return parseInt(m[1], 10);
-      }
-      if (el.querySelector?.('pre')) break;
-      el = el.previousElementSibling;
-      steps++;
-    }
-    return null;
-  }
-
-  function tintCodeBlocks() {
-    if (!window.location.pathname.includes('/chat/')) return;
-    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-    if (!container) return;
-    const ATTR = 'data-lane-tinted';
-    for (const pre of container.querySelectorAll('pre')) {
-      if (pre.hasAttribute(ATTR)) continue;
-      const code = pre.querySelector('code');
-      if (!code) continue;
-      const firstLine = (code.textContent || '').split('\n')[0].trim();
-      const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
-      if (!match) continue;
-      let color, laneId;
-      let tNum = null;
-      const ti = firstLine.match(/\.\s*T(\d+)\s*\./);
-      if (ti) tNum = parseInt(ti[1], 10);
-      if (tNum === null) tNum = findTerminalNumber(pre);
-      if (tNum !== null) {
-        if (tNum > 1) {
-          const idx = tNum - 2;
-          color = LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)];
-          laneId = 't' + tNum;
-        } else {
-          color = LANE_PRIMARY_COLOR;
-          laneId = 'primary';
-        }
-      } else if (match[1]) {
-        color = getLaneColor(match[1]);
-        laneId = match[1];
-      } else {
-        color = LANE_PRIMARY_COLOR;
-        laneId = 'primary';
-      }
-      const isPlan = /\.\s*Plan\s+Mode\s*\./.test(firstLine);
-      pre.style.borderLeft = '3px ' + (isPlan ? 'dashed' : 'solid') + ' ' + color;
-      pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40' + (isPlan ? ', inset 0 0 30px ' + color + '0a' : '');
-      pre.setAttribute(ATTR, laneId + (isPlan ? ':plan' : ''));
-    }
-  }
-
-  // =========================================================================
-  // OPERATOR-BLOCK LABEL STYLING
-  // =========================================================================
-  function styleOperatorBlocks() {
-    if (!window.location.pathname.includes('/chat/')) return;
-    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-    if (!container) return;
-    for (const p of container.querySelectorAll('p')) {
-      if (p.hasAttribute(OB_ATTR)) continue;
-      const text = (p.textContent || '').trim();
-      const m = text.match(OB_RE);
-      if (!m) continue;
-      p.setAttribute(OB_ATTR, m[1].toLowerCase());
-    }
-  }
-
-
-  function legendColor(id) {
-    if (id === 'primary' || id === 't1') return LANE_PRIMARY_COLOR;
-    const t = id.match(/^t(\d+)$/);
-    if (t) return LANE_COLORS[Math.min(parseInt(t[1], 10) - 2, LANE_COLORS.length - 1)];
-    return getLaneColor(id);
-  }
-  function refreshLaneLegend() {
-    const onChat = window.location.pathname.includes('/chat/');
-    let box = document.getElementById(LEGEND_ID);
-    if (!onChat) { if (box) box.style.display = 'none'; return; }
-    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-    const lanes = new Set();
-    if (container) for (const pre of container.querySelectorAll('pre[data-lane-tinted]')) lanes.add(pre.getAttribute('data-lane-tinted').split(':')[0]);
-    if (lanes.size < 2) { if (box) box.style.display = 'none'; return; }
-    if (!box) {
-      box = document.createElement('div'); box.id = LEGEND_ID; box.dataset.tmUi = '1';
-      box.style.cssText = 'position:fixed;top:52px;right:16px;z-index:5;display:flex;gap:8px;align-items:center;padding:3px 8px;border-radius:5px;background:#00000055;pointer-events:none;';
-      document.body.appendChild(box);
-    }
-    box.style.display = 'flex';
-    const key = [...lanes].sort().join(',');
-    if (box.dataset.lanes === key) return;
-    box.dataset.lanes = key;
-    box.textContent = '';
-    for (const id of [...lanes].sort()) {
-      const chip = document.createElement('span');
-      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#c8c8d0;letter-spacing:0.3px;';
-      const dot = document.createElement('span');
-      dot.style.cssText = 'width:7px;height:7px;border-radius:2px;background:' + legendColor(id) + ';display:inline-block;';
-      chip.appendChild(dot);
-      chip.appendChild(document.createTextNode(id));
-      box.appendChild(chip);
-    }
-  }
-
   const TOMOE_CHAT = BASE + 'tomoe_chat.png';
   const TOMOE_HOME = BASE + 'tomoe_project.png';
   const TOMOE_BG = BASE + 'tomoe_background.png';
@@ -656,6 +423,292 @@
       }
     }
     return null;
+  }
+
+  // =========================================================================
+  // INBOX DASHBOARD — fetches pending item counts from cl-themes
+  // =========================================================================
+
+  function fetchInboxSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: INBOX_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(INBOX_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getInboxData() {
+    try { const r = localStorage.getItem(INBOX_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let inboxFetched = false;
+  function ensureInboxFetch() {
+    if (inboxFetched) return;
+    inboxFetched = true;
+    fetchInboxSummary();
+  }
+
+  function formatAge(date) {
+    const ms = Date.now() - date.getTime();
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return 'just now';
+    if (min < 60) return min + 'm ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    return Math.floor(hr / 24) + 'd ago';
+  }
+
+  function toggleInboxPopup(anchorEl) {
+    const existing = document.getElementById(INBOX_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getInboxData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = INBOX_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
+    const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
+    const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
+    const govEntries = entries.filter(([id]) => govMembers.includes(id));
+    const execEntries = entries.filter(([id]) => execMembers.includes(id));
+    const opsEntries = entries.filter(([id]) => !govMembers.includes(id) && !execMembers.includes(id));
+    let html = '';
+    function renderGroup(groupLabel, items) {
+      if (!items.length) return '';
+      let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
+      for (const [agentId, counts] of items) {
+        const proj = ALL_PROJECTS.find(p => p.id === agentId);
+        const color = proj ? proj.accentColor : '#8a8a9a';
+        const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+        const href = proj ? '/project/' + proj.projectId : '';
+        const ac = counts.actionable, tc = counts.total;
+        const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
+        const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
+        if (href) {
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></a>';
+        } else {
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></div>';
+        }
+      }
+      return g;
+    }
+    html += renderGroup('Governance', govEntries);
+    if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Agents', opsEntries);
+    if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Executors', execEntries);
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
+  // =========================================================================
+
+  function fetchReflectionSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: REFLECT_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(REFLECT_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getReflectData() {
+    try { const r = localStorage.getItem(REFLECT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let reflectFetched = false;
+  function ensureReflectFetch() {
+    if (reflectFetched) return;
+    reflectFetched = true;
+    fetchReflectionSummary();
+  }
+
+  function toggleReflectPopup(anchorEl) {
+    const existing = document.getElementById(REFLECT_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getReflectData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = REFLECT_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).sort((a,b) => {
+      if (a[1] === 0 && b[1] > 0) return 1;
+      if (b[1] === 0 && a[1] > 0) return -1;
+      if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]);
+      return b[1] - a[1];
+    });
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
+    for (const [agentId, count] of entries) {
+      const proj = ALL_PROJECTS.find(p => p.id === agentId);
+      const color = proj ? proj.accentColor : '#8a8a9a';
+      const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+      const dim = count === 0 ? 'opacity:0.35;' : '';
+      const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
+      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // VERSION INDICATOR — deployed vs registry version comparison (Account A)
+  // =========================================================================
+
+  function fetchVersionSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: VERSION_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(VERSION_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getVersionData() {
+    try { const r = localStorage.getItem(VERSION_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let versionFetched = false;
+  function ensureVersionFetch() {
+    if (versionFetched) return;
+    versionFetched = true;
+    fetchVersionSummary();
+  }
+
+  function parseVersionFromCard() {
+    for (const el of document.querySelectorAll('div, span, h2, h3, p, button')) {
+      if (el.children.length > 0) continue;
+      if ((el.textContent || '').trim() !== 'Instructions') continue;
+      let card = el.parentElement;
+      while (card && card !== document.body && (card.textContent || '').length < 200) card = card.parentElement;
+      if (!card || card === document.body) continue;
+      const full = card.textContent || '';
+      const idx = full.indexOf('Instructions');
+      if (idx === -1) continue;
+      const header = full.substring(idx + 12, idx + 112).trim();
+      const m = header.match(/\|v(\d+\.\d+)\|/);
+      return m ? m[1] : null;
+    }
+    return null;
+  }
+
+  function refreshVersionIndicator(project) {
+    if (S.ACCOUNT !== 'A') return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const fieldset = container.querySelector('fieldset');
+    if (!fieldset) return;
+    const vData = getVersionData();
+    const regId = project.registryId || project.id;
+    if (!vData || !vData.agents || !vData.agents[regId]) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = '';
+      return;
+    }
+    const registryVersion = vData.agents[regId];
+    const cardVersion = parseVersionFromCard();
+    if (!cardVersion) {
+      fieldset.setAttribute('data-tm-version', 'missing');
+      fieldset.title = 'No |v...| token in prompt \u2014 registry: v' + registryVersion;
+      return;
+    }
+    if (cardVersion === registryVersion) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = 'v' + cardVersion + ' \u2014 current';
+      return;
+    }
+    fieldset.setAttribute('data-tm-version', 'mismatch');
+    fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
+  }
+
+  function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
+
+  let cachedDisclaimer = null;
+  function findDisclaimer() {
+    if (cachedDisclaimer && cachedDisclaimer.isConnected) return cachedDisclaimer;
+    cachedDisclaimer = null;
+    for (const el of document.querySelectorAll('div')) {
+      if (el.children.length > 3) continue;
+      if (!(el.textContent || '').includes('can make mistakes')) continue;
+      const r = el.getBoundingClientRect();
+      if (r.height > 15 && r.height < 60 && r.width > 400) { cachedDisclaimer = el; return el; }
+    }
+    return null;
+  }
+
+  function getMessageNodes(scope) {
+    const out = [];
+    for (const el of (scope || document).querySelectorAll('[data-index]')) {
+      if (!el.querySelector(MSG_SEL)) continue;
+      const idx = parseInt(el.getAttribute('data-index'), 10);
+      if (!Number.isFinite(idx)) continue;
+      out.push({ idx, el, assistant: !!el.querySelector('.font-claude-response, .font-claude-message') });
+    }
+    return out;
+  }
+
+  function findMainChatContainer(forceRescan) {
+    if (!forceRescan && S.cachedMainContainer && document.body.contains(S.cachedMainContainer)) return S.cachedMainContainer;
+    const vh = window.innerHeight;
+    let best = null, bestS = 0;
+    let scrollBest = null, scrollBestS = 0;
+    document.querySelectorAll('div[class*="overflow"]').forEach(el => {
+      const s = window.getComputedStyle(el);
+      if (s.overflowY !== 'auto' && s.overflowY !== 'scroll') return;
+      const r = el.getBoundingClientRect();
+      if (r.width > 400 && r.height > 300 && r.height <= vh * 1.5) {
+        const sc = r.width * r.height;
+        if (el.scrollHeight > el.clientHeight + 20) {
+          if (sc > scrollBestS) { scrollBestS = sc; scrollBest = el; }
+        }
+        if (sc > bestS) { bestS = sc; best = el; }
+      }
+    });
+    S.cachedMainContainer = scrollBest || best;
+    return S.cachedMainContainer;
+  }
+
+  function isSidePanelOpen() {
+    const panel = document.querySelector('div[class*="z-20"]');
+    if (!panel) return false;
+    const r = panel.getBoundingClientRect();
+    return r.width > 200 && r.height > 400;
   }
 
   function swapCharacterImage(newSrc, charEl) {
@@ -1028,235 +1081,182 @@
   }
 
   // =========================================================================
-  // INBOX DASHBOARD — fetches pending item counts from cl-themes
+  // ACTION-REQUIRED NOTIFICATION — scans new assistant messages for markers
   // =========================================================================
-
-  function fetchInboxSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: INBOX_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(INBOX_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
+  function checkActionRequired() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const msgs = getMessageNodes(S.themedContainer || document);
+    let target = null;
+    for (const m of msgs) { if (m.assistant && (!target || m.idx > target.idx)) target = m; }
+    if (!target || target.idx <= 0 || target.idx === S.actionAlertedIdx) return;
+    const el = target.el;
+    if (!el) return;
+    const paras = [...el.querySelectorAll('p')].filter(p => !p.closest('pre'));
+    if (!paras.length) return;
+    const lastP = paras[paras.length - 1];
+    const text = (lastP.textContent || '').trim();
+    const match = text.match(ACTION_RE);
+    if (match && ACTION_REGISTRY[match[1]]) { showActionAlert(match[1], match[2] || null); S.actionAlertedIdx = target.idx; }
   }
 
-  function getInboxData() {
-    try { const r = localStorage.getItem(INBOX_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  function showActionAlert(action, context) {
+    if (document.getElementById(ACTION_ALERT_ID)) return;
+    const alert = document.createElement('div');
+    alert.id = ACTION_ALERT_ID;
+    alert.dataset.tmUi = '1';
+    alert.style.cssText = 'position:fixed;top:52px;left:50%;transform:translateX(-50%);z-index:10000;display:flex;align-items:center;gap:12px;padding:12px 20px;border-radius:8px;background:#1a0e00;border:2px solid #ff9800;animation:tm-action-pulse 1.5s ease-in-out infinite;font-family:-apple-system,BlinkMacSystemFont,sans-serif;pointer-events:auto;';
+    const icon = document.createElement('span');
+    icon.textContent = '\u26A1';
+    icon.style.cssText = 'font-size:20px;';
+    alert.appendChild(icon);
+    const msg = document.createElement('span');
+    msg.style.cssText = 'color:#ffb74d;font-size:14px;font-weight:600;letter-spacing:0.5px;';
+    msg.textContent = 'Run ' + action + (context ? ' \u2014 ' + context : '');
+    alert.appendChild(msg);
+    const audioBtn = document.createElement('button');
+    audioBtn.style.cssText = 'background:none;border:1px solid #ff980040;border-radius:4px;color:#ff9800;cursor:pointer;padding:2px 6px;font-size:12px;opacity:0.7;';
+    audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07';
+    audioBtn.title = 'Toggle audio notification';
+    audioBtn.addEventListener('click', (e) => { e.stopPropagation(); S.actionAudioEnabled = !S.actionAudioEnabled; GM_setValue('action_audio', S.actionAudioEnabled); audioBtn.textContent = S.actionAudioEnabled ? '\uD83D\uDD0A' : '\uD83D\uDD07'; });
+    alert.appendChild(audioBtn);
+    const dismiss = document.createElement('button');
+    dismiss.style.cssText = 'background:none;border:none;color:#ff9800;cursor:pointer;font-size:18px;padding:0 0 0 4px;opacity:0.8;';
+    dismiss.textContent = '\u00D7';
+    dismiss.title = 'Dismiss';
+    dismiss.addEventListener('click', () => alert.remove());
+    alert.appendChild(dismiss);
+    document.body.appendChild(alert);
+    if (S.actionAudioEnabled) {
+      try {
+        const actx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = actx.createOscillator(); const gain = actx.createGain();
+        osc.connect(gain); gain.connect(actx.destination);
+        osc.frequency.setValueAtTime(880, actx.currentTime);
+        osc.frequency.setValueAtTime(1100, actx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.15, actx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + 0.3);
+        osc.start(actx.currentTime); osc.stop(actx.currentTime + 0.3);
+      } catch(e) {}
+    }
   }
 
-  let inboxFetched = false;
-  function ensureInboxFetch() {
-    if (inboxFetched) return;
-    inboxFetched = true;
-    fetchInboxSummary();
+  // =========================================================================
+  // TERMINAL LANE TINTING — colors code blocks by execution lane
+  // =========================================================================
+  function getLaneColor(wt) {
+    if (!wt) return LANE_PRIMARY_COLOR;
+    const m = wt.match(/^worktree-(\d+)$/);
+    if (m) { const idx = Math.max(0, parseInt(m[1], 10) - 1); return LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)]; }
+    return LANE_COLORS[LANE_COLORS.length - 1];
   }
 
-  function formatAge(date) {
-    const ms = Date.now() - date.getTime();
-    const min = Math.floor(ms / 60000);
-    if (min < 1) return 'just now';
-    if (min < 60) return min + 'm ago';
-    const hr = Math.floor(min / 60);
-    if (hr < 24) return hr + 'h ago';
-    return Math.floor(hr / 24) + 'd ago';
-  }
-
-  function toggleInboxPopup(anchorEl) {
-    const existing = document.getElementById(INBOX_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    const data = getInboxData();
-    if (!data || !data.agents) return;
-    const popup = document.createElement('div');
-    popup.id = INBOX_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
-    const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
-    const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
-    const govEntries = entries.filter(([id]) => govMembers.includes(id));
-    const execEntries = entries.filter(([id]) => execMembers.includes(id));
-    const opsEntries = entries.filter(([id]) => !govMembers.includes(id) && !execMembers.includes(id));
-    let html = '';
-    function renderGroup(groupLabel, items) {
-      if (!items.length) return '';
-      let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
-      for (const [agentId, counts] of items) {
-        const proj = ALL_PROJECTS.find(p => p.id === agentId);
-        const color = proj ? proj.accentColor : '#8a8a9a';
-        const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
-        const href = proj ? '/project/' + proj.projectId : '';
-        const ac = counts.actionable, tc = counts.total;
-        const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
-        const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
-        if (href) {
-          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></a>';
-        } else {
-          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></div>';
-        }
+  function findTerminalNumber(pre) {
+    const wrapper = pre.parentElement?.parentElement;
+    if (!wrapper) return null;
+    let el = wrapper.previousElementSibling;
+    let steps = 0;
+    while (el && steps < 6) {
+      if (/^(P|H[1-6])$/.test(el.tagName)) {
+        const m = (el.textContent || '').trim().match(/^T(\d+)\b.*?[—\-]/);
+        if (m) return parseInt(m[1], 10);
       }
-      return g;
-    }
-    html += renderGroup('Governance', govEntries);
-    if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Agents', opsEntries);
-    if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Executors', execEntries);
-    if (data.updated_at) {
-      const age = formatAge(new Date(data.updated_at));
-      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + '</div>';
-    }
-    popup.innerHTML = html;
-    popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-  // =========================================================================
-  // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
-  // =========================================================================
-
-  function fetchReflectionSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: REFLECT_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(REFLECT_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
-  }
-
-  function getReflectData() {
-    try { const r = localStorage.getItem(REFLECT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-  }
-
-  let reflectFetched = false;
-  function ensureReflectFetch() {
-    if (reflectFetched) return;
-    reflectFetched = true;
-    fetchReflectionSummary();
-  }
-
-  function toggleReflectPopup(anchorEl) {
-    const existing = document.getElementById(REFLECT_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    const data = getReflectData();
-    if (!data || !data.agents) return;
-    const popup = document.createElement('div');
-    popup.id = REFLECT_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    const entries = Object.entries(data.agents).sort((a,b) => {
-      if (a[1] === 0 && b[1] > 0) return 1;
-      if (b[1] === 0 && a[1] > 0) return -1;
-      if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]);
-      return b[1] - a[1];
-    });
-    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
-    for (const [agentId, count] of entries) {
-      const proj = ALL_PROJECTS.find(p => p.id === agentId);
-      const color = proj ? proj.accentColor : '#8a8a9a';
-      const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
-      const dim = count === 0 ? 'opacity:0.35;' : '';
-      const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
-      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
-    }
-    if (data.updated_at) {
-      const age = formatAge(new Date(data.updated_at));
-      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
-    }
-    popup.innerHTML = html;
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-  // =========================================================================
-  // VERSION INDICATOR — deployed vs registry version comparison (Account A)
-  // =========================================================================
-
-  function fetchVersionSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: VERSION_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(VERSION_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
-  }
-
-  function getVersionData() {
-    try { const r = localStorage.getItem(VERSION_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-  }
-
-  let versionFetched = false;
-  function ensureVersionFetch() {
-    if (versionFetched) return;
-    versionFetched = true;
-    fetchVersionSummary();
-  }
-
-  function parseVersionFromCard() {
-    for (const el of document.querySelectorAll('div, span, h2, h3, p, button')) {
-      if (el.children.length > 0) continue;
-      if ((el.textContent || '').trim() !== 'Instructions') continue;
-      let card = el.parentElement;
-      while (card && card !== document.body && (card.textContent || '').length < 200) card = card.parentElement;
-      if (!card || card === document.body) continue;
-      const full = card.textContent || '';
-      const idx = full.indexOf('Instructions');
-      if (idx === -1) continue;
-      const header = full.substring(idx + 12, idx + 112).trim();
-      const m = header.match(/\|v(\d+\.\d+)\|/);
-      return m ? m[1] : null;
+      if (el.querySelector?.('pre')) break;
+      el = el.previousElementSibling;
+      steps++;
     }
     return null;
   }
 
-  function refreshVersionIndicator(project) {
-    if (S.ACCOUNT !== 'A') return;
+  function tintCodeBlocks() {
+    if (!window.location.pathname.includes('/chat/')) return;
     const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
     if (!container) return;
-    const fieldset = container.querySelector('fieldset');
-    if (!fieldset) return;
-    const vData = getVersionData();
-    const regId = project.registryId || project.id;
-    if (!vData || !vData.agents || !vData.agents[regId]) {
-      fieldset.removeAttribute('data-tm-version');
-      fieldset.title = '';
-      return;
+    const ATTR = 'data-lane-tinted';
+    for (const pre of container.querySelectorAll('pre')) {
+      if (pre.hasAttribute(ATTR)) continue;
+      const code = pre.querySelector('code');
+      if (!code) continue;
+      const firstLine = (code.textContent || '').split('\n')[0].trim();
+      const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
+      if (!match) continue;
+      let color, laneId;
+      let tNum = null;
+      const ti = firstLine.match(/\.\s*T(\d+)\s*\./);
+      if (ti) tNum = parseInt(ti[1], 10);
+      if (tNum === null) tNum = findTerminalNumber(pre);
+      if (tNum !== null) {
+        if (tNum > 1) {
+          const idx = tNum - 2;
+          color = LANE_COLORS[Math.min(idx, LANE_COLORS.length - 1)];
+          laneId = 't' + tNum;
+        } else {
+          color = LANE_PRIMARY_COLOR;
+          laneId = 'primary';
+        }
+      } else if (match[1]) {
+        color = getLaneColor(match[1]);
+        laneId = match[1];
+      } else {
+        color = LANE_PRIMARY_COLOR;
+        laneId = 'primary';
+      }
+      const isPlan = /\.\s*Plan\s+Mode\s*\./.test(firstLine);
+      pre.style.borderLeft = '3px ' + (isPlan ? 'dashed' : 'solid') + ' ' + color;
+      pre.style.boxShadow = 'inset 4px 0 8px -4px ' + color + '40' + (isPlan ? ', inset 0 0 30px ' + color + '0a' : '');
+      pre.setAttribute(ATTR, laneId + (isPlan ? ':plan' : ''));
     }
-    const registryVersion = vData.agents[regId];
-    const cardVersion = parseVersionFromCard();
-    if (!cardVersion) {
-      fieldset.setAttribute('data-tm-version', 'missing');
-      fieldset.title = 'No |v...| token in prompt \u2014 registry: v' + registryVersion;
-      return;
+  }
+
+  // =========================================================================
+  // OPERATOR-BLOCK LABEL STYLING
+  // =========================================================================
+  function styleOperatorBlocks() {
+    if (!window.location.pathname.includes('/chat/')) return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    for (const p of container.querySelectorAll('p')) {
+      if (p.hasAttribute(OB_ATTR)) continue;
+      const text = (p.textContent || '').trim();
+      const m = text.match(OB_RE);
+      if (!m) continue;
+      p.setAttribute(OB_ATTR, m[1].toLowerCase());
     }
-    if (cardVersion === registryVersion) {
-      fieldset.removeAttribute('data-tm-version');
-      fieldset.title = 'v' + cardVersion + ' \u2014 current';
-      return;
+  }
+
+
+  function legendColor(id) {
+    if (id === 'primary' || id === 't1') return LANE_PRIMARY_COLOR;
+    const t = id.match(/^t(\d+)$/);
+    if (t) return LANE_COLORS[Math.min(parseInt(t[1], 10) - 2, LANE_COLORS.length - 1)];
+    return getLaneColor(id);
+  }
+  function refreshLaneLegend() {
+    const onChat = window.location.pathname.includes('/chat/');
+    let box = document.getElementById(LEGEND_ID);
+    if (!onChat) { if (box) box.style.display = 'none'; return; }
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    const lanes = new Set();
+    if (container) for (const pre of container.querySelectorAll('pre[data-lane-tinted]')) lanes.add(pre.getAttribute('data-lane-tinted').split(':')[0]);
+    if (lanes.size < 2) { if (box) box.style.display = 'none'; return; }
+    if (!box) {
+      box = document.createElement('div'); box.id = LEGEND_ID; box.dataset.tmUi = '1';
+      box.style.cssText = 'position:fixed;top:52px;right:16px;z-index:5;display:flex;gap:8px;align-items:center;padding:3px 8px;border-radius:5px;background:#00000055;pointer-events:none;';
+      document.body.appendChild(box);
     }
-    fieldset.setAttribute('data-tm-version', 'mismatch');
-    fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
+    box.style.display = 'flex';
+    const key = [...lanes].sort().join(',');
+    if (box.dataset.lanes === key) return;
+    box.dataset.lanes = key;
+    box.textContent = '';
+    for (const id of [...lanes].sort()) {
+      const chip = document.createElement('span');
+      chip.style.cssText = 'display:inline-flex;align-items:center;gap:4px;font-size:10px;color:#c8c8d0;letter-spacing:0.3px;';
+      const dot = document.createElement('span');
+      dot.style.cssText = 'width:7px;height:7px;border-radius:2px;background:' + legendColor(id) + ';display:inline-block;';
+      chip.appendChild(dot);
+      chip.appendChild(document.createTextNode(id));
+      box.appendChild(chip);
+    }
   }
 
   // =========================================================================
@@ -1725,6 +1725,69 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
   }
 
+  function cycleWarn(e) { if (!S.cycleWarned) { S.cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
+
+
+  let slowCycleTimer = null;
+  function slowCycle() { if (document.hidden) return; try { slowCycleInner(); } catch (e) { cycleWarn(e); } }
+  function slowCycleInner() {
+    colorChatLinks();
+    if (S.currentProject && S.currentMode && !S.currentProject.voices) colorInterjections(S.currentProject);
+    if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') { styleProjectCardText(); applyProjectGrouping(); }
+    tintCodeBlocks();
+    styleOperatorBlocks();
+    refreshLaneLegend();
+  }
+
+  function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
+  function checkInner() {
+    if (!S.ACCOUNT) initAccount();
+    else if (S.ACCOUNT_ASSUMED) {
+      const detected = detectAccountFromDOM();
+      if (detected) adoptAccount(detected);
+    }
+    ensureInboxFetch();
+    ensureReflectFetch();
+    ensureVersionFetch();
+    manageCardStyles();
+    refreshQuickNav();
+    const ctx = detectContext();
+    if (ctx) { S.nullDetections = 0; const key = ctx.project.id + ':' + ctx.mode; if (S.currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
+    else if (S.currentThemeKey) {
+      const url = window.location.pathname;
+      const urlStillThemed = url.includes('/chat/') || PROJECTS.some(p => url.includes('/project/' + p.projectId));
+      if (!urlStillThemed) { S.nullDetections = 0; cleanup(); }
+      else if (url.includes('/chat/')) { S.nullDetections++; if (S.nullDetections >= 6) { S.nullDetections = 0; cleanup(); } }
+    }
+    updateHealthBeacon();
+    if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
+    if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
+    if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
+  }
+
+  let checkTimer = null;
+  function scheduleCheck() {
+    if (checkTimer) return;
+    checkTimer = setTimeout(() => { checkTimer = null; check(); }, 500);
+  }
+
+  function initObserver() {
+    new MutationObserver(muts => {
+      for (const m of muts) {
+        if (m.type !== 'childList') continue;
+        if (m.target.closest?.('[data-tm-ui]')) continue;
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID);
+        if (!dominated) { scheduleCheck(); return; }
+      }
+    }).observe(document.body, { childList: true, subtree: true });
+
+    const oPS = history.pushState; history.pushState = function() { oPS.apply(this, arguments); setTimeout(check, 300); };
+    const oRS = history.replaceState; history.replaceState = function() { oRS.apply(this, arguments); setTimeout(check, 300); };
+    window.addEventListener('popstate', () => setTimeout(check, 300));
+    setInterval(check, 10000);
+    setTimeout(check, 1000);
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -1767,66 +1830,8 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
 
 
-    function cycleWarn(e) { if (!S.cycleWarned) { S.cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
+    initObserver();
 
-
-    let slowCycleTimer = null;
-    function slowCycle() { if (document.hidden) return; try { slowCycleInner(); } catch (e) { cycleWarn(e); } }
-    function slowCycleInner() {
-      colorChatLinks();
-      if (S.currentProject && S.currentMode && !S.currentProject.voices) colorInterjections(S.currentProject);
-      if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') { styleProjectCardText(); applyProjectGrouping(); }
-      tintCodeBlocks();
-      styleOperatorBlocks();
-      refreshLaneLegend();
-    }
-
-    function check() { if (document.hidden) return; try { checkInner(); } catch (e) { cycleWarn(e); } }
-    function checkInner() {
-      if (!S.ACCOUNT) initAccount();
-      else if (S.ACCOUNT_ASSUMED) {
-        const detected = detectAccountFromDOM();
-        if (detected) adoptAccount(detected);
-      }
-      ensureInboxFetch();
-      ensureReflectFetch();
-      ensureVersionFetch();
-      manageCardStyles();
-      refreshQuickNav();
-      const ctx = detectContext();
-      if (ctx) { S.nullDetections = 0; const key = ctx.project.id + ':' + ctx.mode; if (S.currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
-      else if (S.currentThemeKey) {
-        const url = window.location.pathname;
-        const urlStillThemed = url.includes('/chat/') || PROJECTS.some(p => url.includes('/project/' + p.projectId));
-        if (!urlStillThemed) { S.nullDetections = 0; cleanup(); }
-        else if (url.includes('/chat/')) { S.nullDetections++; if (S.nullDetections >= 6) { S.nullDetections = 0; cleanup(); } }
-      }
-      updateHealthBeacon();
-      if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
-      if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
-      if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
-    }
-
-    let checkTimer = null;
-    function scheduleCheck() {
-      if (checkTimer) return;
-      checkTimer = setTimeout(() => { checkTimer = null; check(); }, 500);
-    }
-
-    new MutationObserver(muts => {
-      for (const m of muts) {
-        if (m.type !== 'childList') continue;
-        if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID);
-        if (!dominated) { scheduleCheck(); return; }
-      }
-    }).observe(document.body, { childList: true, subtree: true });
-
-    const oPS = history.pushState; history.pushState = function() { oPS.apply(this, arguments); setTimeout(check, 300); };
-    const oRS = history.replaceState; history.replaceState = function() { oRS.apply(this, arguments); setTimeout(check, 300); };
-    window.addEventListener('popstate', () => setTimeout(check, 300));
-    setInterval(check, 10000);
-    setTimeout(check, 1000);
   }
   boot();
 

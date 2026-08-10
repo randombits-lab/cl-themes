@@ -37,7 +37,7 @@
   const CARD_STYLE_ID  = 'claude-theme-cards-style';
   const VOICE_STYLE_ID = 'claude-theme-voice-style';
   const USAGE_ID       = 'claude-theme-usage-meter';
-  const UTILBAR_ID     = 'claude-theme-utilbar';
+  const UTILBAR_ID$1     = 'claude-theme-utilbar';
   const NAV_ID         = 'claude-theme-quicknav';
   const LEGEND_ID      = 'claude-theme-lanelegend';
   const ACTION_ALERT_ID  = 'claude-theme-action-alert';
@@ -1307,6 +1307,298 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
   }
 
+  // =========================================================================
+  // USAGE METER — reads from DOM on /settings/usage, caches in localStorage
+  // No network requests. Only reads pages the user has already navigated to.
+  // =========================================================================
+
+  function usageBarColor(pct) {
+    if (pct >= 80) return '#c45c4c';
+    if (pct >= 50) return '#c9a84c';
+    return '#4a7ac8';
+  }
+
+  function readUsageFromPage() {
+    const bars = document.querySelectorAll('div[role="meter"][aria-valuenow]');
+    if (bars.length < 2) return;
+    let hasUsageText = false;
+    for (const s of document.querySelectorAll('span')) { if (/\d+%\s*used/i.test(s.textContent || '')) { hasUsageText = true; break; } }
+    if (!hasUsageText) return;
+    const session = parseInt(bars[0].getAttribute('aria-valuenow')) || 0;
+    const weekly = parseInt(bars[1].getAttribute('aria-valuenow')) || 0;
+
+    let sessionReset = '', weeklyReset = '';
+    const resetEls = document.querySelectorAll('p, span');
+    for (const el of resetEls) {
+      const t = (el.textContent || '').trim();
+      if (t.startsWith('Resets in') && !sessionReset) sessionReset = t;
+      else if (t.startsWith('Resets') && !t.startsWith('Resets in') && !weeklyReset) weeklyReset = t;
+    }
+
+    const data = { session, weekly, sessionReset, weeklyReset, ts: Date.now() };
+    try { localStorage.setItem(USAGE_KEY, JSON.stringify(data)); } catch(e) {}
+  }
+
+  function getUsageData() {
+    try {
+      const raw = localStorage.getItem(USAGE_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch(e) { return null; }
+  }
+
+
+  const tmPulse = document.createElement('style');
+  tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}@keyframes tm-action-pulse{0%,100%{box-shadow:0 0 20px #ff980040,0 0 60px #ff980020}50%{box-shadow:0 0 30px #ff980060,0 0 80px #ff980030}}';
+  document.head.appendChild(tmPulse);
+
+  let lastUsageHash = '';
+  function buildUsageMeter(container) {
+    const data = getUsageData();
+    const hash = data ? `${data.session}:${data.weekly}:${(Date.now()-data.ts) < 3600000 ? 'f' : 's'}` : 'none';
+    if (hash === lastUsageHash && document.getElementById(USAGE_ID)) return;
+    lastUsageHash = hash;
+    let meter = document.getElementById(USAGE_ID);
+
+    if (!data) {
+      if (!meter) {
+        meter = document.createElement('a');
+        meter.id = USAGE_ID;
+        meter.href = '/settings/usage';
+        meter.title = 'Visit to load usage data';
+        meter.style.cssText = 'display:flex;flex-direction:column;gap:2px;justify-content:center;padding:2px 8px;border-radius:4px;text-decoration:none;opacity:0.4;cursor:pointer;';
+        meter.innerHTML = '<div style="width:100px;height:6px;background:#ffffff20;border-radius:3px;border:1px solid #ffffff15;"></div><div style="width:100px;height:4px;background:#ffffff15;border-radius:2px;border:1px solid #ffffff10;"></div>';
+        container.insertBefore(meter, container.children[1] || null);
+      }
+      return;
+    }
+
+    const age = Date.now() - data.ts;
+    const ageMin = Math.floor(age / 60000);
+    const fresh = age < 3600000;
+    const ageText = ageMin < 60 ? `${ageMin}m ago` : `${Math.floor(ageMin/60)}h ago`;
+
+    const sColor = usageBarColor(data.session);
+    const wColor = usageBarColor(data.weekly);
+
+    if (!meter) {
+      meter = document.createElement('a');
+      meter.id = USAGE_ID;
+      meter.href = '/settings/usage';
+      meter.style.cssText = 'display:flex;align-items:center;gap:6px;padding:2px 8px;border-radius:4px;text-decoration:none;cursor:pointer;transition:opacity 0.2s;';
+      meter.addEventListener('mouseenter', () => { meter.style.opacity = '1'; });
+      meter.addEventListener('mouseleave', () => { meter.style.opacity = fresh ? '0.6' : '0.95'; });
+      container.insertBefore(meter, container.children[1] || null);
+    }
+
+    meter.style.opacity = fresh ? '0.6' : '0.95';
+    meter.title = `Session: ${data.session}% (${data.sessionReset})\nWeekly: ${data.weekly}% (${data.weeklyReset})\nUpdated: ${ageText}`;
+
+    meter.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:2px;justify-content:center;">
+      <div style="width:100px;height:6px;background:#ffffff20;border-radius:3px;overflow:hidden;border:1px solid #ffffff15;" title="Session: ${data.session}%">
+        <div style="width:${data.session}%;height:100%;background:${sColor};border-radius:3px;transition:width 0.3s;"></div>
+      </div>
+      <div style="width:100px;height:4px;background:#ffffff15;border-radius:2px;overflow:hidden;border:1px solid #ffffff10;" title="Weekly: ${data.weekly}%">
+        <div style="width:${data.weekly}%;height:100%;background:${wColor};border-radius:2px;transition:width 0.3s;"></div>
+      </div>
+    </div>
+    <div style="width:${fresh ? '6px' : '10px'};height:${fresh ? '6px' : '10px'};border-radius:50%;background:${fresh ? '#4a7ac820' : '#c9a84c'};flex-shrink:0;transition:all 0.3s;${fresh ? '' : 'box-shadow:0 0 4px #c9a84c80;'}" title="${ageText}"></div>
+  `;
+  }
+
+  function isPathSuppressed() {
+    const p = window.location.pathname;
+    return SUPPRESSED_PATHS.some(s => p.startsWith(s));
+  }
+
+  function injectQuickNav() {
+    if (!S.ACCOUNT) return;
+    if (isPathSuppressed()) { const ex = document.getElementById(NAV_ID); if (ex) ex.style.display = 'none'; return; }
+    if (document.getElementById(NAV_ID)) return;
+    const bar = document.createElement('div');
+    bar.id = NAV_ID;
+    bar.dataset.tmUi = '1';
+    bar.style.cssText = 'position:fixed;top:8px;right:140px;z-index:100;display:flex;flex-wrap:nowrap;gap:6px;align-items:center;pointer-events:auto;transition:right 0.2s ease;';
+
+    for (const item of S.activeNav) {
+      const isActive = window.location.pathname.includes(item.url);
+      const a = document.createElement('a');
+      a.href = item.url;
+      a.title = item.label;
+      a.style.cssText = `display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:${item.color};opacity:${isActive ? '1' : '0.65'};transition:opacity 0.2s,background 0.2s;background:${isActive ? mix(item.color, 15) : mix(item.color, 8)};border:1px solid ${isActive ? mix(item.color, 30) : mix(item.color, 20)};text-decoration:none;`;
+      a.innerHTML = item.svg;
+      a.querySelector('svg').style.cssText = 'width:22px;height:22px;';
+      a.addEventListener('mouseenter', () => { a.style.opacity = '1'; a.style.background = mix(item.color, 20); a.style.borderColor = mix(item.color, 40); });
+      a.addEventListener('mouseleave', () => {
+        const active = window.location.pathname.includes(item.url);
+        a.style.opacity = active ? '1' : '0.65';
+        a.style.background = active ? mix(item.color, 15) : mix(item.color, 8);
+        a.style.borderColor = active ? mix(item.color, 30) : mix(item.color, 20);
+      });
+      bar.appendChild(a);
+    }
+
+    const ver = document.createElement('span');
+    ver.textContent = 'v' + SCRIPT_VERSION + '-' + (S.ACCOUNT || '?') + (S.ACCOUNT_ASSUMED ? '?' : '');
+    ver.style.cssText = 'font-size:9px;opacity:0.55;color:#ffffff;pointer-events:none;user-select:none;letter-spacing:0.5px;padding-left:2px;';
+    bar.appendChild(ver);
+
+    document.body.appendChild(bar);
+    buildUsageMeter(bar);
+  }
+
+  function refreshQuickNav() {
+    if (isPathSuppressed()) { const ex = document.getElementById(NAV_ID); if (ex) ex.style.display = 'none'; return; }
+    const bar = document.getElementById(NAV_ID);
+    if (!bar) { injectQuickNav(); return; }
+    bar.style.display = 'flex';
+    const panelOpen = isSidePanelOpen();
+    bar.style.right = panelOpen ? '50%' : '140px';
+    const links = bar.querySelectorAll('a:not(#' + USAGE_ID + ')');
+    links.forEach((a, i) => {
+      const item = S.activeNav[i];
+      if (!item) return;
+      const isActive = window.location.pathname.includes(item.url);
+      a.style.opacity = isActive ? '1' : '0.65';
+      a.style.background = isActive ? mix(item.color, 15) : mix(item.color, 8);
+      a.style.borderColor = isActive ? mix(item.color, 30) : mix(item.color, 20);
+    });
+    readUsageFromPage();
+    buildUsageMeter(bar);
+  }
+
+  // =========================================================================
+  // UTILITY BAR — chat-only toolbar overlaying the disclaimer strip
+  // =========================================================================
+  function refreshUtilBar() {
+    const disclaimer = findDisclaimer();
+    let bar = document.getElementById(UTILBAR_ID$1);
+    if (!disclaimer) { if (bar) bar.style.display = 'none'; return; }
+    const r = disclaimer.getBoundingClientRect();
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = UTILBAR_ID$1;
+      bar.dataset.tmUi = '1';
+      bar.style.cssText = 'position:fixed;z-index:6;display:flex;align-items:center;gap:8px;pointer-events:auto;';
+      const counter = document.createElement('span');
+      counter.id = UTILBAR_ID$1 + '-counter';
+      counter.style.cssText = 'font-size:11px;color:#8a8a9a;opacity:0.6;letter-spacing:0.3px;font-variant-numeric:tabular-nums;padding-left:8px;white-space:nowrap;';
+      bar.appendChild(counter);
+      const consumDot = document.createElement('span');
+      consumDot.id = UTILBAR_ID$1 + '-consum';
+      consumDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
+      bar.appendChild(consumDot);
+      const inboxBadge = document.createElement('span');
+      inboxBadge.id = UTILBAR_ID$1 + '-inbox';
+      inboxBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      inboxBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M1 9h4l1.5 2h3L11 9h4" stroke="currentColor" fill="none" stroke-width="1.5"/><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
+      inboxBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleInboxPopup(inboxBadge); });
+      bar.appendChild(inboxBadge);
+      const reflectBadge = document.createElement('span');
+      reflectBadge.id = UTILBAR_ID$1 + '-reflect';
+      reflectBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      reflectBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 1.5a4 4 0 0 0-1.5 7.7V11h3V9.2A4 4 0 0 0 8 1.5z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="6.5" y1="12.5" x2="9.5" y2="12.5" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="14" x2="9" y2="14" stroke="currentColor" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
+      reflectBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleReflectPopup(reflectBadge); });
+      bar.appendChild(reflectBadge);
+      const spacer = document.createElement('div');
+      spacer.style.flex = '1';
+      bar.appendChild(spacer);
+      document.body.appendChild(bar);
+    }
+    bar.style.display = 'flex';
+    bar.style.left = r.left + 'px';
+    bar.style.top = r.top + 'px';
+    bar.style.width = r.width + 'px';
+    bar.style.height = r.height + 'px';
+    bar.style.background = getComputedStyle(disclaimer).backgroundColor;
+    const chatPath = window.location.pathname;
+    if (chatPath !== S.replyCountPath) { S.replyCountPath = chatPath; S.maxDataIndex = -1; S.maxTokenEstimate = 0; S.actionAlertedIdx = -1; }
+    const counterEl = document.getElementById(UTILBAR_ID$1 + '-counter');
+    const consumDotEl = document.getElementById(UTILBAR_ID$1 + '-consum');
+    if (counterEl) {
+      const counterScope = S.themedContainer || document;
+      const msgs = getMessageNodes(counterScope);
+      let currentMaxIdx = -1;
+      for (const m of msgs) { if (m.idx > currentMaxIdx) currentMaxIdx = m.idx; }
+      if (currentMaxIdx > S.maxDataIndex) S.maxDataIndex = currentMaxIdx;
+      const assist = S.maxDataIndex >= 0 ? Math.floor((S.maxDataIndex + 1) / 2) : counterScope.querySelectorAll('[data-testid="action-bar-retry"]').length;
+      const counterText = '\u2195 ' + assist;
+      if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
+      const consumColor = assist > 20 ? '#c45c4c' : assist > 14 ? '#c9a84c' : '#4a9a7a';
+      const consumRisk = assist > 25 ? 'critical' : assist > 20 ? 'high' : assist > 14 ? 'moderate' : 'low';
+      counterEl.style.color = consumColor;
+      counterEl.style.opacity = assist > 14 ? '0.9' : '0.6';
+      counterEl.title = assist + ' replies \u00b7 consumption risk: ' + consumRisk + (assist > 20 ? ' \u2014 consider handover' : '');
+      if (consumDotEl) {
+        consumDotEl.style.background = consumColor;
+        consumDotEl.style.boxShadow = assist > 20 ? '0 0 4px ' + consumColor + '80' : 'none';
+        consumDotEl.style.animation = assist > 25 ? 'tm-pulse 1.2s ease-in-out infinite' : 'none';
+      }
+    }
+
+    const inboxEl = document.getElementById(UTILBAR_ID$1 + '-inbox');
+    if (inboxEl) {
+      const iData = getInboxData();
+      const iCount = inboxEl.querySelector('span');
+      const iSvg = inboxEl.querySelector('svg');
+      const iDue = typeof iData?.due === 'number' ? iData.due : 0;
+      const iAttention = (typeof iData?.actionable === 'number' ? iData.actionable : iData?.total || 0) + iDue;
+      if (iData && iAttention > 0) {
+        if (iCount) iCount.textContent = iAttention;
+        const stale = iData.updated_at && (Date.now() - new Date(iData.updated_at).getTime()) > 86400000;
+        const iColor = stale ? '#c9a84c80' : '#c9a84c';
+        inboxEl.style.opacity = stale ? '0.5' : '0.7';
+        if (iSvg) iSvg.style.color = iColor;
+        if (iCount) iCount.style.color = iColor;
+        const age = iData.updated_at ? formatAge(new Date(iData.updated_at)) : 'unknown';
+        const iAct = typeof iData?.actionable === 'number' ? iData.actionable : iAttention;
+        const breakdown = iDue > 0 ? iAct + ' actionable, ' + iDue + ' due' : iAttention + ' actionable';
+        inboxEl.title = breakdown + (iData.total > iAttention ? ' of ' + iData.total + ' total' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
+      } else {
+        if (iCount) iCount.textContent = '';
+        inboxEl.style.opacity = '0.3';
+        if (iSvg) iSvg.style.color = '#8a8a9a';
+        const deferred = iData?.total ? iData.total - iAttention : 0;
+        inboxEl.title = iData ? (deferred > 0 ? deferred + ' deferred, none actionable' : 'All inboxes clear') : 'Inbox data not loaded';
+      }
+    }
+    const reflectEl = document.getElementById(UTILBAR_ID$1 + '-reflect');
+    if (reflectEl) {
+      const rData = getReflectData();
+      const rCount = reflectEl.querySelector('span');
+      const rSvg = reflectEl.querySelector('svg');
+      if (rData && rData.total > 0) {
+        if (rCount) rCount.textContent = rData.total;
+        const stale = rData.updated_at && (Date.now() - new Date(rData.updated_at).getTime()) > 86400000;
+        const rColor = stale ? '#c9a84c80' : '#c9a84c';
+        reflectEl.style.opacity = stale ? '0.5' : '0.7';
+        if (rSvg) rSvg.style.color = rColor;
+        if (rCount) rCount.style.color = rColor;
+        const age = rData.updated_at ? formatAge(new Date(rData.updated_at)) : 'unknown';
+        reflectEl.title = rData.total + ' reflections pending\nUpdated: ' + age + (stale ? ' (stale)' : '');
+      } else {
+        if (rCount) rCount.textContent = '';
+        reflectEl.style.opacity = '0.3';
+        if (rSvg) rSvg.style.color = '#8a8a9a';
+        reflectEl.title = rData ? 'No reflections' : 'Reflection data not loaded';
+      }
+    }
+  }
+
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID$1)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
+
+  function updateHealthBeacon() {
+    const ver = document.querySelector('#' + NAV_ID + ' span');
+    if (!ver) return;
+    if (!S.currentThemeKey) { ver.style.color = ''; ver.title = ''; return; }
+    const bgEl = document.getElementById(BG_ID);
+    const bgFallback = !!(bgEl && bgEl.style.background);
+    const containerOk = !!(S.themedContainer && S.themedContainer.isConnected);
+    const ok = !!bgEl && !bgFallback && containerOk;
+    ver.style.color = ok ? '#8ac8a8' : '#c9a84c';
+    ver.title = ok ? 'Theme layers healthy' : ('Theme degraded: ' + [!bgEl ? 'background missing' : null, bgFallback ? 'background on gradient fallback' : null, !containerOk ? 'container not found' : null].filter(Boolean).join(', '));
+  }
+
   function boot() {
 
     if (window.__CLAUDE_THEMES_ACTIVE) return;
@@ -1327,104 +1619,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
 
 
-    // =========================================================================
-    // USAGE METER — reads from DOM on /settings/usage, caches in localStorage
-    // No network requests. Only reads pages the user has already navigated to.
-    // =========================================================================
-
-    function usageBarColor(pct) {
-      if (pct >= 80) return '#c45c4c';
-      if (pct >= 50) return '#c9a84c';
-      return '#4a7ac8';
-    }
-
-    function readUsageFromPage() {
-      const bars = document.querySelectorAll('div[role="meter"][aria-valuenow]');
-      if (bars.length < 2) return;
-      let hasUsageText = false;
-      for (const s of document.querySelectorAll('span')) { if (/\d+%\s*used/i.test(s.textContent || '')) { hasUsageText = true; break; } }
-      if (!hasUsageText) return;
-      const session = parseInt(bars[0].getAttribute('aria-valuenow')) || 0;
-      const weekly = parseInt(bars[1].getAttribute('aria-valuenow')) || 0;
-
-      let sessionReset = '', weeklyReset = '';
-      const resetEls = document.querySelectorAll('p, span');
-      for (const el of resetEls) {
-        const t = (el.textContent || '').trim();
-        if (t.startsWith('Resets in') && !sessionReset) sessionReset = t;
-        else if (t.startsWith('Resets') && !t.startsWith('Resets in') && !weeklyReset) weeklyReset = t;
-      }
-
-      const data = { session, weekly, sessionReset, weeklyReset, ts: Date.now() };
-      try { localStorage.setItem(USAGE_KEY, JSON.stringify(data)); } catch(e) {}
-    }
-
-    function getUsageData() {
-      try {
-        const raw = localStorage.getItem(USAGE_KEY);
-        return raw ? JSON.parse(raw) : null;
-      } catch(e) { return null; }
-    }
-
-
-    const tmPulse = document.createElement('style');
-    tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}@keyframes tm-action-pulse{0%,100%{box-shadow:0 0 20px #ff980040,0 0 60px #ff980020}50%{box-shadow:0 0 30px #ff980060,0 0 80px #ff980030}}';
-    document.head.appendChild(tmPulse);
-
-    let lastUsageHash = '';
-    function buildUsageMeter(container) {
-      const data = getUsageData();
-      const hash = data ? `${data.session}:${data.weekly}:${(Date.now()-data.ts) < 3600000 ? 'f' : 's'}` : 'none';
-      if (hash === lastUsageHash && document.getElementById(USAGE_ID)) return;
-      lastUsageHash = hash;
-      let meter = document.getElementById(USAGE_ID);
-
-      if (!data) {
-        if (!meter) {
-          meter = document.createElement('a');
-          meter.id = USAGE_ID;
-          meter.href = '/settings/usage';
-          meter.title = 'Visit to load usage data';
-          meter.style.cssText = 'display:flex;flex-direction:column;gap:2px;justify-content:center;padding:2px 8px;border-radius:4px;text-decoration:none;opacity:0.4;cursor:pointer;';
-          meter.innerHTML = '<div style="width:100px;height:6px;background:#ffffff20;border-radius:3px;border:1px solid #ffffff15;"></div><div style="width:100px;height:4px;background:#ffffff15;border-radius:2px;border:1px solid #ffffff10;"></div>';
-          container.insertBefore(meter, container.children[1] || null);
-        }
-        return;
-      }
-
-      const age = Date.now() - data.ts;
-      const ageMin = Math.floor(age / 60000);
-      const fresh = age < 3600000;
-      const ageText = ageMin < 60 ? `${ageMin}m ago` : `${Math.floor(ageMin/60)}h ago`;
-
-      const sColor = usageBarColor(data.session);
-      const wColor = usageBarColor(data.weekly);
-
-      if (!meter) {
-        meter = document.createElement('a');
-        meter.id = USAGE_ID;
-        meter.href = '/settings/usage';
-        meter.style.cssText = 'display:flex;align-items:center;gap:6px;padding:2px 8px;border-radius:4px;text-decoration:none;cursor:pointer;transition:opacity 0.2s;';
-        meter.addEventListener('mouseenter', () => { meter.style.opacity = '1'; });
-        meter.addEventListener('mouseleave', () => { meter.style.opacity = fresh ? '0.6' : '0.95'; });
-        container.insertBefore(meter, container.children[1] || null);
-      }
-
-      meter.style.opacity = fresh ? '0.6' : '0.95';
-      meter.title = `Session: ${data.session}% (${data.sessionReset})\nWeekly: ${data.weekly}% (${data.weeklyReset})\nUpdated: ${ageText}`;
-
-      meter.innerHTML = `
-      <div style="display:flex;flex-direction:column;gap:2px;justify-content:center;">
-        <div style="width:100px;height:6px;background:#ffffff20;border-radius:3px;overflow:hidden;border:1px solid #ffffff15;" title="Session: ${data.session}%">
-          <div style="width:${data.session}%;height:100%;background:${sColor};border-radius:3px;transition:width 0.3s;"></div>
-        </div>
-        <div style="width:100px;height:4px;background:#ffffff15;border-radius:2px;overflow:hidden;border:1px solid #ffffff10;" title="Weekly: ${data.weekly}%">
-          <div style="width:${data.weekly}%;height:100%;background:${wColor};border-radius:2px;transition:width 0.3s;"></div>
-        </div>
-      </div>
-      <div style="width:${fresh ? '6px' : '10px'};height:${fresh ? '6px' : '10px'};border-radius:50%;background:${fresh ? '#4a7ac820' : '#c9a84c'};flex-shrink:0;transition:all 0.3s;${fresh ? '' : 'box-shadow:0 0 4px #c9a84c80;'}" title="${ageText}"></div>
-    `;
-    }
 
 
     document.addEventListener('visibilitychange', () => {
@@ -1442,186 +1636,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
 
 
-    function isPathSuppressed() {
-      const p = window.location.pathname;
-      return SUPPRESSED_PATHS.some(s => p.startsWith(s));
-    }
-
-    function injectQuickNav() {
-      if (!S.ACCOUNT) return;
-      if (isPathSuppressed()) { const ex = document.getElementById(NAV_ID); if (ex) ex.style.display = 'none'; return; }
-      if (document.getElementById(NAV_ID)) return;
-      const bar = document.createElement('div');
-      bar.id = NAV_ID;
-      bar.dataset.tmUi = '1';
-      bar.style.cssText = 'position:fixed;top:8px;right:140px;z-index:100;display:flex;flex-wrap:nowrap;gap:6px;align-items:center;pointer-events:auto;transition:right 0.2s ease;';
-
-      for (const item of S.activeNav) {
-        const isActive = window.location.pathname.includes(item.url);
-        const a = document.createElement('a');
-        a.href = item.url;
-        a.title = item.label;
-        a.style.cssText = `display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:6px;color:${item.color};opacity:${isActive ? '1' : '0.65'};transition:opacity 0.2s,background 0.2s;background:${isActive ? mix(item.color, 15) : mix(item.color, 8)};border:1px solid ${isActive ? mix(item.color, 30) : mix(item.color, 20)};text-decoration:none;`;
-        a.innerHTML = item.svg;
-        a.querySelector('svg').style.cssText = 'width:22px;height:22px;';
-        a.addEventListener('mouseenter', () => { a.style.opacity = '1'; a.style.background = mix(item.color, 20); a.style.borderColor = mix(item.color, 40); });
-        a.addEventListener('mouseleave', () => {
-          const active = window.location.pathname.includes(item.url);
-          a.style.opacity = active ? '1' : '0.65';
-          a.style.background = active ? mix(item.color, 15) : mix(item.color, 8);
-          a.style.borderColor = active ? mix(item.color, 30) : mix(item.color, 20);
-        });
-        bar.appendChild(a);
-      }
-
-      const ver = document.createElement('span');
-      ver.textContent = 'v' + SCRIPT_VERSION + '-' + (S.ACCOUNT || '?') + (S.ACCOUNT_ASSUMED ? '?' : '');
-      ver.style.cssText = 'font-size:9px;opacity:0.55;color:#ffffff;pointer-events:none;user-select:none;letter-spacing:0.5px;padding-left:2px;';
-      bar.appendChild(ver);
-
-      document.body.appendChild(bar);
-      buildUsageMeter(bar);
-    }
-
-    function refreshQuickNav() {
-      if (isPathSuppressed()) { const ex = document.getElementById(NAV_ID); if (ex) ex.style.display = 'none'; return; }
-      const bar = document.getElementById(NAV_ID);
-      if (!bar) { injectQuickNav(); return; }
-      bar.style.display = 'flex';
-      const panelOpen = isSidePanelOpen();
-      bar.style.right = panelOpen ? '50%' : '140px';
-      const links = bar.querySelectorAll('a:not(#' + USAGE_ID + ')');
-      links.forEach((a, i) => {
-        const item = S.activeNav[i];
-        if (!item) return;
-        const isActive = window.location.pathname.includes(item.url);
-        a.style.opacity = isActive ? '1' : '0.65';
-        a.style.background = isActive ? mix(item.color, 15) : mix(item.color, 8);
-        a.style.borderColor = isActive ? mix(item.color, 30) : mix(item.color, 20);
-      });
-      readUsageFromPage();
-      buildUsageMeter(bar);
-    }
-
-    // =========================================================================
-    // UTILITY BAR — chat-only toolbar overlaying the disclaimer strip
-    // =========================================================================
-    function refreshUtilBar() {
-      const disclaimer = findDisclaimer();
-      let bar = document.getElementById(UTILBAR_ID);
-      if (!disclaimer) { if (bar) bar.style.display = 'none'; return; }
-      const r = disclaimer.getBoundingClientRect();
-      if (!bar) {
-        bar = document.createElement('div');
-        bar.id = UTILBAR_ID;
-        bar.dataset.tmUi = '1';
-        bar.style.cssText = 'position:fixed;z-index:6;display:flex;align-items:center;gap:8px;pointer-events:auto;';
-        const counter = document.createElement('span');
-        counter.id = UTILBAR_ID + '-counter';
-        counter.style.cssText = 'font-size:11px;color:#8a8a9a;opacity:0.6;letter-spacing:0.3px;font-variant-numeric:tabular-nums;padding-left:8px;white-space:nowrap;';
-        bar.appendChild(counter);
-        const consumDot = document.createElement('span');
-        consumDot.id = UTILBAR_ID + '-consum';
-        consumDot.style.cssText = 'width:8px;height:8px;border-radius:50%;background:#4a9a7a;flex-shrink:0;transition:all 0.3s;';
-        bar.appendChild(consumDot);
-        const inboxBadge = document.createElement('span');
-        inboxBadge.id = UTILBAR_ID + '-inbox';
-        inboxBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
-        inboxBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M1 9h4l1.5 2h3L11 9h4" stroke="currentColor" fill="none" stroke-width="1.5"/><rect x="1" y="3" width="14" height="10" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
-        inboxBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleInboxPopup(inboxBadge); });
-        bar.appendChild(inboxBadge);
-        const reflectBadge = document.createElement('span');
-        reflectBadge.id = UTILBAR_ID + '-reflect';
-        reflectBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
-        reflectBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 1.5a4 4 0 0 0-1.5 7.7V11h3V9.2A4 4 0 0 0 8 1.5z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="6.5" y1="12.5" x2="9.5" y2="12.5" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="14" x2="9" y2="14" stroke="currentColor" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
-        reflectBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleReflectPopup(reflectBadge); });
-        bar.appendChild(reflectBadge);
-        const spacer = document.createElement('div');
-        spacer.style.flex = '1';
-        bar.appendChild(spacer);
-        document.body.appendChild(bar);
-      }
-      bar.style.display = 'flex';
-      bar.style.left = r.left + 'px';
-      bar.style.top = r.top + 'px';
-      bar.style.width = r.width + 'px';
-      bar.style.height = r.height + 'px';
-      bar.style.background = getComputedStyle(disclaimer).backgroundColor;
-      const chatPath = window.location.pathname;
-      if (chatPath !== S.replyCountPath) { S.replyCountPath = chatPath; S.maxDataIndex = -1; S.maxTokenEstimate = 0; S.actionAlertedIdx = -1; }
-      const counterEl = document.getElementById(UTILBAR_ID + '-counter');
-      const consumDotEl = document.getElementById(UTILBAR_ID + '-consum');
-      if (counterEl) {
-        const counterScope = S.themedContainer || document;
-        const msgs = getMessageNodes(counterScope);
-        let currentMaxIdx = -1;
-        for (const m of msgs) { if (m.idx > currentMaxIdx) currentMaxIdx = m.idx; }
-        if (currentMaxIdx > S.maxDataIndex) S.maxDataIndex = currentMaxIdx;
-        const assist = S.maxDataIndex >= 0 ? Math.floor((S.maxDataIndex + 1) / 2) : counterScope.querySelectorAll('[data-testid="action-bar-retry"]').length;
-        const counterText = '\u2195 ' + assist;
-        if (counterEl.textContent !== counterText) counterEl.textContent = counterText;
-        const consumColor = assist > 20 ? '#c45c4c' : assist > 14 ? '#c9a84c' : '#4a9a7a';
-        const consumRisk = assist > 25 ? 'critical' : assist > 20 ? 'high' : assist > 14 ? 'moderate' : 'low';
-        counterEl.style.color = consumColor;
-        counterEl.style.opacity = assist > 14 ? '0.9' : '0.6';
-        counterEl.title = assist + ' replies \u00b7 consumption risk: ' + consumRisk + (assist > 20 ? ' \u2014 consider handover' : '');
-        if (consumDotEl) {
-          consumDotEl.style.background = consumColor;
-          consumDotEl.style.boxShadow = assist > 20 ? '0 0 4px ' + consumColor + '80' : 'none';
-          consumDotEl.style.animation = assist > 25 ? 'tm-pulse 1.2s ease-in-out infinite' : 'none';
-        }
-      }
-
-      const inboxEl = document.getElementById(UTILBAR_ID + '-inbox');
-      if (inboxEl) {
-        const iData = getInboxData();
-        const iCount = inboxEl.querySelector('span');
-        const iSvg = inboxEl.querySelector('svg');
-        const iDue = typeof iData?.due === 'number' ? iData.due : 0;
-        const iAttention = (typeof iData?.actionable === 'number' ? iData.actionable : iData?.total || 0) + iDue;
-        if (iData && iAttention > 0) {
-          if (iCount) iCount.textContent = iAttention;
-          const stale = iData.updated_at && (Date.now() - new Date(iData.updated_at).getTime()) > 86400000;
-          const iColor = stale ? '#c9a84c80' : '#c9a84c';
-          inboxEl.style.opacity = stale ? '0.5' : '0.7';
-          if (iSvg) iSvg.style.color = iColor;
-          if (iCount) iCount.style.color = iColor;
-          const age = iData.updated_at ? formatAge(new Date(iData.updated_at)) : 'unknown';
-          const iAct = typeof iData?.actionable === 'number' ? iData.actionable : iAttention;
-          const breakdown = iDue > 0 ? iAct + ' actionable, ' + iDue + ' due' : iAttention + ' actionable';
-          inboxEl.title = breakdown + (iData.total > iAttention ? ' of ' + iData.total + ' total' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
-        } else {
-          if (iCount) iCount.textContent = '';
-          inboxEl.style.opacity = '0.3';
-          if (iSvg) iSvg.style.color = '#8a8a9a';
-          const deferred = iData?.total ? iData.total - iAttention : 0;
-          inboxEl.title = iData ? (deferred > 0 ? deferred + ' deferred, none actionable' : 'All inboxes clear') : 'Inbox data not loaded';
-        }
-      }
-      const reflectEl = document.getElementById(UTILBAR_ID + '-reflect');
-      if (reflectEl) {
-        const rData = getReflectData();
-        const rCount = reflectEl.querySelector('span');
-        const rSvg = reflectEl.querySelector('svg');
-        if (rData && rData.total > 0) {
-          if (rCount) rCount.textContent = rData.total;
-          const stale = rData.updated_at && (Date.now() - new Date(rData.updated_at).getTime()) > 86400000;
-          const rColor = stale ? '#c9a84c80' : '#c9a84c';
-          reflectEl.style.opacity = stale ? '0.5' : '0.7';
-          if (rSvg) rSvg.style.color = rColor;
-          if (rCount) rCount.style.color = rColor;
-          const age = rData.updated_at ? formatAge(new Date(rData.updated_at)) : 'unknown';
-          reflectEl.title = rData.total + ' reflections pending\nUpdated: ' + age + (stale ? ' (stale)' : '');
-        } else {
-          if (rCount) rCount.textContent = '';
-          reflectEl.style.opacity = '0.3';
-          if (rSvg) rSvg.style.color = '#8a8a9a';
-          reflectEl.title = rData ? 'No reflections' : 'Reflection data not loaded';
-        }
-      }
-    }
-
-    function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
 
 
     function adoptAccount(acc) {
@@ -1754,17 +1768,6 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
     function cycleWarn(e) { if (!S.cycleWarned) { S.cycleWarned = true; console.warn('[claude-themes ' + SCRIPT_VERSION + '] cycle error:', e); } }
 
-    function updateHealthBeacon() {
-      const ver = document.querySelector('#' + NAV_ID + ' span');
-      if (!ver) return;
-      if (!S.currentThemeKey) { ver.style.color = ''; ver.title = ''; return; }
-      const bgEl = document.getElementById(BG_ID);
-      const bgFallback = !!(bgEl && bgEl.style.background);
-      const containerOk = !!(S.themedContainer && S.themedContainer.isConnected);
-      const ok = !!bgEl && !bgFallback && containerOk;
-      ver.style.color = ok ? '#8ac8a8' : '#c9a84c';
-      ver.title = ok ? 'Theme layers healthy' : ('Theme degraded: ' + [!bgEl ? 'background missing' : null, bgFallback ? 'background on gradient fallback' : null, !containerOk ? 'container not found' : null].filter(Boolean).join(', '));
-    }
 
     let slowCycleTimer = null;
     function slowCycle() { if (document.hidden) return; try { slowCycleInner(); } catch (e) { cycleWarn(e); } }

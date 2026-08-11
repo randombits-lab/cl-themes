@@ -25,8 +25,8 @@
       "informational": 0
     },
     "factory": {
-      "total": 6,
-      "actionable": 2,
+      "total": 7,
+      "actionable": 3,
       "due": 0,
       "informational": 0
     },
@@ -67,10 +67,10 @@
       "informational": 0
     },
     "prism": {
-      "total": 0,
+      "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 1
     },
     "steward": {
       "total": 2,
@@ -109,8 +109,8 @@
       "informational": 2
     }
   },
-  "total": 46,
-  "actionable": 29,
+  "total": 48,
+  "actionable": 30,
   "due": 0,
-  "updated_at": "2026-08-11T16:54:48Z"
+  "updated_at": "2026-08-11T16:55:14Z"
 }

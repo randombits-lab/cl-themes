@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.31.2
+// @version      6.32.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.31.2';
+  const SCRIPT_VERSION = '6.32.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -43,6 +43,7 @@
   const ACTION_ALERT_ID  = 'claude-theme-action-alert';
   const INBOX_POPUP_ID   = 'claude-theme-inbox-popup';
   const REFLECT_POPUP_ID = 'claude-theme-reflect-popup';
+  const FAILURES_POPUP_ID = 'claude-theme-failures-popup';
 
   // === Data attributes ===
   const THEME_ATTR   = 'data-claude-theme';
@@ -52,11 +53,13 @@
   const USAGE_KEY   = 'claude-theme-usage';
   const INBOX_KEY   = 'claude-theme-inbox';
   const REFLECT_KEY = 'claude-theme-reflect';
+  const FAILURES_KEY = 'claude-theme-failures';
   const VERSION_KEY = 'claude-theme-versions';
 
   // === Remote data URLs ===
   const INBOX_URL   = BASE + 'inbox-summary.json';
   const REFLECT_URL = BASE + 'reflection-summary.json';
+  const FAILURES_URL = BASE + 'failures-summary.json';
   const VERSION_URL = BASE + 'version-summary.json';
 
   // === Operator block constants ===
@@ -591,6 +594,69 @@
     }
     popup.innerHTML = html;
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+
+  // =========================================================================
+  // CI FAILURES DASHBOARD — fetches CI failure counts from cl-themes
+  // =========================================================================
+
+  function fetchFailuresSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: FAILURES_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(FAILURES_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getFailuresData() {
+    try { const r = localStorage.getItem(FAILURES_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let failuresFetched = false;
+  function ensureFailuresFetch() {
+    if (failuresFetched) return;
+    failuresFetched = true;
+    fetchFailuresSummary();
+  }
+
+  function toggleFailuresPopup(anchorEl) {
+    const existing = document.getElementById(FAILURES_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getFailuresData();
+    if (!data || !data.failures) return;
+    const popup = document.createElement('div');
+    popup.id = FAILURES_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    let html = '<div style="font-size:10px;color:#e53935;padding:6px 10px 2px;opacity:0.7;letter-spacing:0.3px;text-transform:uppercase;">CI Failures</div>';
+    for (const f of data.failures) {
+      const title = String(f.title || '').replace(/[<>&"']/g, '');
+      if (f.url) {
+        html += '<a href="' + f.url + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:#e0a0a0;font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;">' + (f.date || '') + '</span></a>';
+      } else {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;"><span style="color:#e0a0a0;font-size:11px;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;">' + (f.date || '') + '</span></div>';
+      }
+    }
+    if (data.total > data.failures.length) {
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:2px 10px;">+ ' + (data.total - data.failures.length) + ' more</div>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + data.total + ' total \u00b7 ' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:360px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
     const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
     const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
@@ -1466,6 +1532,12 @@
       reflectBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 1.5a4 4 0 0 0-1.5 7.7V11h3V9.2A4 4 0 0 0 8 1.5z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="6.5" y1="12.5" x2="9.5" y2="12.5" stroke="currentColor" stroke-width="1.3"/><line x1="7" y1="14" x2="9" y2="14" stroke="currentColor" stroke-width="1.3"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       reflectBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleReflectPopup(reflectBadge); });
       bar.appendChild(reflectBadge);
+      const failuresBadge = document.createElement('span');
+      failuresBadge.id = UTILBAR_ID + '-failures';
+      failuresBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.15;';
+      failuresBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 2L1.5 13h13L8 2z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
+      failuresBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleFailuresPopup(failuresBadge); });
+      bar.appendChild(failuresBadge);
       const spacer = document.createElement('div');
       spacer.style.flex = '1';
       bar.appendChild(spacer);
@@ -1549,9 +1621,30 @@
         reflectEl.title = rData ? 'No reflections' : 'Reflection data not loaded';
       }
     }
+    const failuresEl = document.getElementById(UTILBAR_ID + '-failures');
+    if (failuresEl) {
+      const fData = getFailuresData();
+      const fCount = failuresEl.querySelector('span');
+      const fSvg = failuresEl.querySelector('svg');
+      if (fData && fData.total > 0) {
+        if (fCount) fCount.textContent = fData.total;
+        const stale = fData.updated_at && (Date.now() - new Date(fData.updated_at).getTime()) > 86400000;
+        const fColor = stale ? '#e5393580' : '#e53935';
+        failuresEl.style.opacity = stale ? '0.5' : '0.7';
+        if (fSvg) fSvg.style.color = fColor;
+        if (fCount) fCount.style.color = fColor;
+        const age = fData.updated_at ? formatAge(new Date(fData.updated_at)) : 'unknown';
+        failuresEl.title = fData.total + ' CI failures\nUpdated: ' + age + (stale ? ' (stale)' : '');
+      } else {
+        if (fCount) fCount.textContent = '';
+        failuresEl.style.opacity = '0.15';
+        if (fSvg) fSvg.style.color = '#8a8a9a';
+        failuresEl.title = fData ? 'No CI failures' : 'CI failure data not loaded';
+      }
+    }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');
@@ -1762,6 +1855,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     }
     ensureInboxFetch();
     ensureReflectFetch();
+    ensureFailuresFetch();
     ensureVersionFetch();
     manageCardStyles();
     refreshQuickNav();
@@ -1790,7 +1884,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       for (const m of muts) {
         if (m.type !== 'childList') continue;
         if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID);
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID);
         if (!dominated) { scheduleCheck(); return; }
       }
     }).observe(document.body, { childList: true, subtree: true });
@@ -1831,6 +1925,8 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
         if (!d || (Date.now() - (d._fetchedAt || 0)) > 300000) fetchInboxSummary();
         const rd = getReflectData();
         if (!rd || (Date.now() - (rd._fetchedAt || 0)) > 300000) fetchReflectionSummary();
+        const fd = getFailuresData();
+        if (!fd || (Date.now() - (fd._fetchedAt || 0)) > 300000) fetchFailuresSummary();
         const vd = getVersionData();
         if (!vd || (Date.now() - (vd._fetchedAt || 0)) > 300000) fetchVersionSummary();
       }

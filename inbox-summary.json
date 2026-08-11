@@ -13,10 +13,10 @@
       "informational": 0
     },
     "crucible": {
-      "total": 0,
+      "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 1
     },
     "egostic": {
       "total": 0,
@@ -109,8 +109,8 @@
       "informational": 2
     }
   },
-  "total": 40,
+  "total": 41,
   "actionable": 26,
   "due": 0,
-  "updated_at": "2026-08-11T05:26:46Z"
+  "updated_at": "2026-08-11T05:27:06Z"
 }

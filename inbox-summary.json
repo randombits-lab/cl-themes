@@ -1,8 +1,8 @@
 {
   "agents": {
     "alfred": {
-      "total": 6,
-      "actionable": 6,
+      "total": 5,
+      "actionable": 5,
       "due": 0,
       "informational": 0
     },
@@ -109,8 +109,8 @@
       "informational": 2
     }
   },
-  "total": 47,
-  "actionable": 29,
+  "total": 46,
+  "actionable": 28,
   "due": 0,
-  "updated_at": "2026-08-11T17:30:43Z"
+  "updated_at": "2026-08-11T17:59:01Z"
 }

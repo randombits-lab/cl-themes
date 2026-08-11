@@ -25,8 +25,8 @@
       "informational": 0
     },
     "factory": {
-      "total": 5,
-      "actionable": 1,
+      "total": 4,
+      "actionable": 0,
       "due": 0,
       "informational": 0
     },
@@ -73,8 +73,8 @@
       "informational": 1
     },
     "steward": {
-      "total": 1,
-      "actionable": 1,
+      "total": 2,
+      "actionable": 2,
       "due": 0,
       "informational": 0
     },
@@ -112,5 +112,5 @@
   "total": 41,
   "actionable": 23,
   "due": 0,
-  "updated_at": "2026-08-11T19:26:37Z"
+  "updated_at": "2026-08-11T19:45:53Z"
 }

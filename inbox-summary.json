@@ -1,5 +1,11 @@
 {
   "agents": {
+    "abathur": {
+      "total": 0,
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
+    },
     "alfred": {
       "total": 2,
       "actionable": 2,
@@ -67,8 +73,8 @@
       "informational": 1
     },
     "steward": {
-      "total": 1,
-      "actionable": 1,
+      "total": 0,
+      "actionable": 0,
       "due": 0,
       "informational": 0
     },
@@ -109,8 +115,8 @@
       "informational": 2
     }
   },
-  "total": 41,
-  "actionable": 23,
+  "total": 40,
+  "actionable": 22,
   "due": 0,
-  "updated_at": "2026-08-12T14:26:32Z"
+  "updated_at": "2026-08-12T15:24:07Z"
 }

@@ -37,10 +37,10 @@
       "informational": 0
     },
     "faith": {
-      "total": 0,
+      "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 1
     },
     "foundry": {
       "total": 6,
@@ -109,8 +109,8 @@
       "informational": 2
     }
   },
-  "total": 41,
+  "total": 42,
   "actionable": 23,
   "due": 0,
-  "updated_at": "2026-08-12T15:30:49Z"
+  "updated_at": "2026-08-13T09:40:31Z"
 }

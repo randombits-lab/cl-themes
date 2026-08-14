@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.33.0
+// @version      6.34.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.33.0';
+  const SCRIPT_VERSION = '6.34.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -162,6 +162,8 @@
   const VOSS_CARD = BASE + 'voss_card.png';
   const MERIDIAN_BG = BASE + 'meridian_background.png';
   const MERIDIAN_CARD = BASE + 'meridian_card.png';
+  const FALX_BG = BASE + 'falx_background.png';
+  const FALX_CARD = BASE + 'falx_card.png';
 
   const PREFIX_COLORS = { 'meta': '#c45c4c' };
 
@@ -323,6 +325,14 @@
       chat: { backgroundImage: MERIDIAN_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
       homepage: { backgroundImage: MERIDIAN_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
     },
+    {
+      id: 'falx', projectId: '019fff87-35c2-7797-9eb7-bd22002a0e8d', label: 'Falx',
+      accentColor: '#6a7a88',
+      chatBackground: 'linear-gradient(160deg, #0c0e10 0%, #10141a 30%, #0c1014 60%, #080a0e 100%)',
+      card: { imageUrl: FALX_CARD, titleColor: '#6a7a88', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
   ];
 
   for (let i = 0; i < PROJECTS.length; i++) {
@@ -413,7 +423,7 @@
 
   const PROJECT_GROUPS = [
     { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
-    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'voss', 'egostic', 'meridian'] },
+    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'voss', 'egostic', 'meridian', 'falx'] },
     { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
   ];
   const PROJECT_GROUP_MAP = {};

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.32.0
+// @version      6.33.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -13,12 +13,11 @@
 // @updateURL    https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // ==/UserScript==
 
-
 (function () {
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.32.0';
+  const SCRIPT_VERSION = '6.33.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -301,7 +300,7 @@
       homepage: { backgroundImage: VADIM_BG, characterUrl: VADIM_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
     },
     {
-      id: 'steward', projectId: '019e1478-d849-71ee-ad74-bc96ffedf585', label: 'Steward',
+      id: 'steward', registryId: 'abathur', projectId: '019e1478-d849-71ee-ad74-bc96ffedf585', label: 'Steward',
       accentColor: '#7a5a8c', interjectionColor: '#b8a0c8', interjectionBorder: '#7a5a8c',
       chatBackground: 'linear-gradient(160deg, #0e0a12 0%, #14101a 30%, #100c16 60%, #0a080e 100%)',
       card: { imageUrl: STEWARD_CARD, titleColor: '#7a5a8c', letterSpacing: '0.5px', textTransform: null },

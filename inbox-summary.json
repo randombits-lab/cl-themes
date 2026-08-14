@@ -42,6 +42,10 @@
       "due": 0,
       "informational": 1
     },
+    "falx": {
+      "total": 0,
+      "actionable": 0
+    },
     "foundry": {
       "total": 7,
       "actionable": 1,
@@ -112,5 +116,5 @@
   "total": 43,
   "actionable": 24,
   "due": 0,
-  "updated_at": "2026-08-13T15:47:46Z"
+  "updated_at": "2026-08-14T09:11:11Z"
 }

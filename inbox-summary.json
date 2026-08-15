@@ -1,8 +1,8 @@
 {
   "agents": {
     "abathur": {
-      "total": 1,
-      "actionable": 1,
+      "total": 0,
+      "actionable": 0,
       "due": 0,
       "informational": 0
     },
@@ -31,10 +31,10 @@
       "informational": 0
     },
     "factory": {
-      "total": 8,
-      "actionable": 4,
+      "total": 5,
+      "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 1
     },
     "faith": {
       "total": 2,
@@ -73,8 +73,8 @@
       "informational": 0
     },
     "prism": {
-      "total": 0,
-      "actionable": 0,
+      "total": 1,
+      "actionable": 1,
       "due": 0,
       "informational": 0
     },
@@ -115,8 +115,8 @@
       "informational": 2
     }
   },
-  "total": 46,
-  "actionable": 28,
+  "total": 43,
+  "actionable": 24,
   "due": 0,
-  "updated_at": "2026-08-14T12:11:22Z"
+  "updated_at": "2026-08-15T06:40:47Z"
 }

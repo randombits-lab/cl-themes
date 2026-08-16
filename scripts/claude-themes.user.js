@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.35.0
+// @version      6.36.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.35.0';
+  const SCRIPT_VERSION = '6.36.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -34,6 +34,7 @@
   const BG_ID          = 'claude-theme-bg';
   const TOPLINE_ID     = 'claude-theme-topline';
   const CARD_STYLE_ID  = 'claude-theme-cards-style';
+  const CTX_STYLE_ID   = 'claude-theme-ctx-style';
   const VOICE_STYLE_ID = 'claude-theme-voice-style';
   const USAGE_ID       = 'claude-theme-usage-meter';
   const UTILBAR_ID     = 'claude-theme-utilbar';
@@ -1126,6 +1127,89 @@
     for (const gid of collapsed) grid.classList.add('tm-hide-' + gid);
   }
 
+  // =========================================================================
+  // CONTEXT TAB GROUPING (account B only)
+  // =========================================================================
+  const CONTEXT_CATEGORIES = [
+    { id: 'team', label: 'Team', re: /persona\.md/i, order: 100, color: '#5a9a7a' },
+    { id: 'knowledge', label: 'Knowledge', re: /knowledge\.md/i, order: 200, color: '#c9a84c' },
+    { id: 'reference', label: 'Reference', re: /reference\.md/i, order: 300, color: '#6a8aaa' },
+  ];
+
+  function findContextGrid() {
+    const grids = document.querySelectorAll('ul.grid');
+    for (const g of grids) {
+      if (g.querySelector('a[href*="/project/"]')) continue;
+      if (g.textContent.includes('.md')) return g;
+    }
+    return null;
+  }
+
+  function manageContextGrouping() {
+    if (S.ACCOUNT !== 'B') return;
+    const onProject = /\/project\/[0-9a-f-]{36}/.test(window.location.pathname);
+    const ex = document.getElementById(CTX_STYLE_ID);
+    if (!onProject) { if (ex) ex.remove(); return; }
+    const grid = findContextGrid();
+    if (!grid) return;
+    if (!ex) {
+      let css = '';
+      for (const cat of CONTEXT_CATEGORIES) {
+        css += '[data-tm-ctx-group="' + cat.id + '"]{order:' + cat.order + ' !important}';
+        css += 'ul.tm-ctx-hide-' + cat.id + ' [data-tm-ctx-group="' + cat.id + '"]{display:none !important}';
+      }
+      css += '[data-tm-ctx-group="other"]{order:900 !important}';
+      css += 'ul.tm-ctx-hide-other [data-tm-ctx-group="other"]{display:none !important}';
+      css += '[data-tm-ctx-header]{grid-column:1/-1;list-style:none}';
+      const s = document.createElement('style'); s.id = CTX_STYLE_ID; s.textContent = css;
+      document.head.appendChild(s);
+    }
+    const collapsed = GM_getValue('collapsed_ctx_groups', []);
+    let hasOther = false;
+    for (const child of grid.children) {
+      if (child.hasAttribute('data-tm-ctx-header')) continue;
+      const text = child.textContent || '';
+      let matched = false;
+      for (const cat of CONTEXT_CATEGORIES) {
+        if (cat.re.test(text)) { child.setAttribute('data-tm-ctx-group', cat.id); matched = true; break; }
+      }
+      if (!matched) { child.setAttribute('data-tm-ctx-group', 'other'); hasOther = true; }
+    }
+    if (!hasOther) hasOther = !!grid.querySelector('[data-tm-ctx-group="other"]');
+    const cats = [...CONTEXT_CATEGORIES];
+    if (hasOther) cats.push({ id: 'other', label: 'Other', order: 900, color: '#6a6a7a' });
+    for (const cat of cats) {
+      const count = grid.querySelectorAll('[data-tm-ctx-group="' + cat.id + '"]').length;
+      const existing = grid.querySelector('[data-tm-ctx-header="' + cat.id + '"]');
+      if (!count) { if (existing) existing.remove(); continue; }
+      if (existing) {
+        const ce = existing.querySelector('[data-tm-ctx-count]');
+        if (ce) ce.textContent = count;
+        continue;
+      }
+      const isColl = collapsed.includes(cat.id);
+      const h = document.createElement('div');
+      h.setAttribute('data-tm-ctx-header', cat.id); h.dataset.tmUi = '1';
+      h.style.cssText = 'grid-column:1/-1;order:' + (cat.order - 1) + ';padding:6px 0 2px;cursor:pointer;user-select:none;';
+      h.innerHTML = '<div style="display:flex;align-items:center;gap:8px;padding:3px 6px;border-radius:4px;border-left:3px solid ' + cat.color + ';transition:background 0.15s;">'
+        + '<span class="tm-ctx-chev" style="display:inline-block;font-size:10px;color:#8a8a9a;transition:transform 0.2s;' + (isColl ? 'transform:rotate(-90deg);' : '') + '">\u25BC</span>'
+        + '<span style="font-size:11px;color:' + cat.color + ';letter-spacing:1px;text-transform:uppercase;opacity:0.7;">' + cat.label + '</span>'
+        + '<span data-tm-ctx-count style="font-size:10px;color:#8a8a9a;opacity:0.3;">' + count + '</span></div>';
+      h.addEventListener('mouseenter', () => { h.firstChild.style.background = '#ffffff06'; });
+      h.addEventListener('mouseleave', () => { h.firstChild.style.background = 'none'; });
+      h.addEventListener('click', () => {
+        const c = GM_getValue('collapsed_ctx_groups', []);
+        const idx = c.indexOf(cat.id);
+        if (idx >= 0) c.splice(idx, 1); else c.push(cat.id);
+        GM_setValue('collapsed_ctx_groups', c);
+        grid.classList.toggle('tm-ctx-hide-' + cat.id);
+        h.querySelector('.tm-ctx-chev').style.transform = c.includes(cat.id) ? 'rotate(-90deg)' : '';
+      });
+      grid.appendChild(h);
+    }
+    for (const gid of collapsed) grid.classList.add('tm-ctx-hide-' + gid);
+  }
+
   function colorChatLinks() {
     const colorMap = {};
     for (const p of PROJECTS) colorMap[p.label.toLowerCase()] = p.accentColor;
@@ -1850,6 +1934,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     colorChatLinks();
     if (S.currentProject && S.currentMode && !S.currentProject.voices) colorInterjections(S.currentProject);
     if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') { styleProjectCardText(); applyProjectGrouping(); }
+    manageContextGrouping();
     tintCodeBlocks();
     styleOperatorBlocks();
     refreshLaneLegend();
@@ -1867,6 +1952,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     ensureFailuresFetch();
     ensureVersionFetch();
     manageCardStyles();
+    manageContextGrouping();
     refreshQuickNav();
     const ctx = detectContext();
     if (ctx) { S.nullDetections = 0; const key = ctx.project.id + ':' + ctx.mode; if (S.currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }
@@ -1893,7 +1979,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       for (const m of muts) {
         if (m.type !== 'childList') continue;
         if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID);
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID);
         if (!dominated) { scheduleCheck(); return; }
       }
     }).observe(document.body, { childList: true, subtree: true });

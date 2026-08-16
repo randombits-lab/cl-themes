@@ -1,25 +1,6 @@
 {
-  "total": 3,
-  "total_including_resolved": 16,
-  "failures": [
-    {
-      "date": "2026-08-15",
-      "title": "Registry pipeline run #2",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/31906086181",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-15",
-      "title": "Managed section sync run #30",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/31906086136",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-15",
-      "title": "Push checks run #9",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/31889406953",
-      "resolved": false
-    }
-  ],
-  "updated_at": "2026-08-16T05:04:31Z"
+  "total": 0,
+  "total_including_resolved": 11,
+  "failures": [],
+  "updated_at": "2026-08-16T12:41:10Z"
 }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.36.0
+// @version      6.37.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.36.0';
+  const SCRIPT_VERSION = '6.37.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -90,6 +90,7 @@
     currentComboKey: null,
     voiceCharReady: false,
     currentStateName: null,
+    currentPersonaKey: null,
     cachedMainContainer: null,
     maxDataIndex: -1,
     replyCountPath: null,
@@ -334,11 +335,35 @@
       chat: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
       homepage: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
     },
+    {
+      id: 'ro-e-transport', projectId: '019f940b-f1b6-7006-84a5-c520f5c0f04a', label: 'RO-e-Transport',
+      account: 'B',
+      accentColor: '#5a6a7a',
+      titlePattern: B_TITLE_RE,
+      chatBackground: 'linear-gradient(160deg, #0c0e12 0%, #10141a 30%, #0c1014 60%, #080a0e 100%)',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
   ];
 
   for (let i = 0; i < PROJECTS.length; i++) {
     PROJECTS[i] = resolveTheme(PROJECTS[i]);
   }
+
+
+  // =========================================================================
+  // B-ACCOUNT PERSONA REGISTRY
+  // =========================================================================
+  const B_PERSONAS = {
+    'sonar':     { accentColor: '#5a8a9a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'rozen':     { accentColor: '#7a6a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'gyro':      { accentColor: '#6a8a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'cassandra': { accentColor: '#8a5a6a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'argus':     { accentColor: '#5a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'sybil':     { accentColor: '#7a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+  };
+  const B_TITLE_RE = /^([A-Za-z]+)_/;
 
   // Account branching — A (personal) vs B (KLG corporate)
   for (const p of PROJECTS) { if (!p.account) p.account = 'A'; }
@@ -450,6 +475,21 @@
       }
     }
     return null;
+  }
+
+
+  function detectPersona(project) {
+    if (!project.titlePattern) return null;
+    const url = window.location.pathname;
+    const cm = url.match(/\/chat\/([a-f0-9-]+)/);
+    if (!cm) return null;
+    const link = document.querySelector('nav a[href*="' + cm[1] + '"]');
+    if (!link) return null;
+    const text = link.textContent.trim();
+    const m = text.match(project.titlePattern);
+    if (!m) return { key: null, persona: null, link, text };
+    const key = m[1].toLowerCase();
+    return { key, persona: B_PERSONAS[key] || null, link, text };
   }
 
   // =========================================================================
@@ -1029,6 +1069,49 @@
     if (stateConfig.characterRight) charEl.style.right = stateConfig.characterRight;
   }
 
+
+  // =========================================================================
+  // PERSONA-BASED CHARACTER (B-account title-prefix projects)
+  // =========================================================================
+  function preloadPersonaImages(personas) {
+    for (const p of Object.values(personas)) { if (p.characterUrl) new Image().src = vurl(p.characterUrl); }
+  }
+
+  function applyPersonaState(project, personaKey, persona) {
+    const changed = S.currentPersonaKey !== personaKey;
+    S.currentPersonaKey = personaKey;
+    let vs = document.getElementById(VOICE_STYLE_ID);
+    if (!vs) { vs = document.createElement('style'); vs.id = VOICE_STYLE_ID; document.head.appendChild(vs); }
+    if (changed && persona) vs.textContent = ':root { --tm-accent: ' + persona.accentColor + '; }';
+    if (!CHARACTERS_ENABLED || !persona?.characterUrl) { const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none'; return; }
+    let charEl = document.getElementById(CHARACTER_ID);
+    const isNew = !charEl;
+    if (isNew) {
+      charEl = document.createElement('div'); charEl.id = CHARACTER_ID;
+      for (const layer of ['a', 'b']) {
+        const img = document.createElement('img');
+        img.alt = ''; img.draggable = false; img.dataset.layer = layer;
+        img.style.height = '100%'; img.style.width = 'auto';
+        img.onerror = () => { charEl.style.display = 'none'; };
+        charEl.appendChild(img);
+      }
+      document.body.appendChild(charEl);
+    }
+    charEl.style.cssText = 'position:fixed;pointer-events:none;z-index:-1;user-select:none;'
+      + 'height:' + (persona.characterHeight || '72vh') + ';width:auto;'
+      + 'bottom:' + (persona.characterBottom || '-90px') + ';'
+      + 'right:' + (persona.characterRight || '-180px') + ';';
+    if (isNew) {
+      const first = charEl.querySelector('img[data-layer="a"]');
+      first.src = vurl(persona.characterUrl);
+      first.classList.add('is-active');
+      charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards';
+    } else if (changed) {
+      swapCharacterImage(persona.characterUrl, charEl);
+    }
+    charEl.style.display = isSidePanelOpen() ? 'none' : '';
+  }
+
   function manageCardStyles() {
     const onP = window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects';
     const ex = document.getElementById(CARD_STYLE_ID);
@@ -1216,7 +1299,10 @@
     for (const [k, v] of Object.entries(PREFIX_COLORS)) colorMap[k.toLowerCase()] = v;
     for (const link of document.querySelectorAll('nav a[href*="/chat/"], [class*="sidebar"] a[href*="/chat/"]')) {
       const text = (link.textContent||'').trim(), si = text.indexOf('|');
-      if (si === -1) { if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); } continue; }
+      if (si === -1) {
+        if (S.ACCOUNT === 'B') { const ui = text.indexOf('_'); if (ui > 0) { const pk = text.substring(0, ui).toLowerCase(), pp = B_PERSONAS[pk]; if (pp) { link.style.color = pp.accentColor; link.setAttribute(SIDEBAR_ATTR, pk); continue; } } }
+        if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); } continue;
+      }
       const prefix = text.substring(0, si).trim().toLowerCase(), color = colorMap[prefix];
       if (color) { link.style.color = color; link.setAttribute(SIDEBAR_ATTR, prefix); }
       else if (link.hasAttribute(SIDEBAR_ATTR)) { link.style.color = ''; link.removeAttribute(SIDEBAR_ATTR); }
@@ -1792,6 +1878,8 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       ${hasStaticChar ? `
       #${CHARACTER_ID} { position:fixed;bottom:${cfg.characterBottom};right:${cfg.characterRight};${sizing}pointer-events:none;z-index:-1;opacity:0;animation:thm-char-in 400ms ease-out 150ms forwards;user-select:none; }
       #${CHARACTER_ID} img { ${imgSizing} }` : ''}
+      @keyframes tm-title-pulse { 0%,100%{opacity:1} 50%{opacity:0.35} }
+      .tm-title-pulse { animation:tm-title-pulse 1.5s ease-in-out infinite !important; }
       @keyframes tm-breathe { 0%,100%{transform:scale(1) translateY(0)} 50%{transform:scale(1.006) translateY(-0.12rem)} }
       #${CHARACTER_ID} img { animation:tm-breathe 5s ease-in-out infinite; }
       p[${OB_ATTR}="setup"]{color:${OB_SETUP_COLOR} !important;border-left:3px solid ${OB_SETUP_COLOR};padding-left:8px;background:${OB_SETUP_COLOR}0d;border-radius:2px;font-size:0.85em;letter-spacing:0.3px;}
@@ -1832,6 +1920,8 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     S.currentThemeKey = null; S.currentProject = null; S.currentMode = null;
     S.currentComboKey = null; S.voiceCharReady = false;
     S.currentStateName = null;
+    S.currentPersonaKey = null;
+    document.querySelectorAll('.tm-title-pulse').forEach(el => el.classList.remove('tm-title-pulse'));
     S.cachedMainContainer = null;
     S.maxDataIndex = -1;
     S.replyCountPath = null;
@@ -1883,6 +1973,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     if (!isVoiceChat) injectCharacter(cfg);
     if (isVoiceChat) preloadVoiceImages(project);
     if (isStateChat) preloadStateImages(project);
+    if (project.titlePattern) preloadPersonaImages(B_PERSONAS);
     if (mode === 'chat') {
       if (!document.getElementById(TOPLINE_ID)) { const tl = document.createElement('div'); tl.id = TOPLINE_ID; document.body.appendChild(tl); }
     }
@@ -1893,6 +1984,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     const cfg = S.currentProject[S.currentMode]; if (!cfg) return;
     const isVoiceChat = !!(S.currentProject.voices && S.currentMode === 'chat');
     const isStateChat = !!(S.currentProject.states && S.currentMode === 'chat');
+    const isPersonaChat = !!(S.currentProject.titlePattern && S.currentMode === 'chat');
     const cc = findMainChatContainer();
     if (cc && cc !== S.themedContainer) {
       if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
@@ -1916,6 +2008,15 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       hideStateMarkers(S.currentProject);
       if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
       const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';
+    } else if (isPersonaChat) {
+      const pResult = detectPersona(S.currentProject);
+      if (pResult && pResult.persona) {
+        pResult.link.classList.remove('tm-title-pulse');
+        applyPersonaState(S.currentProject, pResult.key, pResult.persona);
+      } else if (pResult && pResult.key === null) {
+        pResult.link.classList.add('tm-title-pulse');
+        const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none';
+      }
     } else {
       if (CHARACTERS_ENABLED && cfg.characterUrl && !document.getElementById(CHARACTER_ID)) injectCharacter(cfg);
       const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = isSidePanelOpen() ? 'none' : '';

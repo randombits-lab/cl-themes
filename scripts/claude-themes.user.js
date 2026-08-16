@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.37.0
+// @version      6.38.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.37.0';
+  const SCRIPT_VERSION = '6.38.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -166,6 +166,57 @@
   const MERIDIAN_CARD = BASE + 'meridian_card.png';
   const FALX_BG = BASE + 'falx_background.png';
   const FALX_CARD = BASE + 'falx_card.png';
+
+  // =========================================================================
+  // B-ACCOUNT CONFIGURATION
+  // =========================================================================
+
+  // =========================================================================
+  // B-ACCOUNT PERSONA REGISTRY
+  // =========================================================================
+  const B_PERSONAS = {
+    'sonar':     { accentColor: '#5a8a9a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'rozen':     { accentColor: '#7a6a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'gyro':      { accentColor: '#6a8a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'cassandra': { accentColor: '#8a5a6a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'argus':     { accentColor: '#5a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'sybil':     { accentColor: '#7a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+  };
+  const B_TITLE_RE = /^([A-Za-z]+)_/;
+
+
+  const B_PROJECTS = [
+    {
+      id: 'ro-e-transport', projectId: '019f940b-f1b6-7006-84a5-c520f5c0f04a', label: 'RO-e-Transport',
+      account: 'B',
+      accentColor: '#5a6a7a',
+      titlePattern: B_TITLE_RE,
+      chatBackground: 'linear-gradient(160deg, #0c0e12 0%, #10141a 30%, #0c1014 60%, #080a0e 100%)',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+  ];
+
+  const CONTEXT_CATEGORIES = [
+    { id: 'team', label: 'Team', re: /persona\.md/i, order: 100, color: '#5a9a7a' },
+    { id: 'knowledge', label: 'Knowledge', re: /knowledge\.md/i, order: 200, color: '#c9a84c' },
+    { id: 'reference', label: 'Reference', re: /reference\.md/i, order: 300, color: '#6a8aaa' },
+  ];
+
+  function detectPersona(project) {
+    if (!project.titlePattern) return null;
+    const url = window.location.pathname;
+    const cm = url.match(/\/chat\/([a-f0-9-]+)/);
+    if (!cm) return null;
+    const link = document.querySelector('nav a[href*="' + cm[1] + '"]');
+    if (!link) return null;
+    const text = link.textContent.trim();
+    const m = text.match(project.titlePattern);
+    if (!m) return { key: null, persona: null, link, text };
+    const key = m[1].toLowerCase();
+    return { key, persona: B_PERSONAS[key] || null, link, text };
+  }
 
   const PREFIX_COLORS = { 'meta': '#c45c4c' };
 
@@ -335,35 +386,12 @@
       chat: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
       homepage: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
     },
-    {
-      id: 'ro-e-transport', projectId: '019f940b-f1b6-7006-84a5-c520f5c0f04a', label: 'RO-e-Transport',
-      account: 'B',
-      accentColor: '#5a6a7a',
-      titlePattern: B_TITLE_RE,
-      chatBackground: 'linear-gradient(160deg, #0c0e12 0%, #10141a 30%, #0c1014 60%, #080a0e 100%)',
-      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
-      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
-      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
-    },
+    ...B_PROJECTS,
   ];
 
   for (let i = 0; i < PROJECTS.length; i++) {
     PROJECTS[i] = resolveTheme(PROJECTS[i]);
   }
-
-
-  // =========================================================================
-  // B-ACCOUNT PERSONA REGISTRY
-  // =========================================================================
-  const B_PERSONAS = {
-    'sonar':     { accentColor: '#5a8a9a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'rozen':     { accentColor: '#7a6a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'gyro':      { accentColor: '#6a8a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'cassandra': { accentColor: '#8a5a6a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'argus':     { accentColor: '#5a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'sybil':     { accentColor: '#7a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-  };
-  const B_TITLE_RE = /^([A-Za-z]+)_/;
 
   // Account branching — A (personal) vs B (KLG corporate)
   for (const p of PROJECTS) { if (!p.account) p.account = 'A'; }
@@ -475,21 +503,6 @@
       }
     }
     return null;
-  }
-
-
-  function detectPersona(project) {
-    if (!project.titlePattern) return null;
-    const url = window.location.pathname;
-    const cm = url.match(/\/chat\/([a-f0-9-]+)/);
-    if (!cm) return null;
-    const link = document.querySelector('nav a[href*="' + cm[1] + '"]');
-    if (!link) return null;
-    const text = link.textContent.trim();
-    const m = text.match(project.titlePattern);
-    if (!m) return { key: null, persona: null, link, text };
-    const key = m[1].toLowerCase();
-    return { key, persona: B_PERSONAS[key] || null, link, text };
   }
 
   // =========================================================================
@@ -1213,12 +1226,6 @@
   // =========================================================================
   // CONTEXT TAB GROUPING (account B only)
   // =========================================================================
-  const CONTEXT_CATEGORIES = [
-    { id: 'team', label: 'Team', re: /persona\.md/i, order: 100, color: '#5a9a7a' },
-    { id: 'knowledge', label: 'Knowledge', re: /knowledge\.md/i, order: 200, color: '#c9a84c' },
-    { id: 'reference', label: 'Reference', re: /reference\.md/i, order: 300, color: '#6a8aaa' },
-  ];
-
   function findContextGrid() {
     const grids = document.querySelectorAll('ul.grid');
     for (const g of grids) {

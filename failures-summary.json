@@ -1,19 +1,6 @@
 {
-  "total": 2,
+  "total": 0,
   "total_including_resolved": 6,
-  "failures": [
-    {
-      "date": "2026-08-16",
-      "title": "Managed section sync run #34",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/31963694921",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-16",
-      "title": "Push checks run #31",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/31963694904",
-      "resolved": false
-    }
-  ],
-  "updated_at": "2026-08-17T05:19:28Z"
+  "failures": [],
+  "updated_at": "2026-08-17T08:02:16Z"
 }

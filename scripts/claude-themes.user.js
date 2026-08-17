@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.39.0
+// @version      6.40.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.39.0';
+  const SCRIPT_VERSION = '6.40.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -237,15 +237,17 @@
   function detectPersona(project) {
     if (!project.titlePattern) return null;
     const url = window.location.pathname;
+    if (!url.includes('/chat/')) return null;
+    const dt = document.title;
+    const suffix = ' - Claude';
+    const title = dt.endsWith(suffix) ? dt.slice(0, -suffix.length) : dt;
+    if (!title) return null;
     const cm = url.match(/\/chat\/([a-f0-9-]+)/);
-    if (!cm) return null;
-    const link = document.querySelector('nav a[href*="' + cm[1] + '"]');
-    if (!link) return null;
-    const text = link.textContent.trim();
-    const m = text.match(project.titlePattern);
-    if (!m) return { key: null, persona: null, link, text };
+    const link = cm ? document.querySelector('[class*="sidebar"] a[href*="' + cm[1] + '"], a[href*="' + cm[1] + '"]') : null;
+    const m = title.match(project.titlePattern);
+    if (!m) return { key: null, persona: null, link, text: title };
     const key = m[1].toLowerCase();
-    return { key, persona: B_PERSONAS[key] || null, link, text };
+    return { key, persona: B_PERSONAS[key] || null, link, text: title };
   }
 
   const PREFIX_COLORS = { 'meta': '#c45c4c' };
@@ -431,9 +433,11 @@
   const ORG_B_RE = /ope\s*Logistics\s*S\.?\s*R\.?\s*L?\.?/i;
 
   function detectAccountFromDOM() {
-    const nav = document.querySelector('nav');
-    if (!nav) return null;
-    return ORG_B_RE.test(nav.textContent || '') ? 'B' : null;
+    const btn = document.querySelector('button[data-testid="user-menu-button"]');
+    if (btn && ORG_B_RE.test(btn.textContent || '')) return 'B';
+    const sidebar = document.querySelector('[class*="sidebar"]');
+    if (sidebar && ORG_B_RE.test(sidebar.textContent || '')) return 'B';
+    return null;
   }
 
   function selectAccountProjects() {
@@ -2048,10 +2052,10 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     } else if (isPersonaChat) {
       const pResult = detectPersona(S.currentProject);
       if (pResult && pResult.persona) {
-        pResult.link.classList.remove('tm-title-pulse');
+        if (pResult.link) pResult.link.classList.remove('tm-title-pulse');
         applyPersonaState(S.currentProject, pResult.key, pResult.persona);
       } else if (pResult && pResult.key === null) {
-        pResult.link.classList.add('tm-title-pulse');
+        if (pResult.link) pResult.link.classList.add('tm-title-pulse');
         const el = document.getElementById(CHARACTER_ID); if (el) el.style.display = 'none';
       }
     } else {

@@ -166,6 +166,13 @@
   const MERIDIAN_CARD = BASE + 'meridian_card.png';
   const FALX_BG = BASE + 'falx_background.png';
   const FALX_CARD = BASE + 'falx_card.png';
+  // B-account sprites
+  const SONAR_CHAT = BASE + 'sonar_chat.png';
+  const ROZEN_CHAT = BASE + 'rozen_chat.png';
+  const GYRO_CHAT = BASE + 'gyro_chat.png';
+  const CASSANDRA_CHAT = BASE + 'cassandra_chat.png';
+  const ARGUS_CHAT = BASE + 'argus_chat.png';
+  const SYBIL_CHAT = BASE + 'sybil_chat.png';
 
   // =========================================================================
   // B-ACCOUNT CONFIGURATION
@@ -175,12 +182,12 @@
   // B-ACCOUNT PERSONA REGISTRY
   // =========================================================================
   const B_PERSONAS = {
-    'sonar':     { accentColor: '#5a8a9a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'rozen':     { accentColor: '#7a6a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'gyro':      { accentColor: '#6a8a5a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'cassandra': { accentColor: '#8a5a6a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'argus':     { accentColor: '#5a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
-    'sybil':     { accentColor: '#7a6a8a', characterUrl: null, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'sonar':     { accentColor: '#2a5caa', characterUrl: SONAR_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'rozen':     { accentColor: '#8c2a3a', characterUrl: ROZEN_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'gyro':      { accentColor: '#a08040', characterUrl: GYRO_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'cassandra': { accentColor: '#7a8a9c', characterUrl: CASSANDRA_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'argus':     { accentColor: '#b08a2a', characterUrl: ARGUS_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'sybil':     { accentColor: '#8c3a3a', characterUrl: SYBIL_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
   };
   const B_TITLE_RE = /^([A-Za-z]+)_/;
 
@@ -191,7 +198,30 @@
       account: 'B',
       accentColor: '#5a6a7a',
       titlePattern: B_TITLE_RE,
-      chatBackground: 'linear-gradient(160deg, #0c0e12 0%, #10141a 30%, #0c1014 60%, #080a0e 100%)',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'lidl-csv', projectId: '019fc7d3-4eff-75dd-85d5-fd195fa2d0f6', label: 'Lidl CSV',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'tms-road', projectId: '019fc7d3-29d0-71bc-85ca-6e758e31bb37', label: 'TMS Road',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'oneclick', projectId: '019fc7d2-71a6-7728-b35b-410d8c82035e', label: 'OneClick',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
       card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
       chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
       homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },

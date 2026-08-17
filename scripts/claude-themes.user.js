@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.40.0
+// @version      6.41.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.40.0';
+  const SCRIPT_VERSION = '6.41.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1559,6 +1559,84 @@
     }
   }
 
+  function getFileRawContent(markdownEl) {
+    let el = markdownEl;
+    for (let d = 0; d < 15 && el; d++) {
+      const fKey = Object.keys(el).find(k => k.startsWith('__reactFiber'));
+      if (fKey) {
+        let fiber = el[fKey];
+        for (let fd = 0; fd < 12 && fiber; fd++) {
+          const props = fiber.memoizedProps || fiber.pendingProps;
+          if (props) {
+            const t = typeof props.text === 'string' && props.text.length > 50 ? props.text
+              : typeof props.children === 'string' && props.children.length > 50 ? props.children
+              : null;
+            if (t) return t;
+          }
+          fiber = fiber.return;
+        }
+        break;
+      }
+      el = el.parentElement;
+    }
+    return markdownEl.textContent || '';
+  }
+
+  function injectFileModalActions() {
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog || dialog.querySelector('[data-tm-file-actions]')) return;
+    const h2 = dialog.querySelector('h2');
+    if (!h2) return;
+    const filename = h2.textContent.trim();
+    if (!filename.includes('.')) return;
+    const markdown = dialog.querySelector('.standard-markdown');
+    if (!markdown) return;
+    const nameWrap = h2.closest('div');
+    if (!nameWrap) return;
+    const headerRow = nameWrap.parentElement;
+    if (!headerRow) return;
+    const ctr = document.createElement('div');
+    ctr.setAttribute('data-tm-file-actions', '');
+    ctr.setAttribute('data-tm-ui', '');
+    ctr.style.cssText = 'display:flex;gap:4px;align-items:center;';
+    const makeBtn = (svg, title, handler) => {
+      const btn = document.createElement('button');
+      btn.style.cssText = 'width:32px;height:32px;display:flex;align-items:center;justify-content:center;border:none;background:transparent;cursor:pointer;border-radius:8px;color:var(--text-secondary,#999);transition:background 150ms;';
+      btn.title = title;
+      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + svg + '</svg>';
+      btn.onmouseenter = function() { this.style.background = 'rgba(255,255,255,0.08)'; };
+      btn.onmouseleave = function() { this.style.background = 'transparent'; };
+      btn.onclick = handler;
+      return btn;
+    };
+    const flash = (btn) => { btn.style.color = 'var(--tm-accent,#4a9a7a)'; setTimeout(() => { btn.style.color = 'var(--text-secondary,#999)'; }, 1500); };
+    const getContent = () => {
+      const md = dialog.querySelector('.standard-markdown');
+      return md ? getFileRawContent(md) : '';
+    };
+    ctr.appendChild(makeBtn(
+      '<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/>',
+      'Copy raw content',
+      function() { const c = getContent(); if (c) navigator.clipboard.writeText(c).then(() => flash(this)).catch(() => {}); }
+    ));
+    ctr.appendChild(makeBtn(
+      '<path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>',
+      'Download file',
+      function() {
+        const c = getContent(); if (!c) return;
+        const blob = new Blob([c], { type: 'text/plain;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = filename;
+        document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        flash(this);
+      }
+    ));
+    const closeBtn = headerRow.querySelector('button[aria-label="Close"]');
+    if (closeBtn) headerRow.insertBefore(ctr, closeBtn);
+    else headerRow.appendChild(ctr);
+  }
+
   // =========================================================================
   // USAGE METER — reads from DOM on /settings/usage, caches in localStorage
   // No network requests. Only reads pages the user has already navigated to.
@@ -2095,6 +2173,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     ensureVersionFetch();
     manageCardStyles();
     manageContextGrouping();
+    injectFileModalActions();
     refreshQuickNav();
     const ctx = detectContext();
     if (ctx) { S.nullDetections = 0; const key = ctx.project.id + ':' + ctx.mode; if (S.currentThemeKey !== key) applyTheme(ctx.project, ctx.mode); else refreshTheme(); }

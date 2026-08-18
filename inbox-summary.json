@@ -19,8 +19,8 @@
       "informational": 0
     },
     "crucible": {
-      "total": 2,
-      "actionable": 0,
+      "total": 3,
+      "actionable": 1,
       "due": 0,
       "informational": 2
     },
@@ -115,8 +115,8 @@
       "informational": 2
     }
   },
-  "total": 48,
-  "actionable": 26,
+  "total": 49,
+  "actionable": 27,
   "due": 1,
-  "updated_at": "2026-08-18T05:37:57Z"
+  "updated_at": "2026-08-18T05:39:38Z"
 }

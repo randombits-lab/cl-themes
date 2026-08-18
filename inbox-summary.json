@@ -19,7 +19,7 @@
       "informational": 0
     },
     "crucible": {
-      "total": 1,
+      "total": 2,
       "actionable": 1,
       "due": 0,
       "informational": 0
@@ -31,10 +31,10 @@
       "informational": 0
     },
     "factory": {
-      "total": 5,
+      "total": 4,
       "actionable": 1,
       "due": 0,
-      "informational": 1
+      "informational": 0
     },
     "faith": {
       "total": 5,
@@ -118,5 +118,5 @@
   "total": 48,
   "actionable": 28,
   "due": 1,
-  "updated_at": "2026-08-18T08:31:00Z"
+  "updated_at": "2026-08-18T14:13:01Z"
 }

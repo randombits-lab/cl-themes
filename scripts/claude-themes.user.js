@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.41.0
+// @version      6.42.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.41.0';
+  const SCRIPT_VERSION = '6.42.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -173,6 +173,10 @@
   const CASSANDRA_CHAT = BASE + 'cassandra_chat.png';
   const ARGUS_CHAT = BASE + 'argus_chat.png';
   const SYBIL_CHAT = BASE + 'sybil_chat.png';
+  // Context card images
+  const CTX_TEAM = BASE + 'context_team.jpg';
+  const CTX_KNOWLEDGE = BASE + 'context_knowledge.jpg';
+  const CTX_REFERENCE = BASE + 'context_reference.jpg';
 
   // =========================================================================
   // B-ACCOUNT CONFIGURATION
@@ -229,9 +233,9 @@
   ];
 
   const CONTEXT_CATEGORIES = [
-    { id: 'team', label: 'Team', re: /persona\.md/i, order: 100, color: '#5a9a7a' },
-    { id: 'knowledge', label: 'Knowledge', re: /knowledge\.md/i, order: 200, color: '#c9a84c' },
-    { id: 'reference', label: 'Reference', re: /reference\.md/i, order: 300, color: '#6a8aaa' },
+    { id: 'team', label: 'Team', re: /persona\.md/i, order: 100, color: '#5a9a7a', imageUrl: CTX_TEAM },
+    { id: 'knowledge', label: 'Knowledge', re: /knowledge\.md/i, order: 200, color: '#c9a84c', imageUrl: CTX_KNOWLEDGE },
+    { id: 'reference', label: 'Reference', re: /reference\.md/i, order: 300, color: '#6a8aaa', imageUrl: CTX_REFERENCE },
   ];
 
   function detectPersona(project) {
@@ -1281,6 +1285,11 @@
       for (const cat of CONTEXT_CATEGORIES) {
         css += '[data-tm-ctx-group="' + cat.id + '"]{order:' + cat.order + ' !important}';
         css += 'ul.tm-ctx-hide-' + cat.id + ' [data-tm-ctx-group="' + cat.id + '"]{display:none !important}';
+        if (cat.imageUrl) {
+          css += '[data-tm-ctx-group="' + cat.id + '"] button.rounded-lg{'
+            + 'background:linear-gradient(180deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,.3) 40%,rgba(0,0,0,.4) 65%,rgba(0,0,0,.7) 100%),url("' + cat.imageUrl + '") center/cover no-repeat !important;'
+            + 'border-color:' + cat.color + '40 !important;}';
+        }
       }
       css += '[data-tm-ctx-group="other"]{order:900 !important}';
       css += 'ul.tm-ctx-hide-other [data-tm-ctx-group="other"]{display:none !important}';

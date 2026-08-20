@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.42.0
+// @version      6.43.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.42.0';
+  const SCRIPT_VERSION = '6.43.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -543,6 +543,14 @@
     return null;
   }
 
+  function findProjectByKey(agentId) {
+    return ALL_PROJECTS.find(p => p.id === agentId || p.registryId === agentId);
+  }
+  function resolveProjectId(agentId) {
+    const p = findProjectByKey(agentId);
+    return p ? p.id : agentId;
+  }
+
   // =========================================================================
   // INBOX DASHBOARD — fetches pending item counts from cl-themes
   // =========================================================================
@@ -593,15 +601,15 @@
     const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
     const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
     const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
-    const govEntries = entries.filter(([id]) => govMembers.includes(id));
-    const execEntries = entries.filter(([id]) => execMembers.includes(id));
-    const opsEntries = entries.filter(([id]) => !govMembers.includes(id) && !execMembers.includes(id));
+    const govEntries = entries.filter(([id]) => govMembers.includes(resolveProjectId(id)));
+    const execEntries = entries.filter(([id]) => execMembers.includes(resolveProjectId(id)));
+    const opsEntries = entries.filter(([id]) => !govMembers.includes(resolveProjectId(id)) && !execMembers.includes(resolveProjectId(id)));
     let html = '';
     function renderGroup(groupLabel, items) {
       if (!items.length) return '';
       let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
       for (const [agentId, counts] of items) {
-        const proj = ALL_PROJECTS.find(p => p.id === agentId);
+        const proj = findProjectByKey(agentId);
         const color = proj ? proj.accentColor : '#8a8a9a';
         const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
         const href = proj ? '/project/' + proj.projectId : '';
@@ -681,7 +689,7 @@
     });
     let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
     for (const [agentId, count] of entries) {
-      const proj = ALL_PROJECTS.find(p => p.id === agentId);
+      const proj = findProjectByKey(agentId);
       const color = proj ? proj.accentColor : '#8a8a9a';
       const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
       const dim = count === 0 ? 'opacity:0.35;' : '';

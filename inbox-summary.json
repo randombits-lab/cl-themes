@@ -109,14 +109,14 @@
       "informational": 1
     },
     "workshop": {
-      "total": 3,
-      "actionable": 1,
+      "total": 4,
+      "actionable": 2,
       "due": 0,
       "informational": 2
     }
   },
-  "total": 51,
-  "actionable": 32,
+  "total": 52,
+  "actionable": 33,
   "due": 0,
-  "updated_at": "2026-08-20T13:43:19Z"
+  "updated_at": "2026-08-20T13:43:40Z"
 }

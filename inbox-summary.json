@@ -31,8 +31,8 @@
       "informational": 0
     },
     "factory": {
-      "total": 4,
-      "actionable": 1,
+      "total": 5,
+      "actionable": 2,
       "due": 0,
       "informational": 0
     },
@@ -109,14 +109,14 @@
       "informational": 1
     },
     "workshop": {
-      "total": 4,
+      "total": 2,
       "actionable": 2,
       "due": 0,
-      "informational": 2
+      "informational": 0
     }
   },
-  "total": 52,
-  "actionable": 33,
+  "total": 51,
+  "actionable": 34,
   "due": 0,
-  "updated_at": "2026-08-20T13:43:40Z"
+  "updated_at": "2026-08-20T14:00:38Z"
 }

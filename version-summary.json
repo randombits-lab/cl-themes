@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-20T04:57:48Z",
+  "updated_at": "2026-08-20T10:31:10Z",
   "agents": {
     "faith": "1.61",
     "tomoe": "3.44",
@@ -12,13 +12,13 @@
     "voss": "1.40",
     "egostic": "1.17",
     "code-foundry": "1.68",
-    "factory": "1.63",
+    "factory": "1.64",
     "abathur": "1.41",
     "business-agent-workshop": "2.37",
     "licitapp": "1.101",
     "meridian": "2.7",
     "vesper": "1.71",
     "template-builder": "1.55",
-    "falx": "1.4"
+    "falx": "1.5"
   }
 }

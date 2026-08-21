@@ -1,8 +1,14 @@
 {
   "agents": {
     "abathur": {
-      "total": 5,
-      "actionable": 3,
+      "total": 6,
+      "actionable": 4,
+      "due": 0,
+      "informational": 0
+    },
+    "adjutant": {
+      "total": 1,
+      "actionable": 0,
       "due": 0,
       "informational": 0
     },
@@ -73,8 +79,8 @@
       "informational": 0
     },
     "prism": {
-      "total": 0,
-      "actionable": 0,
+      "total": 1,
+      "actionable": 1,
       "due": 0,
       "informational": 0
     },
@@ -109,8 +115,8 @@
       "informational": 0
     }
   },
-  "total": 43,
-  "actionable": 21,
+  "total": 46,
+  "actionable": 23,
   "due": 0,
-  "updated_at": "2026-08-21T11:42:00Z"
+  "updated_at": "2026-08-21T12:43:12Z"
 }

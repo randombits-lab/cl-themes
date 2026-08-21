@@ -37,10 +37,10 @@
       "informational": 0
     },
     "factory": {
-      "total": 4,
+      "total": 5,
       "actionable": 1,
       "due": 0,
-      "informational": 0
+      "informational": 1
     },
     "faith": {
       "total": 1,
@@ -115,8 +115,8 @@
       "informational": 0
     }
   },
-  "total": 41,
+  "total": 42,
   "actionable": 18,
   "due": 0,
-  "updated_at": "2026-08-21T22:35:30Z"
+  "updated_at": "2026-08-21T23:02:00Z"
 }

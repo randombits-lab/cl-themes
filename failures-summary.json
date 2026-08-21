@@ -1,43 +1,7 @@
 {
-  "total": 7,
+  "total": 1,
   "total_including_resolved": 7,
   "failures": [
-    {
-      "date": "2026-08-21",
-      "title": "Push checks run #223",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32493781504",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-21",
-      "title": "Push checks run #222",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32493762207",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-21",
-      "title": "CI failure capture run #2493",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32486800475",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-21",
-      "title": "Push checks run #220",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32486772604",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-21",
-      "title": "Registry pipeline run #13",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32483330890",
-      "resolved": false
-    },
-    {
-      "date": "2026-08-21",
-      "title": "Push checks run #219",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32483330929",
-      "resolved": false
-    },
     {
       "date": "2026-08-21",
       "title": "Registry pipeline run #12",
@@ -45,5 +9,5 @@
       "resolved": false
     }
   ],
-  "updated_at": "2026-08-21T20:52:02Z"
+  "updated_at": "2026-08-21T20:56:39Z"
 }

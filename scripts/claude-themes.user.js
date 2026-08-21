@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.48.0
+// @version      6.49.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.48.0';
+  const SCRIPT_VERSION = '6.49.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -166,6 +166,10 @@
   const MERIDIAN_CARD = BASE + 'meridian_card.png';
   const FALX_BG = BASE + 'falx_background.png';
   const FALX_CARD = BASE + 'falx_card.png';
+  const ADJUTANT_CHAT = BASE + 'adjutant_chat.png';
+  const ADJUTANT_HOME = BASE + 'adjutant_project.png';
+  const ADJUTANT_BG = BASE + 'adjutant_background.png';
+  const ADJUTANT_CARD = BASE + 'adjutant_card.png';
   // B-account sprites
   const SONAR_CHAT = BASE + 'sonar_chat.png';
   const ROZEN_CHAT = BASE + 'rozen_chat.png';
@@ -422,6 +426,14 @@
       chat: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
       homepage: { backgroundImage: FALX_BG, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
     },
+    {
+      id: 'adjutant', projectId: '01a02484-b9e1-7426-9dc2-0cb1b4b24025', label: 'Adjutant',
+      accentColor: '#2aaa88', interjectionColor: '#a0d4c8', interjectionBorder: '#2aaa88',
+      chatBackground: 'linear-gradient(160deg, #080c0a 0%, #0a1210 30%, #070e0c 60%, #050a08 100%)',
+      card: { imageUrl: ADJUTANT_CARD, titleColor: '#2aaa88', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: ADJUTANT_BG, characterUrl: ADJUTANT_CHAT, characterOpacity: 0.85, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+      homepage: { backgroundImage: ADJUTANT_BG, characterUrl: ADJUTANT_HOME, characterOpacity: 0.85, characterWidth: '350px', characterBottom: '-40px', characterRight: '-20px' },
+    },
     ...B_PROJECTS,
   ];
 
@@ -515,7 +527,7 @@
 
   const PROJECT_GROUPS = [
     { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
-    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'voss', 'egostic', 'meridian', 'falx'] },
+    { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'voss', 'egostic', 'meridian', 'falx', 'adjutant'] },
     { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
   ];
   const PROJECT_GROUP_MAP = {};

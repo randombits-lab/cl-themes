@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.44.0
+// @version      6.45.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.44.0';
+  const SCRIPT_VERSION = '6.45.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -700,7 +700,7 @@
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
     }
     popup.innerHTML = html;
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
@@ -763,7 +763,7 @@
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + data.total + ' total \u00b7 ' + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + data.total + ' total \u00b7 ' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
     }
     popup.innerHTML = html;
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:360px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';

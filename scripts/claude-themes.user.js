@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.47.0
+// @version      6.48.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.47.0';
+  const SCRIPT_VERSION = '6.48.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1876,10 +1876,12 @@
       document.body.appendChild(bar);
     }
     bar.style.display = 'flex';
+    const maxBarH = 30;
+    const barH = Math.min(r.height, maxBarH);
     bar.style.left = r.left + 'px';
-    bar.style.top = r.top + 'px';
+    bar.style.top = (r.top + r.height - barH) + 'px';
     bar.style.width = r.width + 'px';
-    bar.style.height = r.height + 'px';
+    bar.style.height = barH + 'px';
     bar.style.background = getComputedStyle(disclaimer).backgroundColor;
     const chatPath = window.location.pathname;
     if (chatPath !== S.replyCountPath) { S.replyCountPath = chatPath; S.maxDataIndex = -1; S.maxTokenEstimate = 0; S.actionAlertedIdx = -1; }

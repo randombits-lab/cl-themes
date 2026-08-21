@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.43.0
+// @version      6.44.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.43.0';
+  const SCRIPT_VERSION = '6.44.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -633,7 +633,8 @@
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
       const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + '</div>';
+      const fetchAge = data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + fetchAge + '</div>';
     }
     popup.innerHTML = html;
     popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
@@ -1695,7 +1696,7 @@
 
 
   const tmPulse = document.createElement('style');
-  tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}@keyframes tm-action-pulse{0%,100%{box-shadow:0 0 20px #ff980040,0 0 60px #ff980020}50%{box-shadow:0 0 30px #ff980060,0 0 80px #ff980030}}';
+  tmPulse.textContent = '@keyframes tm-pulse{0%,100%{opacity:0.9;box-shadow:0 0 4px #c45c4c80}50%{opacity:1;box-shadow:0 0 10px #c45c4c,0 0 20px #c45c4c60}}@keyframes tm-action-pulse{0%,100%{box-shadow:0 0 20px #ff980040,0 0 60px #ff980020}50%{box-shadow:0 0 30px #ff980060,0 0 80px #ff980030}}@keyframes tm-spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}';
   document.head.appendChild(tmPulse);
 
   let lastUsageHash = '';
@@ -1853,6 +1854,20 @@
       failuresBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 2L1.5 13h13L8 2z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       failuresBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleFailuresPopup(failuresBadge); });
       bar.appendChild(failuresBadge);
+      const refreshBtn = document.createElement('span');
+      refreshBtn.id = UTILBAR_ID + '-refresh';
+      refreshBtn.dataset.tmUi = '1';
+      refreshBtn.style.cssText = 'display:inline-flex;align-items:center;cursor:pointer;padding:1px 4px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      refreshBtn.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" style="color:#8a8a9a;"><path d="M13.5 8a5.5 5.5 0 1 1-1.2-3.5M13.5 2v3h-3" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      refreshBtn.title = 'Refresh dashboard data';
+      refreshBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const svg = refreshBtn.querySelector('svg');
+        if (svg) svg.style.animation = 'tm-spin 0.5s ease-out';
+        fetchInboxSummary(); fetchReflectionSummary(); fetchFailuresSummary(); fetchVersionSummary();
+        setTimeout(() => { if (svg) svg.style.animation = ''; }, 600);
+      });
+      bar.appendChild(refreshBtn);
       const spacer = document.createElement('div');
       spacer.style.flex = '1';
       bar.appendChild(spacer);
@@ -1906,7 +1921,8 @@
         const age = iData.updated_at ? formatAge(new Date(iData.updated_at)) : 'unknown';
         const iAct = typeof iData?.actionable === 'number' ? iData.actionable : iAttention;
         const breakdown = iDue > 0 ? iAct + ' actionable, ' + iDue + ' due' : iAttention + ' actionable';
-        inboxEl.title = breakdown + (iData.total > iAttention ? ' of ' + iData.total + ' total' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '');
+        const fetchedAge = iData._fetchedAt ? '\nFetched: ' + formatAge(new Date(iData._fetchedAt)) : '';
+        inboxEl.title = breakdown + (iData.total > iAttention ? ' of ' + iData.total + ' total' : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '') + fetchedAge;
       } else {
         if (iCount) iCount.textContent = '';
         inboxEl.style.opacity = '0.3';

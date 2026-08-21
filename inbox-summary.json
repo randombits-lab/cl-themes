@@ -49,8 +49,8 @@
       "informational": 1
     },
     "foundry": {
-      "total": 8,
-      "actionable": 3,
+      "total": 9,
+      "actionable": 4,
       "due": 0,
       "informational": 0
     },
@@ -109,8 +109,8 @@
       "informational": 0
     }
   },
-  "total": 48,
-  "actionable": 27,
+  "total": 49,
+  "actionable": 28,
   "due": 0,
-  "updated_at": "2026-08-21T04:07:25Z"
+  "updated_at": "2026-08-21T04:42:09Z"
 }

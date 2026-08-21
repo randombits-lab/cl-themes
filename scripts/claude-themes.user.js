@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.45.0
+// @version      6.46.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.45.0';
+  const SCRIPT_VERSION = '6.46.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1854,12 +1854,17 @@
       failuresBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 2L1.5 13h13L8 2z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       failuresBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleFailuresPopup(failuresBadge); });
       bar.appendChild(failuresBadge);
+      const spacer = document.createElement('div');
+      spacer.style.flex = '1';
+      bar.appendChild(spacer);
       const refreshBtn = document.createElement('span');
       refreshBtn.id = UTILBAR_ID + '-refresh';
       refreshBtn.dataset.tmUi = '1';
-      refreshBtn.style.cssText = 'display:inline-flex;align-items:center;cursor:pointer;padding:1px 4px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
-      refreshBtn.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" style="color:#8a8a9a;"><path d="M13.5 8a5.5 5.5 0 1 1-1.2-3.5M13.5 2v3h-3" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      refreshBtn.style.cssText = 'display:inline-flex;align-items:center;cursor:pointer;padding:2px 6px;border-radius:4px;transition:opacity 0.2s,background 0.15s;opacity:0.5;';
+      refreshBtn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" style="color:#8a8a9a;"><path d="M13.5 8a5.5 5.5 0 1 1-1.2-3.5M13.5 2v3h-3" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>';
       refreshBtn.title = 'Refresh dashboard data';
+      refreshBtn.addEventListener('mouseenter', () => { refreshBtn.style.opacity = '0.9'; refreshBtn.style.background = '#ffffff10'; });
+      refreshBtn.addEventListener('mouseleave', () => { refreshBtn.style.opacity = '0.5'; refreshBtn.style.background = 'none'; });
       refreshBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const svg = refreshBtn.querySelector('svg');
@@ -1868,9 +1873,6 @@
         setTimeout(() => { if (svg) svg.style.animation = ''; }, 600);
       });
       bar.appendChild(refreshBtn);
-      const spacer = document.createElement('div');
-      spacer.style.flex = '1';
-      bar.appendChild(spacer);
       document.body.appendChild(bar);
     }
     bar.style.display = 'flex';

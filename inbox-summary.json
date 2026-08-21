@@ -7,8 +7,8 @@
       "informational": 0
     },
     "alfred": {
-      "total": 3,
-      "actionable": 3,
+      "total": 2,
+      "actionable": 2,
       "due": 0,
       "informational": 0
     },
@@ -109,8 +109,8 @@
       "informational": 0
     }
   },
-  "total": 48,
-  "actionable": 28,
+  "total": 47,
+  "actionable": 27,
   "due": 0,
-  "updated_at": "2026-08-21T04:05:43Z"
+  "updated_at": "2026-08-21T04:06:11Z"
 }

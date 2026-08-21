@@ -91,8 +91,8 @@
       "informational": 0
     },
     "vesper": {
-      "total": 7,
-      "actionable": 5,
+      "total": 2,
+      "actionable": 0,
       "due": 0,
       "informational": 0
     },
@@ -109,8 +109,8 @@
       "informational": 0
     }
   },
-  "total": 49,
-  "actionable": 27,
+  "total": 44,
+  "actionable": 22,
   "due": 0,
-  "updated_at": "2026-08-21T04:42:41Z"
+  "updated_at": "2026-08-21T05:08:42Z"
 }

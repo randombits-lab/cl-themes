@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.46.0
+// @version      6.47.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.46.0';
+  const SCRIPT_VERSION = '6.47.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -857,7 +857,7 @@
       if (el.children.length > 3) continue;
       if (!(el.textContent || '').includes('can make mistakes')) continue;
       const r = el.getBoundingClientRect();
-      if (r.height > 15 && r.height < 60 && r.width > 400) { cachedDisclaimer = el; return el; }
+      if (r.height > 15 && r.height < 120 && r.width > 250) { cachedDisclaimer = el; return el; }
     }
     return null;
   }
@@ -882,7 +882,7 @@
       const s = window.getComputedStyle(el);
       if (s.overflowY !== 'auto' && s.overflowY !== 'scroll') return;
       const r = el.getBoundingClientRect();
-      if (r.width > 400 && r.height > 300 && r.height <= vh * 1.5) {
+      if (400 < r.width && r.height > 300 && r.height <= vh * 1.5) {
         const sc = r.width * r.height;
         if (el.scrollHeight > el.clientHeight + 20) {
           if (sc > scrollBestS) { scrollBestS = sc; scrollBest = el; }

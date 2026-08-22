@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.49.0
+// @version      6.50.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.49.0';
+  const SCRIPT_VERSION = '6.50.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -168,7 +168,7 @@
   const FALX_CARD = BASE + 'falx_card.png';
   const ADJUTANT_CHAT = BASE + 'adjutant_chat.png';
   const ADJUTANT_HOME = BASE + 'adjutant_project.png';
-  const ADJUTANT_BG = BASE + 'adjutant_background.png';
+  const ADJUTANT_BG = BASE + 'adjutant_background.jpg';
   const ADJUTANT_CARD = BASE + 'adjutant_card.png';
   // B-account sprites
   const SONAR_CHAT = BASE + 'sonar_chat.png';

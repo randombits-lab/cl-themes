@@ -99,7 +99,7 @@
     "vesper": {
       "total": 2,
       "actionable": 0,
-      "due": 0,
+      "due": 1,
       "informational": 0
     },
     "voss": {
@@ -117,6 +117,6 @@
   },
   "total": 41,
   "actionable": 17,
-  "due": 0,
-  "updated_at": "2026-08-21T23:02:36Z"
+  "due": 1,
+  "updated_at": "2026-08-22T05:02:59Z"
 }

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-23T05:05:25Z",
+  "updated_at": "2026-08-23T11:20:19Z",
   "agents": {
     "faith": "1.62",
     "tomoe": "3.46",
@@ -19,7 +19,7 @@
     "meridian": "2.8",
     "vesper": "1.73",
     "template-builder": "1.57",
-    "falx": "1.10",
+    "falx": "1.11",
     "adjutant": "1.6"
   }
 }

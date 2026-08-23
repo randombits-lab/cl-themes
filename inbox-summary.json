@@ -37,10 +37,10 @@
       "informational": 0
     },
     "factory": {
-      "total": 8,
-      "actionable": 4,
+      "total": 4,
+      "actionable": 1,
       "due": 0,
-      "informational": 1
+      "informational": 0
     },
     "faith": {
       "total": 1,
@@ -57,7 +57,7 @@
     "foundry": {
       "total": 6,
       "actionable": 0,
-      "due": 0,
+      "due": 1,
       "informational": 1
     },
     "licitapp": {
@@ -115,8 +115,8 @@
       "informational": 0
     }
   },
-  "total": 44,
-  "actionable": 22,
-  "due": 1,
-  "updated_at": "2026-08-22T23:59:11Z"
+  "total": 40,
+  "actionable": 19,
+  "due": 2,
+  "updated_at": "2026-08-23T00:00:49Z"
 }

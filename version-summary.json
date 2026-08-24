@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-24T10:32:41Z",
+  "updated_at": "2026-08-24T13:56:25Z",
   "agents": {
     "faith": "1.65",
     "tomoe": "3.49",
@@ -9,9 +9,9 @@
     "prism": "1.51",
     "crucible": "2.35",
     "vadim": "1.39",
-    "voss": "1.43",
+    "voss": "1.44",
     "egostic": "1.20",
-    "code-foundry": "1.77",
+    "code-foundry": "1.78",
     "factory": "1.69",
     "abathur": "1.45",
     "business-agent-workshop": "2.41",
@@ -19,7 +19,7 @@
     "meridian": "2.10",
     "vesper": "1.76",
     "template-builder": "1.60",
-    "falx": "1.14",
+    "falx": "1.15",
     "adjutant": "1.8"
   }
 }

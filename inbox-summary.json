@@ -87,7 +87,7 @@
     "tomoe": {
       "total": 1,
       "actionable": 0,
-      "due": 0,
+      "due": 1,
       "informational": 0
     },
     "vadim": {
@@ -117,6 +117,6 @@
   },
   "total": 43,
   "actionable": 22,
-  "due": 2,
-  "updated_at": "2026-08-23T16:44:59Z"
+  "due": 3,
+  "updated_at": "2026-08-24T05:23:26Z"
 }

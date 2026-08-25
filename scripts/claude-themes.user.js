@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.51.0
+// @version      6.52.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.51.0';
+  const SCRIPT_VERSION = '6.52.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -177,6 +177,13 @@
   const CASSANDRA_CHAT = BASE + 'cassandra_chat.png';
   const ARGUS_CHAT = BASE + 'argus_chat.png';
   const SYBIL_CHAT = BASE + 'sybil_chat.png';
+  const BARTLEBY_CHAT = BASE + 'bartleby_chat.png';
+  const ECHO_CHAT = BASE + 'echo_chat.png';
+  const MORDIN_CHAT = BASE + 'mordin_chat.png';
+  const ANANSI_CHAT = BASE + 'anansi_chat.png';
+  const K_CHAT = BASE + 'k_chat.png';
+  const DUDE_CHAT = BASE + 'dude_chat.png';
+  const QUIXOTE_CHAT = BASE + 'quixote_chat.png';
   // Context card images
   const CTX_TEAM = BASE + 'context_team.jpg';
   const CTX_KNOWLEDGE = BASE + 'context_knowledge.jpg';
@@ -196,6 +203,13 @@
     'cassandra': { accentColor: '#7a8a9c', characterUrl: CASSANDRA_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
     'argus':     { accentColor: '#b08a2a', characterUrl: ARGUS_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
     'sybil':     { accentColor: '#8c3a3a', characterUrl: SYBIL_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'bartleby':  { accentColor: '#6a5a4a', characterUrl: BARTLEBY_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'echo':      { accentColor: '#6a8a7a', characterUrl: ECHO_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'mordin':    { accentColor: '#5a8a5c', characterUrl: MORDIN_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'anansi':    { accentColor: '#6a4a8a', characterUrl: ANANSI_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'k':         { accentColor: '#7a7060', characterUrl: K_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'dude':      { accentColor: '#90984a', characterUrl: DUDE_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
+    'quixote':   { accentColor: '#8a5a6a', characterUrl: QUIXOTE_CHAT, characterHeight: '72vh', characterBottom: '-90px', characterRight: '-180px' },
   };
   const B_TITLE_RE = /^([A-Za-z]+)_/;
 

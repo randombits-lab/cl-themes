@@ -27,7 +27,7 @@
     "crucible": {
       "total": 4,
       "actionable": 2,
-      "due": 0,
+      "due": 1,
       "informational": 1
     },
     "egostic": {
@@ -117,6 +117,6 @@
   },
   "total": 40,
   "actionable": 18,
-  "due": 3,
-  "updated_at": "2026-08-24T17:18:53Z"
+  "due": 4,
+  "updated_at": "2026-08-25T05:15:42Z"
 }

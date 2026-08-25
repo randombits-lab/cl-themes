@@ -67,10 +67,10 @@
       "informational": 0
     },
     "meridian": {
-      "total": 2,
+      "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 1
+      "informational": 0
     },
     "nabu": {
       "total": 0,
@@ -115,8 +115,8 @@
       "informational": 0
     }
   },
-  "total": 53,
+  "total": 52,
   "actionable": 24,
   "due": 4,
-  "updated_at": "2026-08-25T18:30:45Z"
+  "updated_at": "2026-08-25T18:37:45Z"
 }

@@ -1,6 +1,13 @@
 {
-  "total": 0,
+  "total": 1,
   "total_including_resolved": 7,
-  "failures": [],
-  "updated_at": "2026-08-25T11:59:51Z"
+  "failures": [
+    {
+      "date": "2026-08-25",
+      "title": "Registry staleness detector run #2",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32846807851",
+      "resolved": false
+    }
+  ],
+  "updated_at": "2026-08-25T12:37:58Z"
 }

@@ -1,7 +1,19 @@
 {
-  "total": 1,
-  "total_including_resolved": 7,
+  "total": 3,
+  "total_including_resolved": 8,
   "failures": [
+    {
+      "date": "2026-08-26",
+      "title": "CI failure capture run #2897",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32958685926",
+      "resolved": false
+    },
+    {
+      "date": "2026-08-26",
+      "title": "Registry staleness detector run #4",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/32958666462",
+      "resolved": false
+    },
     {
       "date": "2026-08-25",
       "title": "Registry staleness detector run #2",
@@ -9,5 +21,5 @@
       "resolved": false
     }
   ],
-  "updated_at": "2026-08-25T12:37:58Z"
+  "updated_at": "2026-08-26T12:41:17Z"
 }

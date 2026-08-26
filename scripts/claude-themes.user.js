@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.52.0
+// @version      6.53.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.52.0';
+  const SCRIPT_VERSION = '6.53.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -242,6 +242,46 @@
     },
     {
       id: 'oneclick', projectId: '019fc7d2-71a6-7728-b35b-410d8c82035e', label: 'OneClick',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'crossdock', projectId: '01a0142e-6d22-754c-b33f-da0365bba86e', label: 'Crossdock',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'tabletaklg', projectId: '01a0142e-3e8b-7406-8e5c-7191905d22d0', label: 'TabletaKLG',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: '50k-automation', projectId: '01a0142e-94a9-73ba-aace-68417454f5e7', label: '50K Automation',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'pepco-edi', projectId: '01a0142e-ae00-7764-b842-bca2d06bd15e', label: 'Pepco EDI',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'ai-course', projectId: '01a01e31-9b5f-7324-8d51-435e72aeaa95', label: 'AI Course',
       account: 'B', titlePattern: B_TITLE_RE,
       accentColor: '#5a6a7a',
       card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },

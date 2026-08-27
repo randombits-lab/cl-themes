@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.54.1
+// @version 6.55.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.54.1';
+  const SCRIPT_VERSION = '6.55.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -915,17 +915,50 @@
 
   function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
 
-  let cachedDisclaimer = null;
-  function findDisclaimer() {
-    if (cachedDisclaimer && cachedDisclaimer.isConnected) return cachedDisclaimer;
-    cachedDisclaimer = null;
-    for (const el of document.querySelectorAll('div')) {
-      if (el.children.length > 3) continue;
-      if (!(el.textContent || '').includes('can make mistakes')) continue;
-      const r = el.getBoundingClientRect();
-      if (r.height > 15 && r.height < 120 && r.width > 250) { cachedDisclaimer = el; return el; }
+  const DISC_PHRASE = 'can make mistakes';
+  let cachedDiscText = null;
+
+  function locateDisclaimerText() {
+    if (cachedDiscText && cachedDiscText.parentElement && cachedDiscText.parentElement.isConnected
+        && (cachedDiscText.nodeValue || '').includes(DISC_PHRASE)) return cachedDiscText;
+    cachedDiscText = null;
+    const fs = document.querySelector('fieldset');
+    const fr = fs ? fs.getBoundingClientRect() : null;
+    const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+    let best = null, bestW = 0;
+    while (walker.nextNode()) {
+      const t = walker.currentNode;
+      if (!(t.nodeValue || '').includes(DISC_PHRASE)) continue;
+      const p = t.parentElement;
+      if (!p) continue;
+      if (p.closest('[data-index]')) continue;
+      if (p.closest('nav')) continue;
+      const rng = document.createRange();
+      rng.selectNodeContents(t);
+      const r = rng.getBoundingClientRect();
+      if (r.width < 150 || r.height < 8 || r.height > 60) continue;
+      if (fr && Math.abs(r.top - fr.bottom) > 300 && Math.abs(r.top - fr.top) > 300) continue;
+      if (r.width > bestW) { bestW = r.width; best = t; }
     }
-    return null;
+    cachedDiscText = best;
+    return best;
+  }
+
+  function findDisclaimer() {
+    const t = locateDisclaimerText();
+    if (!t) return null;
+    const rng = document.createRange();
+    rng.selectNodeContents(t);
+    const rect = rng.getBoundingClientRect();
+    if (rect.width < 100 || rect.height < 8) { cachedDiscText = null; return null; }
+    let bg = 'rgba(0, 0, 0, 0)';
+    let n = t.parentElement;
+    while (n && n !== document.documentElement) {
+      const c = getComputedStyle(n).backgroundColor;
+      if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') { bg = c; break; }
+      n = n.parentElement;
+    }
+    return { rect: rect, bg: bg };
   }
 
   function getMessageNodes(scope) {
@@ -1899,10 +1932,10 @@
   // UTILITY BAR — chat-only toolbar overlaying the disclaimer strip
   // =========================================================================
   function refreshUtilBar() {
-    const disclaimer = findDisclaimer();
+    const d = findDisclaimer();
     let bar = document.getElementById(UTILBAR_ID);
-    if (!disclaimer) { if (bar) bar.style.display = 'none'; return; }
-    const r = disclaimer.getBoundingClientRect();
+    if (!d) { if (bar) bar.style.display = 'none'; return; }
+    const r = d.rect;
     if (!bar) {
       bar = document.createElement('div');
       bar.id = UTILBAR_ID;
@@ -1957,12 +1990,12 @@
     }
     bar.style.display = 'flex';
     const maxBarH = 30;
-    const barH = Math.min(r.height, maxBarH);
+    const barH = Math.min(Math.max(r.height, 24), maxBarH);
     bar.style.left = r.left + 'px';
     bar.style.top = (r.top + r.height - barH) + 'px';
     bar.style.width = r.width + 'px';
     bar.style.height = barH + 'px';
-    bar.style.background = getComputedStyle(disclaimer).backgroundColor;
+    bar.style.background = d.bg;
     const chatPath = window.location.pathname;
     if (chatPath !== S.replyCountPath) { S.replyCountPath = chatPath; S.maxDataIndex = -1; S.maxTokenEstimate = 0; S.actionAlertedIdx = -1; }
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');

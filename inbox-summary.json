@@ -49,8 +49,8 @@
       "informational": 1
     },
     "falx": {
-      "total": 0,
-      "actionable": 0,
+      "total": 1,
+      "actionable": 1,
       "due": 0,
       "informational": 0
     },
@@ -115,8 +115,8 @@
       "informational": 0
     }
   },
-  "total": 54,
-  "actionable": 27,
+  "total": 55,
+  "actionable": 28,
   "due": 4,
-  "updated_at": "2026-08-26T20:26:52Z"
+  "updated_at": "2026-08-27T10:29:36Z"
 }

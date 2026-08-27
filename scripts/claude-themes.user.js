@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version 6.55.0
+// @version 6.55.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.55.0';
+  const SCRIPT_VERSION = '6.55.1';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1992,7 +1992,7 @@
     const maxBarH = 30;
     const barH = Math.min(Math.max(r.height, 24), maxBarH);
     bar.style.left = r.left + 'px';
-    bar.style.top = (r.top + r.height - barH) + 'px';
+    bar.style.top = Math.min(r.top + r.height - barH, window.innerHeight - barH) + 'px';
     bar.style.width = r.width + 'px';
     bar.style.height = barH + 'px';
     bar.style.background = d.bg;

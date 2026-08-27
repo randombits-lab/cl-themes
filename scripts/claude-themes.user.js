@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version 6.55.1
+// @version      6.55.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.55.1';
+  const SCRIPT_VERSION = '6.55.2';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -952,13 +952,22 @@
     const rect = rng.getBoundingClientRect();
     if (rect.width < 100 || rect.height < 8) { cachedDiscText = null; return null; }
     let bg = 'rgba(0, 0, 0, 0)';
+    let strip = t.parentElement;
+    let stripW = strip ? strip.getBoundingClientRect().width : 0;
     let n = t.parentElement;
+    let depth = 0;
     while (n && n !== document.documentElement) {
+      if (depth < 6 && n !== document.body) {
+        const nr = n.getBoundingClientRect();
+        if (nr.height <= 50 && nr.width >= stripW) { strip = n; stripW = nr.width; }
+        else if (nr.height > 50) depth = 6;
+      }
       const c = getComputedStyle(n).backgroundColor;
       if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') { bg = c; break; }
       n = n.parentElement;
+      depth++;
     }
-    return { rect: rect, bg: bg };
+    return { rect, bg, strip };
   }
 
   function getMessageNodes(scope) {
@@ -1934,8 +1943,18 @@
   function refreshUtilBar() {
     const d = findDisclaimer();
     let bar = document.getElementById(UTILBAR_ID);
-    if (!d) { if (bar) bar.style.display = 'none'; return; }
+    if (!d) { if (bar) bar.style.display = 'none'; if (S.dstrip) { S.dstrip.removeAttribute('data-tm-disc'); S.dstrip = null; } return; }
     const r = d.rect;
+    const discStyleId = UTILBAR_ID + '-disc';
+    if (!document.getElementById(discStyleId)) {
+      const ds = document.createElement('style'); ds.id = discStyleId;
+      ds.textContent = '[data-tm-disc]>*{visibility:hidden!important}';
+      document.head.appendChild(ds);
+    }
+    if (d.strip && d.strip !== S.dstrip) {
+      if (S.dstrip) S.dstrip.removeAttribute('data-tm-disc');
+      d.strip.setAttribute('data-tm-disc', '1'); S.dstrip = d.strip;
+    }
     if (!bar) {
       bar = document.createElement('div');
       bar.id = UTILBAR_ID;
@@ -1991,9 +2010,10 @@
     bar.style.display = 'flex';
     const maxBarH = 30;
     const barH = Math.min(Math.max(r.height, 24), maxBarH);
-    bar.style.left = r.left + 'px';
+    const sr = d.strip ? d.strip.getBoundingClientRect() : r;
+    bar.style.left = sr.left + 'px';
     bar.style.top = Math.min(r.top + r.height - barH, window.innerHeight - barH) + 'px';
-    bar.style.width = r.width + 'px';
+    bar.style.width = sr.width + 'px';
     bar.style.height = barH + 'px';
     bar.style.background = d.bg;
     const chatPath = window.location.pathname;
@@ -2092,7 +2112,7 @@
     }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const disc = document.querySelector('[data-tm-disc]'); if (disc) disc.removeAttribute('data-tm-disc'); S.dstrip = null; }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');

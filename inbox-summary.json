@@ -67,8 +67,8 @@
       "informational": 0
     },
     "meridian": {
-      "total": 1,
-      "actionable": 0,
+      "total": 2,
+      "actionable": 1,
       "due": 0,
       "informational": 0
     },
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 59,
-  "actionable": 31,
+  "total": 60,
+  "actionable": 32,
   "due": 4,
-  "updated_at": "2026-08-28T14:01:36Z"
+  "updated_at": "2026-08-28T14:12:22Z"
 }

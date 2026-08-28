@@ -7,10 +7,10 @@
       "informational": 0
     },
     "adjutant": {
-      "total": 3,
+      "total": 2,
       "actionable": 0,
       "due": 0,
-      "informational": 1
+      "informational": 0
     },
     "alfred": {
       "total": 2,
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 59,
+  "total": 58,
   "actionable": 30,
   "due": 4,
-  "updated_at": "2026-08-28T13:53:18Z"
+  "updated_at": "2026-08-28T13:59:11Z"
 }

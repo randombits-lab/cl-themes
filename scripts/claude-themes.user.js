@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.55.5
+// @version      6.55.6
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.55.5';
+  const SCRIPT_VERSION = '6.55.6';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -966,9 +966,7 @@
       n = n.parentElement;
       depth++;
     }
-    let discChild = t.parentElement;
-    while (discChild && discChild.parentElement !== strip) discChild = discChild.parentElement;
-    return { rect, bg, strip, discChild: (discChild && discChild !== strip) ? discChild : null };
+    return { rect, bg, strip, discChild: t.parentElement || null };
   }
 
   function getMessageNodes(scope) {

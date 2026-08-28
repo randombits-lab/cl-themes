@@ -79,8 +79,8 @@
       "informational": 0
     },
     "prism": {
-      "total": 3,
-      "actionable": 3,
+      "total": 4,
+      "actionable": 4,
       "due": 0,
       "informational": 0
     },
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 58,
-  "actionable": 31,
+  "total": 59,
+  "actionable": 32,
   "due": 4,
-  "updated_at": "2026-08-28T14:16:40Z"
+  "updated_at": "2026-08-28T14:49:18Z"
 }

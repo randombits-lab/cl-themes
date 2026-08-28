@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.55.2
+// @version      6.55.4
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.55.2';
+  const SCRIPT_VERSION = '6.55.4';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -88,7 +88,6 @@
     currentMode: null,
     themedContainer: null,
     currentComboKey: null,
-    voiceCharReady: false,
     currentStateName: null,
     currentPersonaKey: null,
     cachedMainContainer: null,
@@ -449,7 +448,7 @@
       homepage: { backgroundImage: VADIM_BG, characterUrl: VADIM_HOME, characterOpacity: 1.0, characterWidth: '450px', characterBottom: '-40px', characterRight: '-20px' },
     },
     {
-      id: 'steward', registryId: 'abathur', projectId: '019e1478-d849-71ee-ad74-bc96ffedf585', label: 'Steward',
+      id: 'steward', registryId: 'abathur', projectId: '019e1478-d849-71ee-ad74-bc96ffedf585', label: 'Abathur',
       accentColor: '#7a5a8c', interjectionColor: '#b8a0c8', interjectionBorder: '#7a5a8c',
       chatBackground: 'linear-gradient(160deg, #0e0a12 0%, #14101a 30%, #100c16 60%, #0a080e 100%)',
       card: { imageUrl: STEWARD_CARD, titleColor: '#7a5a8c', letterSpacing: '0.5px', textTransform: null },
@@ -683,7 +682,7 @@
         const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
         const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
         if (href) {
-          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></a>';
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></a>';
         } else {
           g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span></div>';
         }
@@ -702,7 +701,7 @@
       const fetchAge = data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '';
       html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + fetchAge + '</div>';
     }
-    popup.innerHTML = html;
+    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
     popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
@@ -761,14 +760,14 @@
       const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
       const dim = count === 0 ? 'opacity:0.35;' : '';
       const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
-      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
     }
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
       html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
     }
-    popup.innerHTML = html;
+    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
     const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
@@ -818,7 +817,7 @@
     for (const f of data.failures) {
       const title = String(f.title || '').replace(/[<>&"']/g, '');
       if (f.url) {
-        html += '<a href="' + f.url + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;" onmouseenter="this.style.background=\'#ffffff08\'" onmouseleave="this.style.background=\'none\'"><span style="color:#e0a0a0;font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;">' + (f.date || '') + '</span></a>';
+        html += '<a href="' + String(f.url || '').replace(/"/g, '%22') + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;"><span style="color:#e0a0a0;font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;">' + (f.date || '') + '</span></a>';
       } else {
         html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;"><span style="color:#e0a0a0;font-size:11px;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;">' + (f.date || '') + '</span></div>';
       }
@@ -831,7 +830,7 @@
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
       html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + data.total + ' total \u00b7 ' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
     }
-    popup.innerHTML = html;
+    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:360px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
     const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
@@ -1170,7 +1169,7 @@
       const first = charEl.querySelector('img[data-layer="a"]');
       first.src = vurl(sprite.characterUrl);
       first.classList.add('is-active');
-      charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards'; S.voiceCharReady = true;
+      charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards';
     } else if (changed) {
       swapCharacterImage(sprite.characterUrl, charEl);
     }
@@ -1463,7 +1462,7 @@
 
   function colorChatLinks() {
     const colorMap = {};
-    for (const p of PROJECTS) colorMap[p.label.toLowerCase()] = p.accentColor;
+    for (const p of PROJECTS) { colorMap[p.label.toLowerCase()] = p.accentColor; colorMap[p.id.toLowerCase()] = p.accentColor; if (p.registryId) colorMap[p.registryId.toLowerCase()] = p.accentColor; }
     for (const [k, v] of Object.entries(PREFIX_COLORS)) colorMap[k.toLowerCase()] = v;
     for (const link of document.querySelectorAll('nav a[href*="/chat/"], [class*="sidebar"] a[href*="/chat/"]')) {
       const text = (link.textContent||'').trim(), si = text.indexOf('|');
@@ -2207,7 +2206,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
     if (S.themedContainer) S.themedContainer.removeAttribute(THEME_ATTR);
     S.themedContainer = null;
     S.currentThemeKey = null; S.currentProject = null; S.currentMode = null;
-    S.currentComboKey = null; S.voiceCharReady = false;
+    S.currentComboKey = null;
     S.currentStateName = null;
     S.currentPersonaKey = null;
     document.querySelectorAll('.tm-title-pulse').forEach(el => el.classList.remove('tm-title-pulse'));
@@ -2372,14 +2371,14 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       for (const m of muts) {
         if (m.type !== 'childList') continue;
         if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID);
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === LEGEND_ID);
         if (!dominated) { scheduleCheck(); return; }
       }
     }).observe(document.body, { childList: true, subtree: true });
 
-    const oPS = history.pushState; history.pushState = function() { oPS.apply(this, arguments); setTimeout(check, 300); };
-    const oRS = history.replaceState; history.replaceState = function() { oRS.apply(this, arguments); setTimeout(check, 300); };
-    window.addEventListener('popstate', () => setTimeout(check, 300));
+    const oPS = history.pushState; history.pushState = function() { oPS.apply(this, arguments); S.cycleWarned = false; setTimeout(check, 300); };
+    const oRS = history.replaceState; history.replaceState = function() { oRS.apply(this, arguments); S.cycleWarned = false; setTimeout(check, 300); };
+    window.addEventListener('popstate', () => { S.cycleWarned = false; setTimeout(check, 300); });
     setInterval(check, 10000);
     setTimeout(check, 1000);
   }
@@ -2430,6 +2429,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
 
     // Periodic dashboard polling — supplements one-shot and visibility-change fetches
     setInterval(() => {
+      if (document.hidden) return;
       fetchInboxSummary();
       fetchReflectionSummary();
       fetchFailuresSummary();

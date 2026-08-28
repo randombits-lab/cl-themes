@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.55.4
+// @version      6.55.5
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -17,7 +17,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.55.4';
+  const SCRIPT_VERSION = '6.55.5';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -966,7 +966,9 @@
       n = n.parentElement;
       depth++;
     }
-    return { rect, bg, strip };
+    let discChild = t.parentElement;
+    while (discChild && discChild.parentElement !== strip) discChild = discChild.parentElement;
+    return { rect, bg, strip, discChild: (discChild && discChild !== strip) ? discChild : null };
   }
 
   function getMessageNodes(scope) {
@@ -1942,18 +1944,16 @@
   function refreshUtilBar() {
     const d = findDisclaimer();
     let bar = document.getElementById(UTILBAR_ID);
-    if (!d) { if (bar) bar.style.display = 'none'; if (S.dstrip) { S.dstrip.removeAttribute('data-tm-disc'); S.dstrip = null; } return; }
+    if (!d) { if (bar) bar.style.display = 'none'; const prevHide = document.querySelector('[data-tm-disc-hide]'); if (prevHide) prevHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; return; }
     const r = d.rect;
     const discStyleId = UTILBAR_ID + '-disc';
     if (!document.getElementById(discStyleId)) {
       const ds = document.createElement('style'); ds.id = discStyleId;
-      ds.textContent = '[data-tm-disc]>*{visibility:hidden!important}';
+      ds.textContent = '[data-tm-disc-hide]{visibility:hidden!important}';
       document.head.appendChild(ds);
     }
-    if (d.strip && d.strip !== S.dstrip) {
-      if (S.dstrip) S.dstrip.removeAttribute('data-tm-disc');
-      d.strip.setAttribute('data-tm-disc', '1'); S.dstrip = d.strip;
-    }
+    if (d.discChild) { const prevHide = document.querySelector('[data-tm-disc-hide]'); if (prevHide && prevHide !== d.discChild) prevHide.removeAttribute('data-tm-disc-hide'); d.discChild.setAttribute('data-tm-disc-hide', '1'); }
+    S.dstrip = d.strip;
     if (!bar) {
       bar = document.createElement('div');
       bar.id = UTILBAR_ID;
@@ -1985,9 +1985,6 @@
       failuresBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 2L1.5 13h13L8 2z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       failuresBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleFailuresPopup(failuresBadge); });
       bar.appendChild(failuresBadge);
-      const spacer = document.createElement('div');
-      spacer.style.flex = '1';
-      bar.appendChild(spacer);
       const refreshBtn = document.createElement('span');
       refreshBtn.id = UTILBAR_ID + '-refresh';
       refreshBtn.dataset.tmUi = '1';
@@ -2012,9 +2009,7 @@
     const sr = d.strip ? d.strip.getBoundingClientRect() : r;
     bar.style.left = sr.left + 'px';
     bar.style.top = Math.min(r.top + r.height - barH, window.innerHeight - barH) + 'px';
-    bar.style.width = sr.width + 'px';
     bar.style.height = barH + 'px';
-    bar.style.background = d.bg;
     const chatPath = window.location.pathname;
     if (chatPath !== S.replyCountPath) { S.replyCountPath = chatPath; S.maxDataIndex = -1; S.maxTokenEstimate = 0; S.actionAlertedIdx = -1; }
     const counterEl = document.getElementById(UTILBAR_ID + '-counter');
@@ -2111,7 +2106,7 @@
     }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const disc = document.querySelector('[data-tm-disc]'); if (disc) disc.removeAttribute('data-tm-disc'); S.dstrip = null; }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');

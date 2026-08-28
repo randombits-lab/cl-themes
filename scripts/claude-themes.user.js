@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.56.0
+// @version      6.56.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.56.0';
+  const SCRIPT_VERSION = '6.56.1';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -945,6 +945,8 @@
         const fm = text.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/);
         if (fm) text = text.substring(fm[0].length);
         text = text.trim();
+        const hm = text.match(/^#\s/m);
+        if (hm && hm.index > 0) text = text.substring(hm.index);
         navigator.clipboard.writeText(text).then(
           () => showPromptToast('Copied to clipboard', true),
           () => showPromptToast('Clipboard write failed', false)
@@ -954,22 +956,36 @@
     });
   }
 
+  function findInstructionsHeader() {
+    for (const el of document.querySelectorAll('div, span, h2, h3, p')) {
+      if (el.children.length > 0) continue;
+      if ((el.textContent || '').trim() === 'Instructions') return el;
+    }
+    return null;
+  }
+
   function managePromptCopyButton(project) {
-    if (S.ACCOUNT !== 'A') return;
-    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-    if (!container) return;
-    const fieldset = container.querySelector('fieldset');
     const btn = document.getElementById(PROMPT_COPY_ID);
+    if (!project || S.ACCOUNT !== 'A' || S.currentMode !== 'homepage') { if (btn) btn.remove(); return; }
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) { if (btn) btn.remove(); return; }
+    const fieldset = container.querySelector('fieldset');
     const isMismatch = fieldset && fieldset.getAttribute('data-tm-version') === 'mismatch';
-    if (!isMismatch) { if (btn) btn.remove(); return; }
-    if (btn) return;
+    const instrEl = findInstructionsHeader();
+    if (!isMismatch || !instrEl) { if (btn) btn.remove(); return; }
+    const rect = instrEl.getBoundingClientRect();
+    if (rect.width === 0) { if (btn) btn.remove(); return; }
+    if (btn) { btn.style.top = (rect.top + rect.height / 2 - 11) + 'px'; btn.style.left = (rect.left - 30) + 'px'; return; }
     if (!GM_getValue('github_pat', '')) return;
     const b = document.createElement('button');
     b.id = PROMPT_COPY_ID; b.dataset.tmUi = '1'; b.type = 'button';
     b.title = 'Copy latest prompt to clipboard';
     b.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
     b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); copyPromptToClipboard(project); });
-    fieldset.appendChild(b);
+    b.style.cssText = 'position:fixed;top:' + (rect.top + rect.height / 2 - 11) + 'px;left:' + (rect.left - 30) + 'px;z-index:10;background:none;border:1px solid #c9a84c44;color:#c9a84c;padding:3px;border-radius:4px;cursor:pointer;opacity:0.6;transition:all 0.2s;';
+    b.addEventListener('mouseenter', () => { b.style.opacity = '1'; b.style.borderColor = '#c9a84c88'; b.style.background = '#c9a84c15'; });
+    b.addEventListener('mouseleave', () => { b.style.opacity = '0.6'; b.style.borderColor = '#c9a84c44'; b.style.background = 'none'; });
+    document.body.appendChild(b);
   }
 
   function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
@@ -2211,9 +2227,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { border-color:#c9a84c88 !important;box-shadow:0 0 8px #c9a84c30 !important; }
       [${THEME_ATTR}] fieldset[data-tm-version="mismatch"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c9a84cf0 0%,#c9a84ca0 25%,#c9a84c60 50%,#c9a84c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 2.5s ease-in-out infinite; }
       [${THEME_ATTR}] fieldset[data-tm-version="missing"] { border-color:#c45c4c88 !important;box-shadow:0 0 8px #c45c4c30 !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }
-      [${THEME_ATTR}] #${PROMPT_COPY_ID} { position:absolute;top:8px;right:8px;background:none;border:1px solid #c9a84c44;color:#c9a84c;padding:4px;border-radius:4px;cursor:pointer;z-index:1;transition:all 0.2s;opacity:0.6; }
-      [${THEME_ATTR}] #${PROMPT_COPY_ID}:hover { opacity:1;border-color:#c9a84c88;background:#c9a84c15; }` : ""}
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }` : ""}
       #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }
@@ -2410,7 +2424,8 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       else if (url.includes('/chat/')) { S.nullDetections++; if (S.nullDetections >= 6) { S.nullDetections = 0; cleanup(); } }
     }
     updateHealthBeacon();
-    if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject); managePromptCopyButton(S.currentProject);
+    if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
+    managePromptCopyButton(S.currentProject);
     if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }

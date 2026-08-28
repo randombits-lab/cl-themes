@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.55.6
+// @version      6.56.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -9,6 +9,7 @@
 // @grant        GM_setValue
 // @grant        GM_xmlhttpRequest
 // @grant        GM_registerMenuCommand
+// @connect      raw.githubusercontent.com
 // @downloadURL  https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // @updateURL    https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // ==/UserScript==
@@ -17,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.55.6';
+  const SCRIPT_VERSION = '6.56.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -44,6 +45,7 @@
   const INBOX_POPUP_ID   = 'claude-theme-inbox-popup';
   const REFLECT_POPUP_ID = 'claude-theme-reflect-popup';
   const FAILURES_POPUP_ID = 'claude-theme-failures-popup';
+  const PROMPT_COPY_ID   = 'claude-theme-prompt-copy';
 
   // === Data attributes ===
   const THEME_ATTR   = 'data-claude-theme';
@@ -61,6 +63,7 @@
   const REFLECT_URL = BASE + 'reflection-summary.json';
   const FAILURES_URL = BASE + 'failures-summary.json';
   const VERSION_URL = BASE + 'version-summary.json';
+  const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';
 
   // === Operator block constants ===
   const OB_SETUP_COLOR  = '#9b8ec4';
@@ -910,6 +913,63 @@
     }
     fieldset.setAttribute('data-tm-version', 'mismatch');
     fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
+  }
+
+
+  // =========================================================================
+  // PROMPT CLIPBOARD COPY — fetch + copy agent prompt from GitHub (Account A)
+  // =========================================================================
+
+  function showPromptToast(msg, ok) {
+    const tid = PROMPT_COPY_ID + '-toast';
+    const ex = document.getElementById(tid); if (ex) ex.remove();
+    const t = document.createElement('div');
+    t.id = tid; t.dataset.tmUi = '1'; t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:' + (ok ? '#1a3a1a' : '#3a1a1a') + ';color:' + (ok ? '#4ade80' : '#f87171') + ';font-size:12px;padding:6px 14px;border-radius:6px;z-index:10001;pointer-events:none;opacity:0;transition:opacity 300ms;';
+    document.body.appendChild(t);
+    requestAnimationFrame(() => { t.style.opacity = '1'; });
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+  }
+
+  function copyPromptToClipboard(project) {
+    const pat = GM_getValue('github_pat', '');
+    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
+    const dir = project.registryId || project.id;
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: AGENTS_RAW_BASE + dir + '/current-prompt.md',
+      headers: { 'Authorization': 'Bearer ' + pat },
+      onload: function(r) {
+        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
+        let text = r.responseText;
+        const fm = text.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/);
+        if (fm) text = text.substring(fm[0].length);
+        text = text.trim();
+        navigator.clipboard.writeText(text).then(
+          () => showPromptToast('Copied to clipboard', true),
+          () => showPromptToast('Clipboard write failed', false)
+        );
+      },
+      onerror: function() { showPromptToast('Network error', false); }
+    });
+  }
+
+  function managePromptCopyButton(project) {
+    if (S.ACCOUNT !== 'A') return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const fieldset = container.querySelector('fieldset');
+    const btn = document.getElementById(PROMPT_COPY_ID);
+    const isMismatch = fieldset && fieldset.getAttribute('data-tm-version') === 'mismatch';
+    if (!isMismatch) { if (btn) btn.remove(); return; }
+    if (btn) return;
+    if (!GM_getValue('github_pat', '')) return;
+    const b = document.createElement('button');
+    b.id = PROMPT_COPY_ID; b.dataset.tmUi = '1'; b.type = 'button';
+    b.title = 'Copy latest prompt to clipboard';
+    b.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
+    b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); copyPromptToClipboard(project); });
+    fieldset.appendChild(b);
   }
 
   function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
@@ -2151,7 +2211,9 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { border-color:#c9a84c88 !important;box-shadow:0 0 8px #c9a84c30 !important; }
       [${THEME_ATTR}] fieldset[data-tm-version="mismatch"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c9a84cf0 0%,#c9a84ca0 25%,#c9a84c60 50%,#c9a84c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 2.5s ease-in-out infinite; }
       [${THEME_ATTR}] fieldset[data-tm-version="missing"] { border-color:#c45c4c88 !important;box-shadow:0 0 8px #c45c4c30 !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }` : ""}
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }
+      [${THEME_ATTR}] #${PROMPT_COPY_ID} { position:absolute;top:8px;right:8px;background:none;border:1px solid #c9a84c44;color:#c9a84c;padding:4px;border-radius:4px;cursor:pointer;z-index:1;transition:all 0.2s;opacity:0.6; }
+      [${THEME_ATTR}] #${PROMPT_COPY_ID}:hover { opacity:1;border-color:#c9a84c88;background:#c9a84c15; }` : ""}
       #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }
       #${CHARACTER_ID} img.is-active { opacity:1; }
@@ -2348,7 +2410,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       else if (url.includes('/chat/')) { S.nullDetections++; if (S.nullDetections >= 6) { S.nullDetections = 0; cleanup(); } }
     }
     updateHealthBeacon();
-    if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
+    if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject); managePromptCopyButton(S.currentProject);
     if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }
@@ -2364,7 +2426,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       for (const m of muts) {
         if (m.type !== 'childList') continue;
         if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === LEGEND_ID);
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === LEGEND_ID || n.id === PROMPT_COPY_ID);
         if (!dominated) { scheduleCheck(); return; }
       }
     }).observe(document.body, { childList: true, subtree: true });
@@ -2393,6 +2455,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || S.ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); GM_setValue('account_pin', next); location.reload(); });
       GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = S.ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); GM_setValue('account_pin', cur); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); S.actionAudioEnabled = v; });
+      GM_registerMenuCommand('Claude Themes: set GitHub token', () => { const cur = GM_getValue('github_pat', ''); const t = prompt('GitHub PAT (repo read)' + (cur ? ' [set]' : ' [not set]') + ':'); if (t !== null) GM_setValue('github_pat', t.trim()); });
     }
 
 

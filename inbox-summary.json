@@ -1,8 +1,8 @@
 {
   "agents": {
     "abathur": {
-      "total": 4,
-      "actionable": 1,
+      "total": 3,
+      "actionable": 0,
       "due": 0,
       "informational": 0
     },
@@ -84,6 +84,12 @@
       "due": 0,
       "informational": 0
     },
+    "template-builder": {
+      "total": 0,
+      "actionable": 0,
+      "due": 0,
+      "informational": 0
+    },
     "tomoe": {
       "total": 1,
       "actionable": 0,
@@ -115,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 58,
-  "actionable": 29,
+  "total": 57,
+  "actionable": 28,
   "due": 4,
-  "updated_at": "2026-08-28T13:05:07Z"
+  "updated_at": "2026-08-28T13:33:02Z"
 }

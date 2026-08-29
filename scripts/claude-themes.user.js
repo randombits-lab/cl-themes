@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.56.1
+// @version      6.57.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.56.1';
+  const SCRIPT_VERSION = '6.57.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -294,6 +294,7 @@
 
   const CONTEXT_CATEGORIES = [
     { id: 'team', label: 'Team', re: /persona\.md/i, order: 100, color: '#5a9a7a', imageUrl: CTX_TEAM },
+    { id: 'appendage', label: 'Appendage', re: /_appendage\.md/i, order: 150, color: '#e53935' },
     { id: 'knowledge', label: 'Knowledge', re: /knowledge\.md/i, order: 200, color: '#c9a84c', imageUrl: CTX_KNOWLEDGE },
     { id: 'reference', label: 'Reference', re: /reference\.md/i, order: 300, color: '#6a8aaa', imageUrl: CTX_REFERENCE },
   ];
@@ -1485,6 +1486,9 @@
         }
       }
       css += '[data-tm-ctx-group="other"]{order:900 !important}';
+      css += '@keyframes tm-ctx-glow{0%,100%{box-shadow:0 0 6px #e5393540}50%{box-shadow:0 0 14px #e5393570}}';
+      css += '[data-tm-ctx-group="appendage"] button.rounded-lg{animation:tm-ctx-glow 2s ease-in-out infinite;border-color:#e5393540 !important}';
+      css += '@media(prefers-reduced-motion:reduce){[data-tm-ctx-group="appendage"] button.rounded-lg{animation:none;box-shadow:0 0 8px #e5393550}}';
       css += 'ul.tm-ctx-hide-other [data-tm-ctx-group="other"]{display:none !important}';
       css += '[data-tm-ctx-header]{grid-column:1/-1;list-style:none}';
       const s = document.createElement('style'); s.id = CTX_STYLE_ID; s.textContent = css;

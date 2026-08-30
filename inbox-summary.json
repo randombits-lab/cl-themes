@@ -43,10 +43,10 @@
       "informational": 0
     },
     "faith": {
-      "total": 1,
+      "total": 2,
       "actionable": 1,
       "due": 0,
-      "informational": 0
+      "informational": 1
     },
     "falx": {
       "total": 1,
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 54,
+  "total": 55,
   "actionable": 25,
   "due": 4,
-  "updated_at": "2026-08-30T17:36:04Z"
+  "updated_at": "2026-08-30T18:16:41Z"
 }

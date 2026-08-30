@@ -55,10 +55,10 @@
       "informational": 0
     },
     "foundry": {
-      "total": 9,
+      "total": 10,
       "actionable": 3,
       "due": 1,
-      "informational": 1
+      "informational": 2
     },
     "licitapp": {
       "total": 8,
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 51,
+  "total": 52,
   "actionable": 23,
   "due": 4,
-  "updated_at": "2026-08-30T17:05:46Z"
+  "updated_at": "2026-08-30T17:08:42Z"
 }

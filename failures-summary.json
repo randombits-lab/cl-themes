@@ -1,7 +1,14 @@
 {
-  "total": 0,
-  "total_including_resolved": 9,
-  "failures": [],
-  "updated_at": "2026-08-30T03:15:09Z",
-  "checked_at": "2026-08-30T03:15:09Z"
+  "total": 1,
+  "total_including_resolved": 8,
+  "failures": [
+    {
+      "date": "2026-08-30",
+      "title": "Daily maintenance run #15",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33305633861",
+      "resolved": false
+    }
+  ],
+  "updated_at": "2026-08-30T11:06:58Z",
+  "checked_at": "2026-08-30T11:06:58Z"
 }

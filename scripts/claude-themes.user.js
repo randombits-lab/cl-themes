@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.58.0
+// @version      6.59.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.58.0';
+  const SCRIPT_VERSION = '6.59.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -764,7 +764,7 @@
       const color = proj ? proj.accentColor : '#8a8a9a';
       const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
       const dim = count === 0 ? 'opacity:0.35;' : '';
-      const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/foundry/shared/reflection/' + agentId + '.md';
+      const href = 'https://github.com/randombits-lab/agents-ecosystem/blob/main/agents/foundry/shared/reflection/' + agentId + '.md';
       html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
     }
     if (data.updated_at) {

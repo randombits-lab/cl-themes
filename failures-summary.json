@@ -1,7 +1,13 @@
 {
-  "total": 1,
+  "total": 2,
   "total_including_resolved": 8,
   "failures": [
+    {
+      "date": "2026-08-30",
+      "title": "Push checks run #596",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33308751168",
+      "resolved": false
+    },
     {
       "date": "2026-08-30",
       "title": "Daily maintenance run #15",
@@ -9,6 +15,6 @@
       "resolved": false
     }
   ],
-  "updated_at": "2026-08-30T11:22:17Z",
-  "checked_at": "2026-08-30T11:22:17Z"
+  "updated_at": "2026-08-30T15:55:29Z",
+  "checked_at": "2026-08-30T15:55:29Z"
 }

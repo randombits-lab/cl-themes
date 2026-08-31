@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.61.0
+// @version      6.61.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.61.0';
+  const SCRIPT_VERSION = '6.61.1';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -596,6 +596,7 @@
     { id: 'governance', label: 'Governance', order: 100, members: ['factory', 'foundry', 'workshop', 'steward'] },
     { id: 'agents', label: 'Agents', order: 200, members: ['faith', 'tomoe', 'prism', 'crucible', 'nabu', 'anasteria', 'vadim', 'alfred', 'voss', 'egostic', 'meridian', 'falx', 'adjutant'] },
     { id: 'executors', label: 'Executors', order: 300, members: ['licitapp', 'vesper', 'template-builder'] },
+    { id: 'gozobeti', label: 'Gozobeti', order: 100, members: ['gozobeti'] },
   ];
   const PROJECT_GROUP_MAP = {};
   for (const g of PROJECT_GROUPS) { for (const mid of g.members) { const proj = PROJECTS.find(p => p.id === mid); if (proj) PROJECT_GROUP_MAP[proj.projectId] = g; } }

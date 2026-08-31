@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.60.1
+// @version      6.61.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.60.1';
+  const SCRIPT_VERSION = '6.61.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -64,6 +64,7 @@
   const FAILURES_URL = BASE + 'failures-summary.json';
   const VERSION_URL = BASE + 'version-summary.json';
   const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';
+  const B_PROMPT_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/projects/';
 
   // === Operator block constants ===
   const OB_SETUP_COLOR  = '#9b8ec4';
@@ -285,6 +286,14 @@
     },
     {
       id: 'ai-course', projectId: '01a01e31-9b5f-7324-8d51-435e72aeaa95', label: 'AI Course',
+      account: 'B', titlePattern: B_TITLE_RE,
+      accentColor: '#5a6a7a',
+      card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
+      chat: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterHeight: '0', characterBottom: '0', characterRight: '0' },
+      homepage: { backgroundImage: null, characterUrl: null, characterOpacity: 1.0, characterWidth: '0', characterBottom: '0', characterRight: '0' },
+    },
+    {
+      id: 'gozobeti', projectId: '019f992c-1704-715f-92d2-b9c7397e3c02', label: 'Gozobeti',
       account: 'B', titlePattern: B_TITLE_RE,
       accentColor: '#5a6a7a',
       card: { imageUrl: null, titleColor: '#5a6a7a', letterSpacing: '0.5px', textTransform: null },
@@ -919,7 +928,7 @@
 
 
   // =========================================================================
-  // PROMPT CLIPBOARD COPY — fetch + copy agent prompt from GitHub (Account A)
+  // PROMPT CLIPBOARD COPY — fetch + copy agent prompt from GitHub
   // =========================================================================
 
   function showPromptToast(msg, ok) {
@@ -936,10 +945,12 @@
   function copyPromptToClipboard(project) {
     const pat = GM_getValue('github_pat', '');
     if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
-    const dir = project.registryId || project.id;
+    const url = project.account === 'B'
+      ? B_PROMPT_BASE + project.id + '/project-instructions.md'
+      : AGENTS_RAW_BASE + (project.registryId || project.id) + '/current-prompt.md';
     GM_xmlhttpRequest({
       method: 'GET',
-      url: AGENTS_RAW_BASE + dir + '/current-prompt.md',
+      url: url,
       headers: { 'Authorization': 'Bearer ' + pat },
       onload: function(r) {
         if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
@@ -958,51 +969,43 @@
     });
   }
 
-  function findInstructionsHeader() {
-    for (const el of document.querySelectorAll('div, span, h2, h3, p')) {
-      if (el.children.length > 0) continue;
-      if ((el.textContent || '').trim() === 'Instructions') return el;
-    }
-    return null;
-  }
-
-  function findInstructionsEditButton(instrEl) {
-    let row = instrEl.parentElement;
-    for (let i = 0; i < 6 && row; i++) {
-      for (const btn of row.querySelectorAll('button')) {
-        if (btn.querySelector('svg')) return btn;
-      }
-      row = row.parentElement;
-    }
-    return null;
-  }
-
   function managePromptCopyButton(project) {
-    const btn = document.getElementById(PROMPT_COPY_ID);
-    if (!project || S.ACCOUNT !== 'A' || S.currentMode !== 'homepage') { if (btn) btn.remove(); return; }
-    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-    if (!container) { if (btn) btn.remove(); return; }
-    const fieldset = container.querySelector('fieldset');
-    const isMismatch = fieldset && fieldset.getAttribute('data-tm-version') === 'mismatch';
-    const instrEl = findInstructionsHeader();
-    if (!isMismatch || !instrEl) { if (btn) btn.remove(); return; }
-    const rect = instrEl.getBoundingClientRect();
-    if (rect.width === 0) { if (btn) btn.remove(); return; }
-    const editBtn = findInstructionsEditButton(instrEl);
-    const anchorRect = editBtn ? editBtn.getBoundingClientRect() : rect;
-    const posTop = (anchorRect.top + anchorRect.height / 2 - 11) + 'px';
-    const posLeft = (editBtn ? anchorRect.left - 28 : rect.left - 30) + 'px';
-    if (btn) { btn.style.top = posTop; btn.style.left = posLeft; return; }
+    const stale = document.getElementById(PROMPT_COPY_ID);
+    if (stale && !stale.closest('[role="dialog"]')) stale.remove();
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog) return;
+    if (dialog.querySelector('#' + PROMPT_COPY_ID)) return;
+    let isInstr = false;
+    for (const el of dialog.querySelectorAll('h2, h3')) {
+      if (/set project instructions/i.test((el.textContent || '').trim())) { isInstr = true; break; }
+    }
+    if (!isInstr) return;
+    if (!project) {
+      const m = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
+      if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
+    }
+    if (!project) return;
+    if (project.account !== 'B') {
+      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+      const fs = container && container.querySelector('fieldset');
+      if (!fs || fs.getAttribute('data-tm-version') !== 'mismatch') return;
+    }
     if (!GM_getValue('github_pat', '')) return;
-    const b = document.createElement('button');
-    b.id = PROMPT_COPY_ID; b.dataset.tmUi = '1'; b.type = 'button';
-    b.title = 'Copy latest prompt to clipboard';
-    b.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
-    b.addEventListener('click', (e) => { e.stopPropagation(); e.preventDefault(); copyPromptToClipboard(project); });
-    b.style.cssText = 'position:fixed;top:' + posTop + ';left:' + posLeft + ';z-index:10;background:none;border:1px solid #c9a84c44;color:#c9a84c;padding:3px;border-radius:4px;cursor:pointer;opacity:0.6;transition:all 0.2s;';
-    b.addEventListener('mouseenter', () => { b.style.opacity = '1'; b.style.borderColor = '#c9a84c88'; b.style.background = '#c9a84c15'; });
-    b.addEventListener('mouseleave', () => { b.style.opacity = '0.6'; b.style.borderColor = '#c9a84c44'; b.style.background = 'none'; });
-    document.body.appendChild(b);
+    let saveBtn = null;
+    for (const b of dialog.querySelectorAll('button')) {
+      if (/save instructions/i.test((b.textContent || '').trim())) { saveBtn = b; break; }
+    }
+    if (!saveBtn || !saveBtn.parentElement) return;
+    const footer = saveBtn.parentElement;
+    const btn = document.createElement('button');
+    btn.id = PROMPT_COPY_ID; btn.type = 'button';
+    btn.title = 'Copy latest prompt from GitHub';
+    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
+    btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;margin-right:auto;';
+    btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
+    btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });
+    btn.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); copyPromptToClipboard(project); });
+    footer.insertBefore(btn, footer.firstChild);
   }
 
   function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }

@@ -31,10 +31,10 @@
       "informational": 2
     },
     "egostic": {
-      "total": 3,
-      "actionable": 1,
+      "total": 1,
+      "actionable": 0,
       "due": 0,
-      "informational": 1
+      "informational": 0
     },
     "factory": {
       "total": 7,
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 56,
-  "actionable": 23,
+  "total": 54,
+  "actionable": 22,
   "due": 4,
-  "updated_at": "2026-09-01T19:49:57Z"
+  "updated_at": "2026-09-01T20:02:31Z"
 }

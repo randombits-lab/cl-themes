@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-01T17:13:58Z",
+  "updated_at": "2026-09-01T18:55:13Z",
   "agents": {
     "faith": "2.1",
     "tomoe": "3.53",
@@ -14,12 +14,31 @@
     "foundry": "1.82",
     "factory": "1.72",
     "abathur": "1.48",
-    "workshop": "2.44",
+    "workshop": "2.45",
     "licitapp": "1.109",
     "meridian": "2.15",
     "vesper": "1.78",
     "template-builder": "1.62",
     "falx": "1.20",
-    "adjutant": "1.13"
-  }
+    "adjutant": "1.13",
+    "b:ai-course": "3.2",
+    "b:automation-programme": "3.2",
+    "b:crossdock": "3.2",
+    "b:lidl-csv": "3.2",
+    "b:oneclick": "3.2",
+    "b:pepco-edi": "3.2",
+    "b:ro-e-transport": "3.2",
+    "b:tabletaklg": "3.2",
+    "b:tms-road": "3.2",
+    "b:litmus@ai-course": "1.0",
+    "b:mordin@automation-programme": "1.0",
+    "b:bartleby@crossdock": "1.0",
+    "b:echo@lidl-csv": "1.0",
+    "b:anansi@oneclick": "1.0",
+    "b:k@pepco-edi": "1.0",
+    "b:gyro@ro-e-transport": "2.0",
+    "b:quixote@tabletaklg": "1.0",
+    "b:dude@tms-road": "1.0"
+  },
+  "core_warnings": []
 }

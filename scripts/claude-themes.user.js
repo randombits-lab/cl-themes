@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.61.1
+// @version      6.62.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.61.1';
+  const SCRIPT_VERSION = '6.62.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -46,6 +46,7 @@
   const REFLECT_POPUP_ID = 'claude-theme-reflect-popup';
   const FAILURES_POPUP_ID = 'claude-theme-failures-popup';
   const PROMPT_COPY_ID   = 'claude-theme-prompt-copy';
+  const PERSONA_COPY_ID  = 'claude-theme-persona-copy';
 
   // === Data attributes ===
   const THEME_ATTR   = 'data-claude-theme';
@@ -899,13 +900,12 @@
   }
 
   function refreshVersionIndicator(project) {
-    if (S.ACCOUNT !== 'A') return;
     const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
     if (!container) return;
     const fieldset = container.querySelector('fieldset');
     if (!fieldset) return;
     const vData = getVersionData();
-    const regId = project.registryId || project.id;
+    const regId = project.account === 'B' ? 'b:' + project.id : (project.registryId || project.id);
     if (!vData || !vData.agents || !vData.agents[regId]) {
       fieldset.removeAttribute('data-tm-version');
       fieldset.title = '';
@@ -986,11 +986,9 @@
       if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
     }
     if (!project) return;
-    if (project.account !== 'B') {
-      const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-      const fs = container && container.querySelector('fieldset');
-      if (!fs || fs.getAttribute('data-tm-version') !== 'mismatch') return;
-    }
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    const fs = container && container.querySelector('fieldset');
+    if (!fs || fs.getAttribute('data-tm-version') !== 'mismatch') return;
     if (!GM_getValue('github_pat', '')) return;
     let saveBtn = null;
     for (const b of dialog.querySelectorAll('button')) {
@@ -1007,6 +1005,72 @@
     btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });
     btn.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); copyPromptToClipboard(project); });
     footer.insertBefore(btn, footer.firstChild);
+  }
+
+  // managePersonaCopyButton is invoked by observer.js when dialogs change.
+  function copyPersonaToClipboard(project, filename) {
+    const pat = GM_getValue('github_pat', '');
+    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
+    const url = B_PROMPT_BASE + project.id + '/' + encodeURIComponent(filename);
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      headers: { 'Authorization': 'Bearer ' + pat },
+      onload: function(r) {
+        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
+        navigator.clipboard.writeText(r.responseText.trim()).then(
+          () => showPromptToast('Persona copied to clipboard', true),
+          () => showPromptToast('Clipboard write failed', false)
+        );
+      },
+      onerror: function() { showPromptToast('Network error', false); }
+    });
+  }
+
+  function managePersonaCopyButton(project) {
+    if (S.ACCOUNT !== 'B') return;
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog) return;
+    if (dialog.querySelector('#' + PERSONA_COPY_ID)) return;
+    const h2 = dialog.querySelector('h2');
+    if (!h2) return;
+    const filename = h2.textContent.trim();
+    if (!/_Persona\.md$/i.test(filename)) return;
+    const personaMatch = filename.match(/^([A-Za-z]+)_/);
+    if (!personaMatch) return;
+    const personaKey = personaMatch[1].toLowerCase();
+    if (!project) {
+      const m = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
+      if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
+    }
+    if (!project) return;
+    const markdown = dialog.querySelector('.standard-markdown');
+    if (!markdown) return;
+    const text = markdown.textContent || '';
+    const firstLine = text.split('\n').filter(l => l.trim())[0]?.trim() || '';
+    const vMatch = firstLine.match(/\|v(\d+[\.\d]*)\|/);
+    if (!vMatch) return;
+    const deployedVersion = vMatch[1];
+    const vData = getVersionData();
+    const regKey = 'b:' + personaKey + '@' + project.id;
+    if (!vData || !vData.agents || !vData.agents[regKey]) return;
+    if (deployedVersion === vData.agents[regKey]) return;
+    if (!GM_getValue('github_pat', '')) return;
+    const nameWrap = h2.closest('div');
+    if (!nameWrap) return;
+    const headerRow = nameWrap.parentElement;
+    if (!headerRow) return;
+    const btn = document.createElement('button');
+    btn.id = PERSONA_COPY_ID; btn.type = 'button';
+    btn.title = 'Copy latest persona from GitHub (v' + vData.agents[regKey] + ')';
+    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
+    btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;';
+    btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
+    btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });
+    btn.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); copyPersonaToClipboard(project, filename); });
+    const closeBtn = headerRow.querySelector('button[aria-label="Close"]');
+    if (closeBtn) headerRow.insertBefore(btn, closeBtn);
+    else headerRow.appendChild(btn);
   }
 
   function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
@@ -2448,8 +2512,9 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       else if (url.includes('/chat/')) { S.nullDetections++; if (S.nullDetections >= 6) { S.nullDetections = 0; cleanup(); } }
     }
     updateHealthBeacon();
-    if (S.ACCOUNT === 'A' && S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
+    if (S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
     managePromptCopyButton(S.currentProject);
+    managePersonaCopyButton(S.currentProject);
     if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }
@@ -2465,7 +2530,7 @@ ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative
       for (const m of muts) {
         if (m.type !== 'childList') continue;
         if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === LEGEND_ID || n.id === PROMPT_COPY_ID);
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === LEGEND_ID || n.id === PROMPT_COPY_ID || n.id === PERSONA_COPY_ID);
         if (!dominated) { scheduleCheck(); return; }
       }
     }).observe(document.body, { childList: true, subtree: true });

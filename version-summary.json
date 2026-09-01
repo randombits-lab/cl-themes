@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-01T19:31:19Z",
+  "updated_at": "2026-09-01T19:31:38Z",
   "agents": {
     "faith": "2.1",
     "tomoe": "3.53",
@@ -23,7 +23,6 @@
     "adjutant": "1.13",
     "b:50k-automation": "3.2",
     "b:ai-course": "3.2",
-    "b:automation-programme": "3.2",
     "b:crossdock": "3.2",
     "b:lidl-csv": "3.2",
     "b:oneclick": "3.2",
@@ -33,7 +32,6 @@
     "b:tms-road": "3.2",
     "b:mordin@50k-automation": "1.0",
     "b:litmus@ai-course": "1.0",
-    "b:mordin@automation-programme": "1.0",
     "b:bartleby@crossdock": "1.0",
     "b:echo@lidl-csv": "1.0",
     "b:anansi@oneclick": "1.0",

@@ -37,8 +37,8 @@
       "informational": 1
     },
     "factory": {
-      "total": 7,
-      "actionable": 0,
+      "total": 8,
+      "actionable": 1,
       "due": 0,
       "informational": 0
     },
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 54,
-  "actionable": 23,
+  "total": 55,
+  "actionable": 24,
   "due": 4,
-  "updated_at": "2026-09-01T16:21:29Z"
+  "updated_at": "2026-09-01T16:59:38Z"
 }

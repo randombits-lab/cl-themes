@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.62.1
+// @version      6.62.2
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.62.1';
+  const SCRIPT_VERSION = '6.62.2';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -915,8 +915,8 @@
     const cardVersion = parseVersionFromCard();
     if (!cardVersion) {
       if (project.account === 'B') {
-        fieldset.removeAttribute('data-tm-version');
-        fieldset.title = '';
+        fieldset.setAttribute('data-tm-version', 'mismatch');
+        fieldset.title = 'No |v...| token — registry: v' + registryVersion + '. Copy latest to update.';
         return;
       }
       fieldset.setAttribute('data-tm-version', 'missing');
@@ -1054,12 +1054,11 @@
     const text = markdown.textContent || '';
     const firstLine = text.split('\n').filter(l => l.trim())[0]?.trim() || '';
     const vMatch = firstLine.match(/\|v(\d+[\.\d]*)\|/);
-    if (!vMatch) return;
-    const deployedVersion = vMatch[1];
+    const deployedVersion = vMatch ? vMatch[1] : null;
     const vData = getVersionData();
     const regKey = 'b:' + personaKey + '@' + project.id;
     if (!vData || !vData.agents || !vData.agents[regKey]) return;
-    if (deployedVersion === vData.agents[regKey]) return;
+    if (deployedVersion && deployedVersion === vData.agents[regKey]) return;
     if (!GM_getValue('github_pat', '')) return;
     const nameWrap = h2.closest('div');
     if (!nameWrap) return;

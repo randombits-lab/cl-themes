@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.62.2
+// @version      6.63.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.62.2';
+  const SCRIPT_VERSION = '6.63.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -66,6 +66,7 @@
   const VERSION_URL = BASE + 'version-summary.json';
   const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';
   const B_PROMPT_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/projects/';
+  const B_SHARED_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/shared/';
 
   // === Operator block constants ===
   const OB_SETUP_COLOR  = '#9b8ec4';
@@ -1016,19 +1017,32 @@
   function copyPersonaToClipboard(project, filename) {
     const pat = GM_getValue('github_pat', '');
     if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
-    const url = B_PROMPT_BASE + project.id + '/' + encodeURIComponent(filename);
+    const projectUrl = B_PROMPT_BASE + project.id + '/' + encodeURIComponent(filename);
+    const sharedUrl = B_SHARED_BASE + encodeURIComponent(filename);
+    fetchPersonaWithFallback(projectUrl, sharedUrl, pat);
+  }
+
+  function fetchPersonaWithFallback(url, fallbackUrl, pat) {
     GM_xmlhttpRequest({
       method: 'GET',
       url: url,
       headers: { 'Authorization': 'Bearer ' + pat },
       onload: function(r) {
-        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
-        navigator.clipboard.writeText(r.responseText.trim()).then(
-          () => showPromptToast('Persona copied to clipboard', true),
-          () => showPromptToast('Clipboard write failed', false)
-        );
+        if (r.status === 200) {
+          navigator.clipboard.writeText(r.responseText.trim()).then(
+            () => showPromptToast('Persona copied to clipboard', true),
+            () => showPromptToast('Clipboard write failed', false)
+          );
+        } else if (fallbackUrl) {
+          fetchPersonaWithFallback(fallbackUrl, null, pat);
+        } else {
+          showPromptToast('Fetch failed (' + r.status + ')', false);
+        }
       },
-      onerror: function() { showPromptToast('Network error', false); }
+      onerror: function() {
+        if (fallbackUrl) fetchPersonaWithFallback(fallbackUrl, null, pat);
+        else showPromptToast('Network error', false);
+      }
     });
   }
 
@@ -1041,24 +1055,11 @@
     if (!h2) return;
     const filename = h2.textContent.trim();
     if (!/_Persona\.md$/i.test(filename)) return;
-    const personaMatch = filename.match(/^([A-Za-z]+)_/);
-    if (!personaMatch) return;
-    const personaKey = personaMatch[1].toLowerCase();
     if (!project) {
       const m = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
       if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
     }
     if (!project) return;
-    const markdown = dialog.querySelector('.standard-markdown');
-    if (!markdown) return;
-    const text = markdown.textContent || '';
-    const firstLine = text.split('\n').filter(l => l.trim())[0]?.trim() || '';
-    const vMatch = firstLine.match(/\|v(\d+[\.\d]*)\|/);
-    const deployedVersion = vMatch ? vMatch[1] : null;
-    const vData = getVersionData();
-    const regKey = 'b:' + personaKey + '@' + project.id;
-    if (!vData || !vData.agents || !vData.agents[regKey]) return;
-    if (deployedVersion && deployedVersion === vData.agents[regKey]) return;
     if (!GM_getValue('github_pat', '')) return;
     const nameWrap = h2.closest('div');
     if (!nameWrap) return;
@@ -1066,7 +1067,7 @@
     if (!headerRow) return;
     const btn = document.createElement('button');
     btn.id = PERSONA_COPY_ID; btn.type = 'button';
-    btn.title = 'Copy latest persona from GitHub (v' + vData.agents[regKey] + ')';
+    btn.title = 'Copy latest persona from GitHub';
     btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
     btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;';
     btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
@@ -2317,8 +2318,8 @@
       [${THEME_ATTR}] fieldset { box-shadow:0 0 0 1px color-mix(in srgb, var(--tm-accent) 9%, transparent), 0 0 12px color-mix(in srgb, var(--tm-accent) 3%, transparent) !important;border-color:color-mix(in srgb, var(--tm-accent) 13%, transparent) !important; }
 ${!isChat ? `      [${THEME_ATTR}] fieldset[data-tm-version] { position:relative !important; }
       [${THEME_ATTR}] fieldset[data-tm-version="mismatch"] { border-color:#c9a84c88 !important;box-shadow:0 0 8px #c9a84c30 !important; }
-      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c9a84cf0 0%,#c9a84ca0 25%,#c9a84c60 50%,#c9a84c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 2.5s ease-in-out infinite; }
-      [${THEME_ATTR}] fieldset[data-tm-version="missing"] { border-color:#c45c4c88 !important;box-shadow:0 0 8px #c45c4c30 !important; }
+      [${THEME_ATTR}] fieldset[data-tm-version="missing"] { border-color:#c45c4c88 !important;box-shadow:0 0 8px #c45c4c30 !important; }` : ""}
+${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-version="mismatch"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c9a84cf0 0%,#c9a84ca0 25%,#c9a84c60 50%,#c9a84c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 2.5s ease-in-out infinite; }
       [${THEME_ATTR}] fieldset[data-tm-version="missing"]::before { content:'' !important;position:absolute;inset:-60px;border-radius:50%;background:radial-gradient(ellipse,#c45c4cf0 0%,#c45c4ca0 25%,#c45c4c60 50%,#c45c4c30 70%,transparent 90%);z-index:-1;pointer-events:none;animation:tm-version-pulse 1.8s ease-in-out infinite; }` : ""}
       #${TOPLINE_ID} { position:fixed;top:46px;left:0;width:100%;height:2px;background:var(--tm-accent);z-index:5;pointer-events:none; }
       #${CHARACTER_ID} img { display:block;object-fit:contain;transition:opacity 200ms ease; }

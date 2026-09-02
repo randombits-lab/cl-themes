@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.63.1
+// @version      6.64.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.63.1';
+  const SCRIPT_VERSION = '6.64.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -906,7 +906,13 @@
     const fieldset = container.querySelector('fieldset');
     if (!fieldset) return;
     const vData = getVersionData();
-    const regId = project.account === 'B' ? 'b:' + project.id : (project.registryId || project.id);
+    let regId;
+    if (project.account === 'B') {
+      regId = 'b:' + project.id;
+    } else {
+      regId = (project.registryId && vData && vData.agents && project.registryId in vData.agents)
+        ? project.registryId : project.id;
+    }
     if (!vData || !vData.agents || !vData.agents[regId]) {
       fieldset.removeAttribute('data-tm-version');
       fieldset.title = '';
@@ -952,9 +958,15 @@
   function copyPromptToClipboard(project) {
     const pat = GM_getValue('github_pat', '');
     if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
-    const url = project.account === 'B'
-      ? B_PROMPT_BASE + project.id + '/project-instructions.md'
-      : AGENTS_RAW_BASE + (project.registryId || project.id) + '/current-prompt.md';
+    let url;
+    if (project.account === 'B') {
+      url = B_PROMPT_BASE + project.id + '/project-instructions.md';
+    } else {
+      const vData = getVersionData();
+      const ecoId = (project.registryId && vData && vData.agents && project.registryId in vData.agents)
+        ? project.registryId : project.id;
+      url = AGENTS_RAW_BASE + ecoId + '/current-prompt.md';
+    }
     GM_xmlhttpRequest({
       method: 'GET',
       url: url,

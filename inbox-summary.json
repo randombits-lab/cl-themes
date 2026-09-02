@@ -57,7 +57,7 @@
     "foundry": {
       "total": 12,
       "actionable": 5,
-      "due": 1,
+      "due": 0,
       "informational": 2
     },
     "licitapp": {
@@ -123,6 +123,6 @@
   },
   "total": 61,
   "actionable": 28,
-  "due": 4,
-  "updated_at": "2026-09-02T16:22:05Z"
+  "due": 3,
+  "updated_at": "2026-09-02T16:23:38Z"
 }

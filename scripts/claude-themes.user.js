@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.63.0
+// @version      6.63.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.63.0';
+  const SCRIPT_VERSION = '6.63.1';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1019,28 +1019,30 @@
     if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
     const projectUrl = B_PROMPT_BASE + project.id + '/' + encodeURIComponent(filename);
     const sharedUrl = B_SHARED_BASE + encodeURIComponent(filename);
-    fetchPersonaWithFallback(projectUrl, sharedUrl, pat);
+    fetchPersonaWithFallback(projectUrl, sharedUrl, pat, filename);
   }
 
-  function fetchPersonaWithFallback(url, fallbackUrl, pat) {
+  function fetchPersonaWithFallback(url, fallbackUrl, pat, filename) {
     GM_xmlhttpRequest({
       method: 'GET',
       url: url,
       headers: { 'Authorization': 'Bearer ' + pat },
       onload: function(r) {
         if (r.status === 200) {
-          navigator.clipboard.writeText(r.responseText.trim()).then(
-            () => showPromptToast('Persona copied to clipboard', true),
-            () => showPromptToast('Clipboard write failed', false)
-          );
+          const blob = new Blob([r.responseText], { type: 'text/markdown;charset=utf-8' });
+          const dl = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = dl; a.download = filename;
+          document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(dl);
+          showPromptToast('Persona downloaded', true);
         } else if (fallbackUrl) {
-          fetchPersonaWithFallback(fallbackUrl, null, pat);
+          fetchPersonaWithFallback(fallbackUrl, null, pat, filename);
         } else {
           showPromptToast('Fetch failed (' + r.status + ')', false);
         }
       },
       onerror: function() {
-        if (fallbackUrl) fetchPersonaWithFallback(fallbackUrl, null, pat);
+        if (fallbackUrl) fetchPersonaWithFallback(fallbackUrl, null, pat, filename);
         else showPromptToast('Network error', false);
       }
     });
@@ -1067,8 +1069,8 @@
     if (!headerRow) return;
     const btn = document.createElement('button');
     btn.id = PERSONA_COPY_ID; btn.type = 'button';
-    btn.title = 'Copy latest persona from GitHub';
-    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
+    btn.title = 'Download latest persona from GitHub';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="10" x2="12" y2="3"/></svg>';
     btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;';
     btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
     btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });

@@ -1,7 +1,19 @@
 {
-  "total": 2,
+  "total": 4,
   "total_including_resolved": 5,
   "failures": [
+    {
+      "date": "2026-09-02",
+      "title": "Push checks run #724",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33611326240",
+      "resolved": false
+    },
+    {
+      "date": "2026-09-02",
+      "title": "Push checks run #723",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33610078533",
+      "resolved": false
+    },
     {
       "date": "2026-09-01",
       "title": "Push checks run #722",
@@ -15,6 +27,6 @@
       "resolved": false
     }
   ],
-  "updated_at": "2026-09-02T07:32:56Z",
-  "checked_at": "2026-09-02T07:32:56Z"
+  "updated_at": "2026-09-02T09:00:16Z",
+  "checked_at": "2026-09-02T09:00:16Z"
 }

@@ -4,125 +4,146 @@
       "total": 5,
       "actionable": 2,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 1
     },
     "adjutant": {
       "total": 2,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "alfred": {
       "total": 2,
       "actionable": 2,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "anasteria": {
       "total": 0,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "crucible": {
       "total": 5,
       "actionable": 2,
       "due": 1,
-      "informational": 2
+      "informational": 2,
+      "projects_total": 0
     },
     "egostic": {
       "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "factory": {
-      "total": 8,
-      "actionable": 0,
+      "total": 9,
+      "actionable": 1,
       "due": 0,
-      "informational": 1
+      "informational": 1,
+      "projects_total": 0
     },
     "faith": {
       "total": 4,
       "actionable": 1,
       "due": 0,
-      "informational": 3
+      "informational": 3,
+      "projects_total": 0
     },
     "falx": {
       "total": 1,
       "actionable": 1,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "foundry": {
       "total": 5,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "licitapp": {
       "total": 8,
       "actionable": 8,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "meridian": {
       "total": 3,
       "actionable": 1,
       "due": 0,
-      "informational": 1
+      "informational": 1,
+      "projects_total": 0
     },
     "nabu": {
       "total": 1,
       "actionable": 1,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "prism": {
       "total": 1,
       "actionable": 1,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "template-builder": {
       "total": 0,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "tomoe": {
       "total": 1,
       "actionable": 0,
       "due": 1,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "vadim": {
       "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "vesper": {
       "total": 2,
       "actionable": 0,
       "due": 1,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     },
     "voss": {
       "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 1
+      "informational": 1,
+      "projects_total": 0
     },
     "workshop": {
       "total": 2,
       "actionable": 2,
       "due": 0,
-      "informational": 0
+      "informational": 0,
+      "projects_total": 0
     }
   },
-  "total": 53,
-  "actionable": 21,
+  "total": 54,
+  "actionable": 22,
   "due": 3,
-  "updated_at": "2026-09-03T18:21:24Z"
+  "projects_total": 1,
+  "updated_at": "2026-09-03T18:39:08Z"
 }

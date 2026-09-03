@@ -1,8 +1,8 @@
 {
   "agents": {
     "abathur": {
-      "total": 3,
-      "actionable": 0,
+      "total": 4,
+      "actionable": 1,
       "due": 0,
       "informational": 0
     },
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 48,
-  "actionable": 18,
+  "total": 49,
+  "actionable": 19,
   "due": 3,
-  "updated_at": "2026-09-03T12:43:35Z"
+  "updated_at": "2026-09-03T16:03:25Z"
 }

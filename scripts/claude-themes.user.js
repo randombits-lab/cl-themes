@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.65.2
+// @version      6.65.3
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.65.2';
+  const SCRIPT_VERSION = '6.65.3';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -692,9 +692,9 @@
     const execEntries = entries.filter(([id]) => execMembers.includes(resolveProjectId(id)));
     const opsEntries = entries.filter(([id]) => !govMembers.includes(resolveProjectId(id)) && !execMembers.includes(resolveProjectId(id)));
     let html = '';
-    function renderGroup(groupLabel, items) {
+      function renderGroup(groupLabel, items, showProjects) {
       if (!items.length) return '';
-      let g = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</div>';
+      let g = '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px 2px;"><span style="font-size:10px;color:#8a8a9a;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</span>' + (showProjects ? '<span style="display:flex;gap:0;"><span style="font-size:9px;color:#8a8a9a;opacity:0.3;width:36px;text-align:right;">Tasks</span><span style="font-size:9px;color:#6aaccc;opacity:0.3;width:28px;text-align:right;">Proj</span></span>' : '') + '</div>';
       for (const [agentId, counts] of items) {
         const proj = findProjectByKey(agentId);
         const color = proj ? proj.accentColor : '#8a8a9a';
@@ -704,27 +704,29 @@
         const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
         const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
         const pc = counts.projects_total || 0;
-        const projDisplay = pc > 0 ? '<span style="color:#6aaccc;font-size:10px;margin-left:4px;" title="' + pc + ' project' + (pc !== 1 ? 's' : '') + '">\u25C8' + pc + '</span>' : '';
+        const projCol = showProjects ? '<span style="color:#6aaccc;font-size:11px;font-variant-numeric:tabular-nums;width:28px;text-align:right;display:inline-block;">' + (pc > 0 ? pc : '') + '</span>' : '';
+        const countsHtml = showProjects ? '<span style="display:flex;align-items:center;"><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;min-width:36px;text-align:right;">' + countDisplay + '</span>' + projCol + '</span>' : '<span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span>';
         if (href) {
-          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + projDisplay + '</span></a>';
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span>' + countsHtml + '</a>';
         } else {
-          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + projDisplay + '</span></div>';
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span>' + countsHtml + '</div>';
         }
       }
       return g;
     }
-    html += renderGroup('Governance', govEntries);
+    const hasProjects = entries.some(([, c]) => (c.projects_total || 0) > 0);
+    html += renderGroup('Governance', govEntries, hasProjects);
     if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Agents', opsEntries);
+    html += renderGroup('Agents', opsEntries, hasProjects);
     if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Executors', execEntries);
+    html += renderGroup('Executors', execEntries, hasProjects);
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
       const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
       const pGrand = data.projects_total || 0;
       const fetchAge = data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '';
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + (pGrand > 0 ? '\u25C8' + data['projects_' + 'total'] + ' \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + fetchAge + '</div>';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + (pGrand > 0 ? pGrand + ' proj \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + fetchAge + '</div>';
     }
     popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
     popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });

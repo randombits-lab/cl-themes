@@ -1,14 +1,7 @@
 {
-  "total": 1,
+  "total": 0,
   "total_including_resolved": 1,
-  "failures": [
-    {
-      "date": "2026-09-03",
-      "title": "Claims verification run #25",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33783351784",
-      "resolved": false
-    }
-  ],
-  "updated_at": "2026-09-03T17:14:41Z",
-  "checked_at": "2026-09-03T17:14:41Z"
+  "failures": [],
+  "updated_at": "2026-09-03T17:22:08Z",
+  "checked_at": "2026-09-03T17:22:08Z"
 }

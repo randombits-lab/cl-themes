@@ -92,8 +92,8 @@
       "projects_total": 0
     },
     "prism": {
-      "total": 1,
-      "actionable": 1,
+      "total": 2,
+      "actionable": 2,
       "due": 0,
       "informational": 0,
       "projects_total": 0
@@ -141,9 +141,9 @@
       "projects_total": 0
     }
   },
-  "total": 51,
-  "actionable": 20,
+  "total": 52,
+  "actionable": 21,
   "due": 3,
   "projects_total": 1,
-  "updated_at": "2026-09-03T21:01:45Z"
+  "updated_at": "2026-09-03T21:16:24Z"
 }

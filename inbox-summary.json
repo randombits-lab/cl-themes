@@ -1,8 +1,8 @@
 {
   "agents": {
     "abathur": {
-      "total": 4,
-      "actionable": 1,
+      "total": 5,
+      "actionable": 2,
       "due": 0,
       "informational": 0
     },
@@ -37,10 +37,10 @@
       "informational": 0
     },
     "factory": {
-      "total": 7,
+      "total": 8,
       "actionable": 0,
       "due": 0,
-      "informational": 0
+      "informational": 1
     },
     "faith": {
       "total": 4,
@@ -121,8 +121,8 @@
       "informational": 0
     }
   },
-  "total": 51,
-  "actionable": 19,
+  "total": 53,
+  "actionable": 20,
   "due": 3,
-  "updated_at": "2026-09-03T17:44:39Z"
+  "updated_at": "2026-09-03T17:55:05Z"
 }

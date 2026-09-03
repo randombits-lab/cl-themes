@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.64.0
+// @version      6.65.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.64.0';
+  const SCRIPT_VERSION = '6.65.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -45,6 +45,7 @@
   const INBOX_POPUP_ID   = 'claude-theme-inbox-popup';
   const REFLECT_POPUP_ID = 'claude-theme-reflect-popup';
   const FAILURES_POPUP_ID = 'claude-theme-failures-popup';
+  const BILLING_POPUP_ID = 'claude-theme-billing-popup';
   const PROMPT_COPY_ID   = 'claude-theme-prompt-copy';
   const PERSONA_COPY_ID  = 'claude-theme-persona-copy';
 
@@ -57,12 +58,16 @@
   const INBOX_KEY   = 'claude-theme-inbox';
   const REFLECT_KEY = 'claude-theme-reflect';
   const FAILURES_KEY = 'claude-theme-failures';
+  const BILLING_KEY = 'claude-theme-billing';
   const VERSION_KEY = 'claude-theme-versions';
 
   // === Remote data URLs ===
   const INBOX_URL   = BASE + 'inbox-summary.json';
   const REFLECT_URL = BASE + 'reflection-summary.json';
   const FAILURES_URL = BASE + 'failures-summary.json';
+  const BILLING_URL = BASE + 'billing-summary.json';
+  const ACTIONS_MINUTES_QUOTA = 2000; // GitHub Actions included minutes per month; 0 disables quota coloring
+  const BILLING_STALE_MS = 108000000; // 30h: daily 04:45 UTC billing pipeline plus slack
   const VERSION_URL = BASE + 'version-summary.json';
   const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';
   const B_PROMPT_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/projects/';
@@ -849,6 +854,70 @@
     }
     popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:360px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // BILLING DASHBOARD — fetches GitHub Actions usage from cl-themes
+  // =========================================================================
+
+  function fetchBillingSummary() {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: BILLING_URL + '?t=' + Date.now(),
+      onload: function(resp) {
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(BILLING_KEY, JSON.stringify(d)); } catch(e) {}
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function getBillingData() {
+    try { const r = localStorage.getItem(BILLING_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  let billingFetched = false;
+  function ensureBillingFetch() {
+    if (billingFetched) return;
+    billingFetched = true;
+    fetchBillingSummary();
+  }
+
+  function toggleBillingPopup(anchorEl) {
+    const existing = document.getElementById(BILLING_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getBillingData();
+    if (!data || typeof data.actions_minutes_used !== 'number') return;
+    const popup = document.createElement('div');
+    popup.id = BILLING_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const mins = Math.round(data.actions_minutes_used);
+    const pct = Math.round(data.actions_minutes_used / ACTIONS_MINUTES_QUOTA * 100) ;
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Actions · ' + String(data.cycle || '').replace(/[<>&"']/g, '') + '</div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;"><span style="color:#c8d8e8;font-size:12px;">Minutes</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + mins + (pct !== null ? ' <span style="opacity:0.5">' + pct + '%</span>' : '') + '</span></div>';
+    for (const [repo, m] of Object.entries(data.minutes_by_repo || {})) {
+      const rname = String(repo).replace(/[<>&"']/g, '');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 10px 2px 18px;gap:16px;"><span style="color:#8a8a9a;font-size:11px;opacity:0.8;">' + rname + '</span><span style="color:#8a8a9a;font-size:11px;font-variant-numeric:tabular-nums;">' + Math.round(m) + '</span></div>';
+    }
+    const gross = typeof data.actions_gross_usd === 'number' ? data.actions_gross_usd : 0;
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;border-top:1px solid #ffffff08;"><span style="color:#8a8a9a;font-size:11px;">Gross</span><span style="color:#8a8a9a;font-size:11px;font-variant-numeric:tabular-nums;">$' + gross.toFixed(2) + '</span></div>';
+    const over = (data.actions_overage_usd || 0) + (data.all_products_overage_usd || 0);
+    if (over > 0) {
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 10px;gap:16px;"><span style="color:#e0a0a0;font-size:11px;">Overage</span><span style="color:#e53935;font-size:11px;font-variant-numeric:tabular-nums;">$' + over.toFixed(2) + '</span></div>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > BILLING_STALE_MS;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' · stale' : '') + (data._fetchedAt ? ' · fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:180px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
     const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
     const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
@@ -2166,6 +2235,12 @@
       failuresBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 2L1.5 13h13L8 2z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       failuresBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleFailuresPopup(failuresBadge); });
       bar.appendChild(failuresBadge);
+      const billingBadge = document.createElement('span');
+      billingBadge.id = UTILBAR_ID + '-billing';
+      billingBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      billingBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><circle cx="8" cy="8" r="6.3" stroke="currentColor" fill="none" stroke-width="1.3"/><path d="M8 4.6V8l2.4 1.4" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
+      billingBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleBillingPopup(billingBadge); });
+      bar.appendChild(billingBadge);
       const refreshBtn = document.createElement('span');
       refreshBtn.id = UTILBAR_ID + '-refresh';
       refreshBtn.dataset.tmUi = '1';
@@ -2178,7 +2253,7 @@
         e.stopPropagation();
         const svg = refreshBtn.querySelector('svg');
         if (svg) svg.style.animation = 'tm-spin 0.5s ease-out';
-        fetchInboxSummary(); fetchReflectionSummary(); fetchFailuresSummary(); fetchVersionSummary();
+        fetchInboxSummary(); fetchReflectionSummary(); fetchFailuresSummary(); fetchVersionSummary(); fetchBillingSummary();
         setTimeout(() => { if (svg) svg.style.animation = ''; }, 600);
       });
       bar.appendChild(refreshBtn);
@@ -2285,9 +2360,35 @@
         failuresEl.title = fData ? 'No CI failures' : 'CI failure data not loaded';
       }
     }
+
+    const billingEl = document.getElementById(UTILBAR_ID + '-billing');
+    if (billingEl) {
+      const bData = getBillingData();
+      const bCount = billingEl.querySelector('span');
+      const bSvg = billingEl.querySelector('svg');
+      if (bData && typeof bData.actions_minutes_used === 'number') {
+        const mins = Math.round(bData.actions_minutes_used);
+        if (bCount) bCount.textContent = mins + 'm';
+        const over = (bData.actions_overage_usd || 0) + (bData.all_products_overage_usd || 0);
+        const pct = bData.actions_minutes_used / ACTIONS_MINUTES_QUOTA * 100 ;
+        const base = over > 0 ? '#c45c4c' : (usageBarColor(pct) );
+        const stale = bData.updated_at && (Date.now() - new Date(bData.updated_at).getTime()) > BILLING_STALE_MS;
+        const bColor = stale ? base + '80' : base;
+        billingEl.style.opacity = stale ? '0.5' : '0.7';
+        if (bSvg) bSvg.style.color = bColor;
+        if (bCount) bCount.style.color = bColor;
+        const age = bData.updated_at ? formatAge(new Date(bData.updated_at)) : 'unknown';
+        billingEl.title = mins + ' Actions minutes · ' + (bData.cycle || '') + (' · ' + Math.round(pct) + '% of ' + ACTIONS_MINUTES_QUOTA ) + (over > 0 ? '\nOverage: $' + over.toFixed(2) : '') + '\nUpdated: ' + age + (stale ? ' (stale)' : '') + (bData._fetchedAt ? '\nFetched: ' + formatAge(new Date(bData._fetchedAt)) : '');
+      } else {
+        if (bCount) bCount.textContent = '';
+        billingEl.style.opacity = '0.3';
+        if (bSvg) bSvg.style.color = '#8a8a9a';
+        billingEl.title = 'Billing data not loaded';
+      }
+    }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(BILLING_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');
@@ -2518,6 +2619,7 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
     ensureReflectFetch();
     ensureFailuresFetch();
     ensureVersionFetch();
+    ensureBillingFetch();
     manageCardStyles();
     manageContextGrouping();
     injectFileModalActions();
@@ -2549,7 +2651,7 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
       for (const m of muts) {
         if (m.type !== 'childList') continue;
         if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === LEGEND_ID || n.id === PROMPT_COPY_ID || n.id === PERSONA_COPY_ID);
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === BILLING_POPUP_ID || n.id === LEGEND_ID || n.id === PROMPT_COPY_ID || n.id === PERSONA_COPY_ID);
         if (!dominated) { scheduleCheck(); return; }
       }
     }).observe(document.body, { childList: true, subtree: true });
@@ -2595,6 +2697,8 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
         if (!fd || (Date.now() - (fd._fetchedAt || 0)) > 300000) fetchFailuresSummary();
         const vd = getVersionData();
         if (!vd || (Date.now() - (vd._fetchedAt || 0)) > 300000) fetchVersionSummary();
+        const bd = getBillingData();
+        if (!bd || (Date.now() - (bd._fetchedAt || 0)) > 300000) fetchBillingSummary();
       }
     });
 
@@ -2613,6 +2717,7 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
       fetchReflectionSummary();
       fetchFailuresSummary();
       fetchVersionSummary();
+      fetchBillingSummary();
     }, 180000);
 
     initObserver();

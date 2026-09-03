@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.65.0
+// @version      6.65.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.65.0';
+  const SCRIPT_VERSION = '6.65.1';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -66,7 +66,7 @@
   const REFLECT_URL = BASE + 'reflection-summary.json';
   const FAILURES_URL = BASE + 'failures-summary.json';
   const BILLING_URL = BASE + 'billing-summary.json';
-  const ACTIONS_MINUTES_QUOTA = 2000; // GitHub Actions included minutes per month; 0 disables quota coloring
+  const ACTIONS_MINUTES_QUOTA = 3000; // GitHub Actions included minutes per month; 0 disables quota coloring
   const BILLING_STALE_MS = 108000000; // 30h: daily 04:45 UTC billing pipeline plus slack
   const VERSION_URL = BASE + 'version-summary.json';
   const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';

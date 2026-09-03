@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.65.3
+// @version      6.66.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -18,7 +18,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.65.3';
+  const SCRIPT_VERSION = '6.66.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -48,6 +48,7 @@
   const BILLING_POPUP_ID = 'claude-theme-billing-popup';
   const PROMPT_COPY_ID   = 'claude-theme-prompt-copy';
   const PERSONA_COPY_ID  = 'claude-theme-persona-copy';
+  const RESEARCH_POPUP_ID = 'claude-theme-research-popup';
 
   // === Data attributes ===
   const THEME_ATTR   = 'data-claude-theme';
@@ -72,6 +73,7 @@
   const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';
   const B_PROMPT_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/projects/';
   const B_SHARED_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/shared/';
+  const INBOXES_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/inboxes/';
 
   // === Operator block constants ===
   const OB_SETUP_COLOR  = '#9b8ec4';
@@ -692,9 +694,19 @@
     const execEntries = entries.filter(([id]) => execMembers.includes(resolveProjectId(id)));
     const opsEntries = entries.filter(([id]) => !govMembers.includes(resolveProjectId(id)) && !execMembers.includes(resolveProjectId(id)));
     let html = '';
-      function renderGroup(groupLabel, items, showProjects) {
+      function renderGroup(groupLabel, items, showProjects, showResearch) {
       if (!items.length) return '';
-      let g = '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px 2px;"><span style="font-size:10px;color:#8a8a9a;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</span>' + (showProjects ? '<span style="display:flex;gap:0;"><span style="font-size:9px;color:#8a8a9a;opacity:0.3;width:36px;text-align:right;">Tasks</span><span style="font-size:9px;color:#6aaccc;opacity:0.3;width:28px;text-align:right;">Proj</span></span>' : '') + '</div>';
+      const showResearchHeader = showResearch;
+      const showResearchColumn = showResearch;
+      const showResearchEnabled = showResearchColumn;
+      let headerCols = '';
+      if (showProjects || showResearchHeader) {
+        headerCols = '<span style="display:flex;gap:0;"><span style="font-size:9px;color:#8a8a9a;opacity:0.3;width:36px;text-align:right;">Tasks</span>';
+        if (showProjects) headerCols += '<span style="font-size:9px;color:#6aaccc;opacity:0.3;width:28px;text-align:right;">Proj</span>';
+        if (showResearchHeader) headerCols += '<span style="font-size:9px;color:#a080c0;opacity:0.3;width:28px;text-align:right;">Rsch</span>';
+        headerCols += '</span>';
+      }
+      let g = '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px 2px;"><span style="font-size:10px;color:#8a8a9a;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</span>' + headerCols + '</div>';
       for (const [agentId, counts] of items) {
         const proj = findProjectByKey(agentId);
         const color = proj ? proj.accentColor : '#8a8a9a';
@@ -704,8 +716,11 @@
         const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
         const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
         const pc = counts.projects_total || 0;
+        const rc = counts.research_count || 0;
         const projCol = showProjects ? '<span style="color:#6aaccc;font-size:11px;font-variant-numeric:tabular-nums;width:28px;text-align:right;display:inline-block;">' + (pc > 0 ? pc : '') + '</span>' : '';
-        const countsHtml = showProjects ? '<span style="display:flex;align-items:center;"><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;min-width:36px;text-align:right;">' + countDisplay + '</span>' + projCol + '</span>' : '<span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span>';
+        const rschCol = showResearchColumn ? '<span class="tm-rsch" data-agent="' + agentId + '" style="color:#a080c0;font-size:11px;font-variant-numeric:tabular-nums;width:28px;text-align:right;display:inline-block;' + (rc > 0 ? 'cursor:pointer;' : '') + '">' + (rc > 0 ? rc : '') + '</span>' : '';
+        const hasMulti = showProjects || showResearchEnabled;
+        const countsHtml = hasMulti ? '<span style="display:flex;align-items:center;"><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;min-width:36px;text-align:right;">' + countDisplay + '</span>' + projCol + rschCol + '</span>' : '<span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span>';
         if (href) {
           g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span>' + countsHtml + '</a>';
         } else {
@@ -715,11 +730,12 @@
       return g;
     }
     const hasProjects = entries.some(([, c]) => (c.projects_total || 0) > 0);
-    html += renderGroup('Governance', govEntries, hasProjects);
+    const hasResearch = entries.some(([, c]) => (c.research_count || 0) > 0);
+    html += renderGroup('Governance', govEntries, hasProjects, hasResearch);
     if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Agents', opsEntries, hasProjects);
+    html += renderGroup('Agents', opsEntries, hasProjects, hasResearch);
     if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Executors', execEntries, hasProjects);
+    html += renderGroup('Executors', execEntries, hasProjects, hasResearch);
     if (data.updated_at) {
       const age = formatAge(new Date(data.updated_at));
       const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
@@ -730,6 +746,13 @@
     }
     popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
     popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
+    popup.querySelectorAll('.tm-rsch').forEach(el => {
+      const aid = el.dataset.agent;
+      const ad = data.agents[aid];
+      if (ad && (ad.research_count || 0) > 0) {
+        el.addEventListener('click', (e) => { e.stopPropagation(); popup.remove(); toggleResearchPopup(aid, ad.research_items || [], anchorEl); });
+      }
+    });
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
     const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
@@ -927,6 +950,57 @@
     const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
     const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
     setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // RESEARCH POPUP — per-agent research prompt listing with clipboard copy
+  // =========================================================================
+
+  function toggleResearchPopup(agentId, items, anchorEl) {
+    const existing = document.getElementById(RESEARCH_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    if (!items.length) return;
+    const popup = document.createElement('div');
+    popup.id = RESEARCH_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const proj = findProjectByKey(agentId);
+    const color = proj ? proj.accentColor : '#a080c0';
+    const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+    let html = '<div style="font-size:10px;color:' + color + ';padding:6px 10px 2px;opacity:0.7;letter-spacing:0.3px;text-transform:uppercase;">' + agentLabel + ' \u00b7 Research</div>';
+    for (const item of items) {
+      const title = String(item.title || item.filename || '').replace(/[<>&"']/g, '');
+      const fname = String(item.filename || '').replace(/[<>&"']/g, '');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:8px;border-radius:3px;transition:background 0.15s;"><span style="color:#c8d8e8;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + fname + '">' + title + '</span><span class="tm-rsch-copy" data-agent="' + agentId + '" data-file="' + fname + '" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;cursor:pointer;opacity:0.5;transition:opacity 0.2s;border-radius:3px;flex-shrink:0;" title="Copy to clipboard"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg></span></div>';
+    }
+    popup.innerHTML = '<style>#' + RESEARCH_POPUP_ID + ' .tm-rsch-copy:hover{opacity:1!important;background:#ffffff10}#' + RESEARCH_POPUP_ID + ' div:hover{background:#ffffff06}</style>' + html;
+    popup.querySelectorAll('.tm-rsch-copy').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); copyResearchToClipboard(btn.dataset.agent, btn.dataset.file); });
+    });
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  function copyResearchToClipboard(agentId, filename) {
+    const pat = GM_getValue('github_pat', '');
+    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
+    const url = INBOXES_RAW_BASE + encodeURIComponent(agentId) + '/research/' + encodeURIComponent(filename);
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      headers: { 'Authorization': 'Bearer ' + pat },
+      onload: function(r) {
+        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
+        navigator.clipboard.writeText(r.responseText).then(
+          () => showPromptToast('Research prompt copied', true),
+          () => showPromptToast('Clipboard write failed', false)
+        );
+      },
+      onerror: function() { showPromptToast('Network error', false); }
+    });
   }
 
   // =========================================================================
@@ -2395,7 +2469,7 @@
     }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(BILLING_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(BILLING_POPUP_ID)?.remove(); document.getElementById(RESEARCH_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');

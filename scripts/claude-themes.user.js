@@ -750,7 +750,7 @@
       const aid = el.dataset.agent;
       const ad = data.agents[aid];
       if (ad && (ad.research_count || 0) > 0) {
-        el.addEventListener('click', (e) => { e.stopPropagation(); popup.remove(); toggleResearchPopup(aid, ad.research_items || [], anchorEl); });
+        el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); popup.remove(); toggleResearchPopup(aid, ad.research_items || [], anchorEl); });
       }
     });
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';

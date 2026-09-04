@@ -1,10 +1,10 @@
 {
   "agents": {
     "abathur": {
-      "total": 2,
+      "total": 3,
       "actionable": 0,
       "due": 0,
-      "informational": 0,
+      "informational": 1,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
@@ -68,10 +68,10 @@
       "research_items": []
     },
     "factory": {
-      "total": 8,
+      "total": 9,
       "actionable": 1,
       "due": 0,
-      "informational": 1,
+      "informational": 2,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
@@ -131,10 +131,10 @@
       "research_items": []
     },
     "prism": {
-      "total": 0,
+      "total": 1,
       "actionable": 0,
       "due": 0,
-      "informational": 0,
+      "informational": 1,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
@@ -149,10 +149,10 @@
       "research_items": []
     },
     "tomoe": {
-      "total": 1,
+      "total": 2,
       "actionable": 0,
       "due": 1,
-      "informational": 0,
+      "informational": 1,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
@@ -194,10 +194,10 @@
       "research_items": []
     }
   },
-  "total": 49,
+  "total": 53,
   "actionable": 19,
   "due": 3,
   "projects_total": 0,
   "research_total": 3,
-  "updated_at": "2026-09-04T16:15:26Z"
+  "updated_at": "2026-09-04T18:23:55Z"
 }

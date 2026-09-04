@@ -95,8 +95,8 @@
       "research_items": []
     },
     "foundry": {
-      "total": 6,
-      "actionable": 1,
+      "total": 5,
+      "actionable": 0,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -194,10 +194,10 @@
       "research_items": []
     }
   },
-  "total": 52,
-  "actionable": 22,
+  "total": 51,
+  "actionable": 21,
   "due": 3,
   "projects_total": 0,
   "research_total": 3,
-  "updated_at": "2026-09-04T12:44:54Z"
+  "updated_at": "2026-09-04T13:47:39Z"
 }

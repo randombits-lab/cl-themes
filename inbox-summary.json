@@ -19,8 +19,8 @@
       "research_items": []
     },
     "alfred": {
-      "total": 2,
-      "actionable": 2,
+      "total": 3,
+      "actionable": 3,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -68,8 +68,8 @@
       "research_items": []
     },
     "factory": {
-      "total": 9,
-      "actionable": 1,
+      "total": 10,
+      "actionable": 2,
       "due": 0,
       "informational": 2,
       "projects_total": 0,
@@ -194,10 +194,10 @@
       "research_items": []
     }
   },
-  "total": 53,
-  "actionable": 19,
+  "total": 55,
+  "actionable": 21,
   "due": 3,
   "projects_total": 0,
   "research_total": 3,
-  "updated_at": "2026-09-04T18:23:55Z"
+  "updated_at": "2026-09-04T18:36:56Z"
 }

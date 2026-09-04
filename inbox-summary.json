@@ -68,10 +68,10 @@
       "research_items": []
     },
     "factory": {
-      "total": 11,
-      "actionable": 2,
+      "total": 7,
+      "actionable": 0,
       "due": 0,
-      "informational": 2,
+      "informational": 0,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
@@ -194,10 +194,10 @@
       "research_items": []
     }
   },
-  "total": 54,
-  "actionable": 22,
+  "total": 50,
+  "actionable": 20,
   "due": 3,
   "projects_total": 0,
   "research_total": 3,
-  "updated_at": "2026-09-04T11:36:54Z"
+  "updated_at": "2026-09-04T11:38:33Z"
 }

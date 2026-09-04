@@ -5,145 +5,199 @@
       "actionable": 1,
       "due": 0,
       "informational": 0,
-      "projects_total": 1
+      "projects_total": 1,
+      "research_count": 0,
+      "research_items": []
     },
     "adjutant": {
       "total": 2,
       "actionable": 0,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "alfred": {
       "total": 2,
       "actionable": 2,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "anasteria": {
       "total": 0,
       "actionable": 0,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "crucible": {
       "total": 5,
       "actionable": 2,
       "due": 1,
       "informational": 2,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 3,
+      "research_items": [
+        {
+          "filename": "2026-08-22-jitai-smartphone.md",
+          "title": "Just-in-time adaptive interventions via smartphone"
+        },
+        {
+          "filename": "2026-08-22-pre-commitment-devices.md",
+          "title": "Pre-commitment devices and accountability enforcement"
+        },
+        {
+          "filename": "2026-08-22-sdt-tracking-systems.md",
+          "title": "Self-determination theory versus external tracking systems"
+        }
+      ]
     },
     "egostic": {
       "total": 1,
       "actionable": 0,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "factory": {
-      "total": 7,
-      "actionable": 0,
+      "total": 8,
+      "actionable": 1,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "faith": {
       "total": 4,
       "actionable": 1,
       "due": 0,
       "informational": 3,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "falx": {
       "total": 1,
       "actionable": 1,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "foundry": {
       "total": 5,
       "actionable": 0,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "licitapp": {
       "total": 8,
       "actionable": 8,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "meridian": {
       "total": 3,
       "actionable": 1,
       "due": 0,
       "informational": 1,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "nabu": {
       "total": 1,
       "actionable": 1,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "prism": {
       "total": 1,
       "actionable": 1,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "template-builder": {
       "total": 0,
       "actionable": 0,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "tomoe": {
       "total": 1,
       "actionable": 0,
       "due": 1,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "vadim": {
       "total": 1,
       "actionable": 0,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "vesper": {
       "total": 2,
       "actionable": 0,
       "due": 1,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "voss": {
       "total": 1,
       "actionable": 0,
       "due": 0,
       "informational": 1,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     },
     "workshop": {
       "total": 2,
       "actionable": 2,
       "due": 0,
       "informational": 0,
-      "projects_total": 0
+      "projects_total": 0,
+      "research_count": 0,
+      "research_items": []
     }
   },
-  "total": 51,
-  "actionable": 20,
+  "total": 52,
+  "actionable": 21,
   "due": 3,
   "projects_total": 1,
-  "updated_at": "2026-09-03T21:18:59Z"
+  "research_total": 3,
+  "updated_at": "2026-09-04T05:04:49Z"
 }

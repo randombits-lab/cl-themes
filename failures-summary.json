@@ -1,26 +1,7 @@
 {
-  "total": 3,
+  "total": 0,
   "total_including_resolved": 3,
-  "failures": [
-    {
-      "date": "2026-09-05",
-      "title": "Daily maintenance run #22",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33955603846",
-      "resolved": false
-    },
-    {
-      "date": "2026-09-05",
-      "title": "Consume inbox items run #109",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33934740128",
-      "resolved": false
-    },
-    {
-      "date": "2026-09-05",
-      "title": "CI failure capture run #3800",
-      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33934759393",
-      "resolved": false
-    }
-  ],
-  "updated_at": "2026-09-05T08:34:25Z",
-  "checked_at": "2026-09-05T08:34:25Z"
+  "failures": [],
+  "updated_at": "2026-09-05T11:20:25Z",
+  "checked_at": "2026-09-05T11:20:25Z"
 }

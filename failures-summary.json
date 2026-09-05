@@ -1,7 +1,13 @@
 {
-  "total": 2,
-  "total_including_resolved": 2,
+  "total": 3,
+  "total_including_resolved": 3,
   "failures": [
+    {
+      "date": "2026-09-05",
+      "title": "Daily maintenance run #22",
+      "url": "https://github.com/randombits-lab/agents-ecosystem/actions/runs/33955603846",
+      "resolved": false
+    },
     {
       "date": "2026-09-05",
       "title": "Consume inbox items run #109",
@@ -15,6 +21,6 @@
       "resolved": false
     }
   ],
-  "updated_at": "2026-09-05T08:33:59Z",
-  "checked_at": "2026-09-05T08:33:59Z"
+  "updated_at": "2026-09-05T08:34:25Z",
+  "checked_at": "2026-09-05T08:34:25Z"
 }

@@ -1,11 +1,11 @@
 {
-  "updated_at": "2026-09-04T09:02:13+00:00",
+  "updated_at": "2026-09-05T08:33:59+00:00",
   "cycle": "2026-09",
-  "actions_minutes_used": 389.0,
-  "actions_gross_usd": 2.33,
+  "actions_minutes_used": 502.0,
+  "actions_gross_usd": 3.01,
   "actions_overage_usd": 0.0,
   "all_products_overage_usd": 0.0,
   "minutes_by_repo": {
-    "agents-ecosystem": 389.0
+    "agents-ecosystem": 502.0
   }
 }

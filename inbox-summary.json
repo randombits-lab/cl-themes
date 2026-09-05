@@ -5,7 +5,7 @@
       "actionable": 1,
       "due": 0,
       "informational": 0,
-      "projects_total": 1,
+      "projects_total": 2,
       "research_count": 0,
       "research_items": []
     },
@@ -197,7 +197,7 @@
   "total": 54,
   "actionable": 25,
   "due": 2,
-  "projects_total": 2,
+  "projects_total": 3,
   "research_total": 3,
-  "updated_at": "2026-09-05T20:32:44Z"
+  "updated_at": "2026-09-05T20:34:00Z"
 }

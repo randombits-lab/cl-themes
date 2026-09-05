@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.66.1
+// @version      6.67.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -10,6 +10,7 @@
 // @grant        GM_xmlhttpRequest
 // @grant        GM_registerMenuCommand
 // @connect      raw.githubusercontent.com
+// @connect      powerplatform.com
 // @downloadURL  https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // @updateURL    https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // ==/UserScript==
@@ -18,7 +19,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.66.1';
+  const SCRIPT_VERSION = '6.67.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -49,6 +50,8 @@
   const PROMPT_COPY_ID   = 'claude-theme-prompt-copy';
   const PERSONA_COPY_ID  = 'claude-theme-persona-copy';
   const RESEARCH_POPUP_ID = 'claude-theme-research-popup';
+  const CALENDAR_POPUP_ID = 'claude-theme-calendar-popup';
+  const CALENDAR_WEBHOOK_GM = 'calendar_webhook_url';
 
   // === Data attributes ===
   const THEME_ATTR   = 'data-claude-theme';
@@ -1001,6 +1004,87 @@
       },
       onerror: function() { showPromptToast('Network error', false); }
     });
+  }
+
+  // =========================================================================
+  // CALENDAR WEBHOOK — paste JSON, POST to Power Automate
+  // =========================================================================
+
+  function toggleCalendarPopup(anchorEl) {
+    const existing = document.getElementById(CALENDAR_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const popup = document.createElement('div');
+    popup.id = CALENDAR_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const webhookUrl = GM_getValue(CALENDAR_WEBHOOK_GM, '');
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Calendar Webhook</div>';
+    if (!webhookUrl) {
+      html += '<div style="padding:8px 10px;font-size:11px;color:#c9a84c;">Set webhook URL via Tampermonkey menu<br><span style="opacity:0.5;font-size:10px;">→ Set Calendar Webhook URL</span></div>';
+    } else {
+      html += '<div style="padding:6px 10px;">'
+        + '<textarea id="' + CALENDAR_POPUP_ID + '-input" style="width:260px;height:120px;background:#111;border:1px solid #ffffff15;border-radius:4px;color:#c8d8e8;font-size:11px;font-family:monospace;padding:6px;resize:vertical;" placeholder="Paste calendar JSON…"></textarea>'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">'
+        + '<button id="' + CALENDAR_POPUP_ID + '-send" type="button" style="background:#4a9a7a20;border:1px solid #4a9a7a44;color:#4a9a7a;font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;opacity:0.5;transition:all 0.2s;" disabled>Send</button>'
+        + '<span id="' + CALENDAR_POPUP_ID + '-status" style="font-size:10px;color:#8a8a9a;"></span>'
+        + '</div></div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + Math.max(rect.left - 100, 8) + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    if (webhookUrl) {
+      const input = document.getElementById(CALENDAR_POPUP_ID + '-input');
+      const sendBtn = document.getElementById(CALENDAR_POPUP_ID + '-send');
+      const statusEl = document.getElementById(CALENDAR_POPUP_ID + '-status');
+      function validateInput() {
+        if (!input) return null;
+        const raw = input.value.trim();
+        if (!raw) return null;
+        try {
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return null;
+          for (const item of parsed) { if (typeof item.week !== 'string' || !Array.isArray(item.events)) return null; }
+          return raw;
+        } catch(e) { return null; }
+      }
+      if (input) {
+        input.addEventListener('input', () => {
+          const valid = validateInput();
+          if (sendBtn) { sendBtn.disabled = !valid; sendBtn.style.opacity = valid ? '0.9' : '0.5'; }
+          if (statusEl) { statusEl.textContent = input.value.trim() && !valid ? 'Invalid JSON schema' : ''; statusEl.style.color = '#c45c4c'; }
+        });
+      }
+      if (sendBtn) {
+        sendBtn.addEventListener('click', () => {
+          const body = validateInput();
+          if (!body) return;
+          sendBtn.disabled = true; sendBtn.style.opacity = '0.5';
+          if (statusEl) { statusEl.textContent = 'Sending…'; statusEl.style.color = '#8a8a9a'; }
+          GM_xmlhttpRequest({
+            method: 'POST', url: webhookUrl,
+            headers: { 'Content-Type': 'application/json' },
+            data: body,
+            onload: function(r) {
+              if (r.status >= 200 && r.status < 300) {
+                if (statusEl) { statusEl.textContent = '✓ Sent'; statusEl.style.color = '#4ade80'; }
+                if (input) input.value = '';
+                sendBtn.disabled = true; sendBtn.style.opacity = '0.5';
+              } else {
+                if (statusEl) { statusEl.textContent = '✗ HTTP ' + r.status; statusEl.style.color = '#f87171'; }
+                sendBtn.disabled = false; sendBtn.style.opacity = '0.9';
+              }
+            },
+            onerror: function() {
+              if (statusEl) { statusEl.textContent = '✗ Network error'; statusEl.style.color = '#f87171'; }
+              sendBtn.disabled = false; sendBtn.style.opacity = '0.9';
+            }
+          });
+        });
+      }
+    }
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
   }
 
   // =========================================================================
@@ -2314,12 +2398,13 @@
       failuresBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 2L1.5 13h13L8 2z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       failuresBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleFailuresPopup(failuresBadge); });
       bar.appendChild(failuresBadge);
-      const billingBadge = document.createElement('span');
-      billingBadge.id = UTILBAR_ID + '-billing';
-      billingBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
-      billingBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><circle cx="8" cy="8" r="6.3" stroke="currentColor" fill="none" stroke-width="1.3"/><path d="M8 4.6V8l2.4 1.4" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
-      billingBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleBillingPopup(billingBadge); });
-      bar.appendChild(billingBadge);
+      const calendarBtn = document.createElement('span');
+      calendarBtn.id = UTILBAR_ID + '-calendar';
+      calendarBtn.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      calendarBtn.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="7" x2="14" y2="7" stroke="currentColor" stroke-width="1.1"/></svg>';
+      calendarBtn.title = 'Calendar webhook';
+      calendarBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleCalendarPopup(calendarBtn); });
+      bar.appendChild(calendarBtn);
       const refreshBtn = document.createElement('span');
       refreshBtn.id = UTILBAR_ID + '-refresh';
       refreshBtn.dataset.tmUi = '1';
@@ -2336,6 +2421,12 @@
         setTimeout(() => { if (svg) svg.style.animation = ''; }, 600);
       });
       bar.appendChild(refreshBtn);
+      const billingBadge = document.createElement('span');
+      billingBadge.id = UTILBAR_ID + '-billing';
+      billingBadge.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
+      billingBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><circle cx="8" cy="8" r="6.3" stroke="currentColor" fill="none" stroke-width="1.3"/><path d="M8 4.6V8l2.4 1.4" stroke="currentColor" fill="none" stroke-width="1.4" stroke-linecap="round"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
+      billingBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleBillingPopup(billingBadge); });
+      bar.appendChild(billingBadge);
       document.body.appendChild(bar);
     }
     bar.style.display = 'flex';
@@ -2442,6 +2533,15 @@
       }
     }
 
+    const calendarEl = document.getElementById(UTILBAR_ID + '-calendar');
+    if (calendarEl) {
+      const hasUrl = !!GM_getValue(CALENDAR_WEBHOOK_GM, '');
+      const cSvg = calendarEl.querySelector('svg');
+      calendarEl.style.opacity = hasUrl ? '0.5' : '0.3';
+      if (cSvg) cSvg.style.color = hasUrl ? '#4a9a7a' : '#8a8a9a';
+      calendarEl.title = hasUrl ? 'Calendar webhook' : 'Calendar webhook (no URL configured)';
+    }
+
     const billingEl = document.getElementById(UTILBAR_ID + '-billing');
     if (billingEl) {
       const bData = getBillingData();
@@ -2469,7 +2569,7 @@
     }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(BILLING_POPUP_ID)?.remove(); document.getElementById(RESEARCH_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(BILLING_POPUP_ID)?.remove(); document.getElementById(RESEARCH_POPUP_ID)?.remove(); document.getElementById(CALENDAR_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');
@@ -2762,6 +2862,7 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
       GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = S.ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); GM_setValue('account_pin', cur); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); S.actionAudioEnabled = v; });
       GM_registerMenuCommand('Claude Themes: set GitHub token', () => { const cur = GM_getValue('github_pat', ''); const t = prompt('GitHub PAT (repo read)' + (cur ? ' [set]' : ' [not set]') + ':'); if (t !== null) GM_setValue('github_pat', t.trim()); });
+      GM_registerMenuCommand('Claude Themes: set calendar webhook', () => { const cur = GM_getValue('calendar_webhook_url', ''); const u = prompt('Calendar webhook URL' + (cur ? ' [set]' : ' [not set]') + ':'); if (u !== null) GM_setValue('calendar_webhook_url', u.trim()); });
     }
 
 

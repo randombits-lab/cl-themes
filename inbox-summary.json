@@ -19,8 +19,8 @@
       "research_items": []
     },
     "alfred": {
-      "total": 3,
-      "actionable": 3,
+      "total": 2,
+      "actionable": 2,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -194,10 +194,10 @@
       "research_items": []
     }
   },
-  "total": 51,
-  "actionable": 20,
+  "total": 50,
+  "actionable": 19,
   "due": 2,
   "projects_total": 1,
   "research_total": 3,
-  "updated_at": "2026-09-05T00:47:30Z"
+  "updated_at": "2026-09-05T00:47:57Z"
 }

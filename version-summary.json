@@ -1,8 +1,8 @@
 {
-  "updated_at": "2026-09-05T11:46:12Z",
+  "updated_at": "2026-09-06T08:52:57Z",
   "agents": {
     "faith": "2.3",
-    "tomoe": "4.2",
+    "tomoe": "4.3",
     "anasteria": "1.59",
     "alfred": "1.57",
     "nabu": "2.3",
@@ -21,6 +21,7 @@
     "template-builder": "1.65",
     "falx": "1.23",
     "adjutant": "1.15",
+    "chatgpt": "5.6",
     "b:50k-automation": "3.3",
     "b:ai-course": "3.3",
     "b:crossdock": "3.3",

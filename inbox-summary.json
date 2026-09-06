@@ -158,10 +158,10 @@
       "research_items": []
     },
     "vadim": {
-      "total": 3,
-      "actionable": 2,
+      "total": 0,
+      "actionable": 0,
       "due": 0,
-      "informational": 1,
+      "informational": 0,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
@@ -194,10 +194,10 @@
       "research_items": []
     }
   },
-  "total": 58,
-  "actionable": 26,
+  "total": 55,
+  "actionable": 24,
   "due": 2,
   "projects_total": 3,
   "research_total": 3,
-  "updated_at": "2026-09-06T13:23:52Z"
+  "updated_at": "2026-09-06T13:24:11Z"
 }

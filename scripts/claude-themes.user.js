@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.67.0
+// @version      6.68.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -19,11 +19,10 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.67.0';
+  const SCRIPT_VERSION = '6.68.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
-  const vurl = (u) => u ? u + (u.includes('?') ? '&' : '?') + 'v=' + SCRIPT_VERSION : u;
 
   // === Runtime flags ===
   const REDUCED_MOTION = GM_getValue('reduced_motion', false);
@@ -72,6 +71,7 @@
   const BILLING_URL = BASE + 'billing-summary.json';
   const ACTIONS_MINUTES_QUOTA = 3000; // GitHub Actions included minutes per month; 0 disables quota coloring
   const BILLING_STALE_MS = 108000000; // 30h: daily 04:45 UTC billing pipeline plus slack
+  const FETCH_MAX_AGE = { inbox: 300, reflect: 300, failures: 300, version: 900, billing: 3600 };
   const VERSION_URL = BASE + 'version-summary.json';
   const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';
   const B_PROMPT_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/projects/';
@@ -117,6 +117,8 @@
     activeNav: [],
     nullDetections: 0,
     cycleWarned: false,
+    cycleMsgs: [],
+    cycleSidePanelOpen: false,
   };
 
   const TOMOE_CHAT = BASE + 'tomoe_chat.png';
@@ -635,695 +637,6 @@
     return null;
   }
 
-  function findProjectByKey(agentId) {
-    return ALL_PROJECTS.find(p => p.id === agentId || p.registryId === agentId);
-  }
-  function resolveProjectId(agentId) {
-    const p = findProjectByKey(agentId);
-    return p ? p.id : agentId;
-  }
-
-  // =========================================================================
-  // INBOX DASHBOARD — fetches pending item counts from cl-themes
-  // =========================================================================
-
-  function fetchInboxSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: INBOX_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(INBOX_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
-  }
-
-  function getInboxData() {
-    try { const r = localStorage.getItem(INBOX_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-  }
-
-  let inboxFetched = false;
-  function ensureInboxFetch() {
-    if (inboxFetched) return;
-    inboxFetched = true;
-    fetchInboxSummary();
-  }
-
-  function formatAge(date) {
-    const ms = Date.now() - date.getTime();
-    const min = Math.floor(ms / 60000);
-    if (min < 1) return 'just now';
-    if (min < 60) return min + 'm ago';
-    const hr = Math.floor(min / 60);
-    if (hr < 24) return hr + 'h ago';
-    return Math.floor(hr / 24) + 'd ago';
-  }
-
-  function toggleInboxPopup(anchorEl) {
-    const existing = document.getElementById(INBOX_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    const data = getInboxData();
-    if (!data || !data.agents) return;
-    const popup = document.createElement('div');
-    popup.id = INBOX_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
-    const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
-    const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
-    const govEntries = entries.filter(([id]) => govMembers.includes(resolveProjectId(id)));
-    const execEntries = entries.filter(([id]) => execMembers.includes(resolveProjectId(id)));
-    const opsEntries = entries.filter(([id]) => !govMembers.includes(resolveProjectId(id)) && !execMembers.includes(resolveProjectId(id)));
-    let html = '';
-      function renderGroup(groupLabel, items, showProjects, showResearch) {
-      if (!items.length) return '';
-      const showResearchHeader = showResearch;
-      const showResearchColumn = showResearch;
-      const showResearchEnabled = showResearchColumn;
-      let headerCols = '';
-      if (showProjects || showResearchHeader) {
-        headerCols = '<span style="display:flex;gap:0;"><span style="font-size:9px;color:#8a8a9a;opacity:0.3;width:36px;text-align:right;">Tasks</span>';
-        if (showProjects) headerCols += '<span style="font-size:9px;color:#6aaccc;opacity:0.3;width:28px;text-align:right;">Proj</span>';
-        if (showResearchHeader) headerCols += '<span style="font-size:9px;color:#a080c0;opacity:0.3;width:28px;text-align:right;">Rsch</span>';
-        headerCols += '</span>';
-      }
-      let g = '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px 2px;"><span style="font-size:10px;color:#8a8a9a;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</span>' + headerCols + '</div>';
-      for (const [agentId, counts] of items) {
-        const proj = findProjectByKey(agentId);
-        const color = proj ? proj.accentColor : '#8a8a9a';
-        const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
-        const href = proj ? '/project/' + proj.projectId : '';
-        const ac = counts.actionable, tc = counts.total;
-        const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
-        const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
-        const pc = counts.projects_total || 0;
-        const rc = counts.research_count || 0;
-        const projCol = showProjects ? '<span style="color:#6aaccc;font-size:11px;font-variant-numeric:tabular-nums;width:28px;text-align:right;display:inline-block;">' + (pc > 0 ? pc : '') + '</span>' : '';
-        const rschCol = showResearchColumn ? '<span class="tm-rsch" data-agent="' + agentId + '" style="color:#a080c0;font-size:11px;font-variant-numeric:tabular-nums;width:28px;text-align:right;display:inline-block;' + (rc > 0 ? 'cursor:pointer;' : '') + '">' + (rc > 0 ? rc : '') + '</span>' : '';
-        const hasMulti = showProjects || showResearchEnabled;
-        const countsHtml = hasMulti ? '<span style="display:flex;align-items:center;"><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;min-width:36px;text-align:right;">' + countDisplay + '</span>' + projCol + rschCol + '</span>' : '<span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span>';
-        if (href) {
-          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span>' + countsHtml + '</a>';
-        } else {
-          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span>' + countsHtml + '</div>';
-        }
-      }
-      return g;
-    }
-    const hasProjects = entries.some(([, c]) => (c.projects_total || 0) > 0);
-    const hasResearch = entries.some(([, c]) => (c.research_count || 0) > 0);
-    html += renderGroup('Governance', govEntries, hasProjects, hasResearch);
-    if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Agents', opsEntries, hasProjects, hasResearch);
-    if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
-    html += renderGroup('Executors', execEntries, hasProjects, hasResearch);
-    if (data.updated_at) {
-      const age = formatAge(new Date(data.updated_at));
-      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
-      const pGrand = data.projects_total || 0;
-      const fetchAge = data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '';
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + (pGrand > 0 ? pGrand + ' proj \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + fetchAge + '</div>';
-    }
-    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
-    popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
-    popup.querySelectorAll('.tm-rsch').forEach(el => {
-      const aid = el.dataset.agent;
-      const ad = data.agents[aid];
-      if (ad && (ad.research_count || 0) > 0) {
-        el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); popup.remove(); toggleResearchPopup(aid, ad.research_items || [], anchorEl); });
-      }
-    });
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-  // =========================================================================
-  // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
-  // =========================================================================
-
-  function fetchReflectionSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: REFLECT_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(REFLECT_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
-  }
-
-  function getReflectData() {
-    try { const r = localStorage.getItem(REFLECT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-  }
-
-  let reflectFetched = false;
-  function ensureReflectFetch() {
-    if (reflectFetched) return;
-    reflectFetched = true;
-    fetchReflectionSummary();
-  }
-
-  function toggleReflectPopup(anchorEl) {
-    const existing = document.getElementById(REFLECT_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    const data = getReflectData();
-    if (!data || !data.agents) return;
-    const popup = document.createElement('div');
-    popup.id = REFLECT_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    const entries = Object.entries(data.agents).sort((a,b) => {
-      if (a[1] === 0 && b[1] > 0) return 1;
-      if (b[1] === 0 && a[1] > 0) return -1;
-      if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]);
-      return b[1] - a[1];
-    });
-    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
-    for (const [agentId, count] of entries) {
-      const proj = findProjectByKey(agentId);
-      const color = proj ? proj.accentColor : '#8a8a9a';
-      const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
-      const dim = count === 0 ? 'opacity:0.35;' : '';
-      const href = 'https://github.com/randombits-lab/agents-ecosystem/tree/main/agents/foundry/shared/reflection/' + agentId;
-      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
-    }
-    if (data.updated_at) {
-      const age = formatAge(new Date(data.updated_at));
-      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
-    }
-    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-
-  // =========================================================================
-  // CI FAILURES DASHBOARD — fetches CI failure counts from cl-themes
-  // =========================================================================
-
-  function fetchFailuresSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: FAILURES_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(FAILURES_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
-  }
-
-  function getFailuresData() {
-    try { const r = localStorage.getItem(FAILURES_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-  }
-
-  let failuresFetched = false;
-  function ensureFailuresFetch() {
-    if (failuresFetched) return;
-    failuresFetched = true;
-    fetchFailuresSummary();
-  }
-
-  function toggleFailuresPopup(anchorEl) {
-    const existing = document.getElementById(FAILURES_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    const data = getFailuresData();
-    if (!data || !data.failures) return;
-    const popup = document.createElement('div');
-    popup.id = FAILURES_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    let html = '<div style="font-size:10px;color:#e53935;padding:6px 10px 2px;opacity:0.7;letter-spacing:0.3px;text-transform:uppercase;">CI Failures</div>';
-    for (const f of data.failures) {
-      const title = String(f.title || '').replace(/[<>&"']/g, '');
-      if (f.url) {
-        html += '<a href="' + String(f.url || '').replace(/"/g, '%22') + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;"><span style="color:#e0a0a0;font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;">' + (f.date || '') + '</span></a>';
-      } else {
-        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;"><span style="color:#e0a0a0;font-size:11px;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;">' + (f.date || '') + '</span></div>';
-      }
-    }
-    if (data.total > data.failures.length) {
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:2px 10px;">+ ' + (data.total - data.failures.length) + ' more</div>';
-    }
-    if (data.updated_at) {
-      const age = formatAge(new Date(data.updated_at));
-      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + data.total + ' total \u00b7 ' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
-    }
-    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:360px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-  // =========================================================================
-  // BILLING DASHBOARD — fetches GitHub Actions usage from cl-themes
-  // =========================================================================
-
-  function fetchBillingSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: BILLING_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(BILLING_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
-  }
-
-  function getBillingData() {
-    try { const r = localStorage.getItem(BILLING_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-  }
-
-  let billingFetched = false;
-  function ensureBillingFetch() {
-    if (billingFetched) return;
-    billingFetched = true;
-    fetchBillingSummary();
-  }
-
-  function toggleBillingPopup(anchorEl) {
-    const existing = document.getElementById(BILLING_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    const data = getBillingData();
-    if (!data || typeof data.actions_minutes_used !== 'number') return;
-    const popup = document.createElement('div');
-    popup.id = BILLING_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    const mins = Math.round(data.actions_minutes_used);
-    const pct = Math.round(data.actions_minutes_used / ACTIONS_MINUTES_QUOTA * 100) ;
-    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Actions · ' + String(data.cycle || '').replace(/[<>&"']/g, '') + '</div>';
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;"><span style="color:#c8d8e8;font-size:12px;">Minutes</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + mins + (pct !== null ? ' <span style="opacity:0.5">' + pct + '%</span>' : '') + '</span></div>';
-    for (const [repo, m] of Object.entries(data.minutes_by_repo || {})) {
-      const rname = String(repo).replace(/[<>&"']/g, '');
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 10px 2px 18px;gap:16px;"><span style="color:#8a8a9a;font-size:11px;opacity:0.8;">' + rname + '</span><span style="color:#8a8a9a;font-size:11px;font-variant-numeric:tabular-nums;">' + Math.round(m) + '</span></div>';
-    }
-    const gross = typeof data.actions_gross_usd === 'number' ? data.actions_gross_usd : 0;
-    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;border-top:1px solid #ffffff08;"><span style="color:#8a8a9a;font-size:11px;">Gross</span><span style="color:#8a8a9a;font-size:11px;font-variant-numeric:tabular-nums;">$' + gross.toFixed(2) + '</span></div>';
-    const over = (data.actions_overage_usd || 0) + (data.all_products_overage_usd || 0);
-    if (over > 0) {
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 10px;gap:16px;"><span style="color:#e0a0a0;font-size:11px;">Overage</span><span style="color:#e53935;font-size:11px;font-variant-numeric:tabular-nums;">$' + over.toFixed(2) + '</span></div>';
-    }
-    if (data.updated_at) {
-      const age = formatAge(new Date(data.updated_at));
-      const stale = (Date.now() - new Date(data.updated_at).getTime()) > BILLING_STALE_MS;
-      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' · stale' : '') + (data._fetchedAt ? ' · fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
-    }
-    popup.innerHTML = html;
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:180px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-  // =========================================================================
-  // RESEARCH POPUP — per-agent research prompt listing with clipboard copy
-  // =========================================================================
-
-  function toggleResearchPopup(agentId, items, anchorEl) {
-    const existing = document.getElementById(RESEARCH_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    if (!items.length) return;
-    const popup = document.createElement('div');
-    popup.id = RESEARCH_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    const proj = findProjectByKey(agentId);
-    const color = proj ? proj.accentColor : '#a080c0';
-    const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
-    let html = '<div style="font-size:10px;color:' + color + ';padding:6px 10px 2px;opacity:0.7;letter-spacing:0.3px;text-transform:uppercase;">' + agentLabel + ' \u00b7 Research</div>';
-    for (const item of items) {
-      const title = String(item.title || item.filename || '').replace(/[<>&"']/g, '');
-      const fname = String(item.filename || '').replace(/[<>&"']/g, '');
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:8px;border-radius:3px;transition:background 0.15s;"><span style="color:#c8d8e8;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + fname + '">' + title + '</span><span class="tm-rsch-copy" data-agent="' + agentId + '" data-file="' + fname + '" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;cursor:pointer;opacity:0.5;transition:opacity 0.2s;border-radius:3px;flex-shrink:0;" title="Copy to clipboard"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg></span></div>';
-    }
-    popup.innerHTML = '<style>#' + RESEARCH_POPUP_ID + ' .tm-rsch-copy:hover{opacity:1!important;background:#ffffff10}#' + RESEARCH_POPUP_ID + ' div:hover{background:#ffffff06}</style>' + html;
-    popup.querySelectorAll('.tm-rsch-copy').forEach(btn => {
-      btn.addEventListener('click', (e) => { e.stopPropagation(); copyResearchToClipboard(btn.dataset.agent, btn.dataset.file); });
-    });
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-  function copyResearchToClipboard(agentId, filename) {
-    const pat = GM_getValue('github_pat', '');
-    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
-    const url = INBOXES_RAW_BASE + encodeURIComponent(agentId) + '/research/' + encodeURIComponent(filename);
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: url,
-      headers: { 'Authorization': 'Bearer ' + pat },
-      onload: function(r) {
-        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
-        navigator.clipboard.writeText(r.responseText).then(
-          () => showPromptToast('Research prompt copied', true),
-          () => showPromptToast('Clipboard write failed', false)
-        );
-      },
-      onerror: function() { showPromptToast('Network error', false); }
-    });
-  }
-
-  // =========================================================================
-  // CALENDAR WEBHOOK — paste JSON, POST to Power Automate
-  // =========================================================================
-
-  function toggleCalendarPopup(anchorEl) {
-    const existing = document.getElementById(CALENDAR_POPUP_ID);
-    if (existing) { existing.remove(); return; }
-    const popup = document.createElement('div');
-    popup.id = CALENDAR_POPUP_ID;
-    popup.dataset.tmUi = '1';
-    const rect = anchorEl.getBoundingClientRect();
-    const webhookUrl = GM_getValue(CALENDAR_WEBHOOK_GM, '');
-    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Calendar Webhook</div>';
-    if (!webhookUrl) {
-      html += '<div style="padding:8px 10px;font-size:11px;color:#c9a84c;">Set webhook URL via Tampermonkey menu<br><span style="opacity:0.5;font-size:10px;">→ Set Calendar Webhook URL</span></div>';
-    } else {
-      html += '<div style="padding:6px 10px;">'
-        + '<textarea id="' + CALENDAR_POPUP_ID + '-input" style="width:260px;height:120px;background:#111;border:1px solid #ffffff15;border-radius:4px;color:#c8d8e8;font-size:11px;font-family:monospace;padding:6px;resize:vertical;" placeholder="Paste calendar JSON…"></textarea>'
-        + '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">'
-        + '<button id="' + CALENDAR_POPUP_ID + '-send" type="button" style="background:#4a9a7a20;border:1px solid #4a9a7a44;color:#4a9a7a;font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;opacity:0.5;transition:all 0.2s;" disabled>Send</button>'
-        + '<span id="' + CALENDAR_POPUP_ID + '-status" style="font-size:10px;color:#8a8a9a;"></span>'
-        + '</div></div>';
-    }
-    popup.innerHTML = html;
-    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + Math.max(rect.left - 100, 8) + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
-    document.body.appendChild(popup);
-    if (webhookUrl) {
-      const input = document.getElementById(CALENDAR_POPUP_ID + '-input');
-      const sendBtn = document.getElementById(CALENDAR_POPUP_ID + '-send');
-      const statusEl = document.getElementById(CALENDAR_POPUP_ID + '-status');
-      function validateInput() {
-        if (!input) return null;
-        const raw = input.value.trim();
-        if (!raw) return null;
-        try {
-          const parsed = JSON.parse(raw);
-          if (!Array.isArray(parsed)) return null;
-          for (const item of parsed) { if (typeof item.week !== 'string' || !Array.isArray(item.events)) return null; }
-          return raw;
-        } catch(e) { return null; }
-      }
-      if (input) {
-        input.addEventListener('input', () => {
-          const valid = validateInput();
-          if (sendBtn) { sendBtn.disabled = !valid; sendBtn.style.opacity = valid ? '0.9' : '0.5'; }
-          if (statusEl) { statusEl.textContent = input.value.trim() && !valid ? 'Invalid JSON schema' : ''; statusEl.style.color = '#c45c4c'; }
-        });
-      }
-      if (sendBtn) {
-        sendBtn.addEventListener('click', () => {
-          const body = validateInput();
-          if (!body) return;
-          sendBtn.disabled = true; sendBtn.style.opacity = '0.5';
-          if (statusEl) { statusEl.textContent = 'Sending…'; statusEl.style.color = '#8a8a9a'; }
-          GM_xmlhttpRequest({
-            method: 'POST', url: webhookUrl,
-            headers: { 'Content-Type': 'application/json' },
-            data: body,
-            onload: function(r) {
-              if (r.status >= 200 && r.status < 300) {
-                if (statusEl) { statusEl.textContent = '✓ Sent'; statusEl.style.color = '#4ade80'; }
-                if (input) input.value = '';
-                sendBtn.disabled = true; sendBtn.style.opacity = '0.5';
-              } else {
-                if (statusEl) { statusEl.textContent = '✗ HTTP ' + r.status; statusEl.style.color = '#f87171'; }
-                sendBtn.disabled = false; sendBtn.style.opacity = '0.9';
-              }
-            },
-            onerror: function() {
-              if (statusEl) { statusEl.textContent = '✗ Network error'; statusEl.style.color = '#f87171'; }
-              sendBtn.disabled = false; sendBtn.style.opacity = '0.9';
-            }
-          });
-        });
-      }
-    }
-    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
-    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
-  }
-
-  // =========================================================================
-  // VERSION INDICATOR — deployed vs registry version comparison (Account A)
-  // =========================================================================
-
-  function fetchVersionSummary() {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: VERSION_URL + '?t=' + Date.now(),
-      onload: function(resp) {
-        if (resp.status === 200) {
-          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(VERSION_KEY, JSON.stringify(d)); } catch(e) {}
-        }
-      },
-      onerror: function() {}
-    });
-  }
-
-  function getVersionData() {
-    try { const r = localStorage.getItem(VERSION_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
-  }
-
-  let versionFetched = false;
-  function ensureVersionFetch() {
-    if (versionFetched) return;
-    versionFetched = true;
-    fetchVersionSummary();
-  }
-
-  function parseVersionFromCard() {
-    for (const el of document.querySelectorAll('div, span, h2, h3, p, button')) {
-      if (el.children.length > 0) continue;
-      if ((el.textContent || '').trim() !== 'Instructions') continue;
-      let card = el.parentElement;
-      while (card && card !== document.body && (card.textContent || '').length < 200) card = card.parentElement;
-      if (!card || card === document.body) continue;
-      const full = card.textContent || '';
-      const idx = full.indexOf('Instructions');
-      if (idx === -1) continue;
-      const header = full.substring(idx + 12, idx + 112).trim();
-      const m = header.match(/\|v(\d+\.\d+)\|/);
-      return m ? m[1] : null;
-    }
-    return null;
-  }
-
-  function refreshVersionIndicator(project) {
-    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-    if (!container) return;
-    const fieldset = container.querySelector('fieldset');
-    if (!fieldset) return;
-    const vData = getVersionData();
-    let regId;
-    if (project.account === 'B') {
-      regId = 'b:' + project.id;
-    } else {
-      regId = (project.registryId && vData && vData.agents && project.registryId in vData.agents)
-        ? project.registryId : project.id;
-    }
-    if (!vData || !vData.agents || !vData.agents[regId]) {
-      fieldset.removeAttribute('data-tm-version');
-      fieldset.title = '';
-      return;
-    }
-    const registryVersion = vData.agents[regId];
-    const cardVersion = parseVersionFromCard();
-    if (!cardVersion) {
-      if (project.account === 'B') {
-        fieldset.setAttribute('data-tm-version', 'mismatch');
-        fieldset.title = 'No |v...| token — registry: v' + registryVersion + '. Copy latest to update.';
-        return;
-      }
-      fieldset.setAttribute('data-tm-version', 'missing');
-      fieldset.title = 'No |v...| token in prompt \u2014 registry: v' + registryVersion;
-      return;
-    }
-    if (cardVersion === registryVersion) {
-      fieldset.removeAttribute('data-tm-version');
-      fieldset.title = 'v' + cardVersion + ' \u2014 current';
-      return;
-    }
-    fieldset.setAttribute('data-tm-version', 'mismatch');
-    fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
-  }
-
-
-  // =========================================================================
-  // PROMPT CLIPBOARD COPY — fetch + copy agent prompt from GitHub
-  // =========================================================================
-
-  function showPromptToast(msg, ok) {
-    const tid = PROMPT_COPY_ID + '-toast';
-    const ex = document.getElementById(tid); if (ex) ex.remove();
-    const t = document.createElement('div');
-    t.id = tid; t.dataset.tmUi = '1'; t.textContent = msg;
-    t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:' + (ok ? '#1a3a1a' : '#3a1a1a') + ';color:' + (ok ? '#4ade80' : '#f87171') + ';font-size:12px;padding:6px 14px;border-radius:6px;z-index:10001;pointer-events:none;opacity:0;transition:opacity 300ms;';
-    document.body.appendChild(t);
-    requestAnimationFrame(() => { t.style.opacity = '1'; });
-    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
-  }
-
-  function copyPromptToClipboard(project) {
-    const pat = GM_getValue('github_pat', '');
-    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
-    let url;
-    if (project.account === 'B') {
-      url = B_PROMPT_BASE + project.id + '/project-instructions.md';
-    } else {
-      const vData = getVersionData();
-      const ecoId = (project.registryId && vData && vData.agents && project.registryId in vData.agents)
-        ? project.registryId : project.id;
-      url = AGENTS_RAW_BASE + ecoId + '/current-prompt.md';
-    }
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: url,
-      headers: { 'Authorization': 'Bearer ' + pat },
-      onload: function(r) {
-        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
-        let text = r.responseText;
-        const fm = text.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/);
-        if (fm) text = text.substring(fm[0].length);
-        text = text.trim();
-        const hm = text.match(/^#\s/m);
-        if (hm && hm.index > 0) text = text.substring(hm.index);
-        navigator.clipboard.writeText(text).then(
-          () => showPromptToast('Copied to clipboard', true),
-          () => showPromptToast('Clipboard write failed', false)
-        );
-      },
-      onerror: function() { showPromptToast('Network error', false); }
-    });
-  }
-
-  function managePromptCopyButton(project) {
-    const stale = document.getElementById(PROMPT_COPY_ID);
-    if (stale && !stale.closest('[role="dialog"]')) stale.remove();
-    const dialog = document.querySelector('[role="dialog"]');
-    if (!dialog) return;
-    if (dialog.querySelector('#' + PROMPT_COPY_ID)) return;
-    let isInstr = false;
-    for (const el of dialog.querySelectorAll('h2, h3')) {
-      if (/set project instructions/i.test((el.textContent || '').trim())) { isInstr = true; break; }
-    }
-    if (!isInstr) return;
-    if (!project) {
-      const m = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
-      if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
-    }
-    if (!project) return;
-    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
-    const fs = container && container.querySelector('fieldset');
-    if (!fs || fs.getAttribute('data-tm-version') !== 'mismatch') return;
-    if (!GM_getValue('github_pat', '')) return;
-    let saveBtn = null;
-    for (const b of dialog.querySelectorAll('button')) {
-      if (/save instructions/i.test((b.textContent || '').trim())) { saveBtn = b; break; }
-    }
-    if (!saveBtn || !saveBtn.parentElement) return;
-    const footer = saveBtn.parentElement;
-    const btn = document.createElement('button');
-    btn.id = PROMPT_COPY_ID; btn.type = 'button';
-    btn.title = 'Copy latest prompt from GitHub';
-    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
-    btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;margin-right:auto;';
-    btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
-    btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });
-    btn.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); copyPromptToClipboard(project); });
-    footer.insertBefore(btn, footer.firstChild);
-  }
-
-  // managePersonaCopyButton is invoked by observer.js when dialogs change.
-  function copyPersonaToClipboard(project, filename) {
-    const pat = GM_getValue('github_pat', '');
-    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
-    const projectUrl = B_PROMPT_BASE + project.id + '/' + encodeURIComponent(filename);
-    const sharedUrl = B_SHARED_BASE + encodeURIComponent(filename);
-    fetchPersonaWithFallback(projectUrl, sharedUrl, pat, filename);
-  }
-
-  function fetchPersonaWithFallback(url, fallbackUrl, pat, filename) {
-    GM_xmlhttpRequest({
-      method: 'GET',
-      url: url,
-      headers: { 'Authorization': 'Bearer ' + pat },
-      onload: function(r) {
-        if (r.status === 200) {
-          const blob = new Blob([r.responseText], { type: 'text/markdown;charset=utf-8' });
-          const dl = URL.createObjectURL(blob);
-          const a = document.createElement('a'); a.href = dl; a.download = filename;
-          document.body.appendChild(a); a.click(); a.remove();
-          URL.revokeObjectURL(dl);
-          showPromptToast('Persona downloaded', true);
-        } else if (fallbackUrl) {
-          fetchPersonaWithFallback(fallbackUrl, null, pat, filename);
-        } else {
-          showPromptToast('Fetch failed (' + r.status + ')', false);
-        }
-      },
-      onerror: function() {
-        if (fallbackUrl) fetchPersonaWithFallback(fallbackUrl, null, pat, filename);
-        else showPromptToast('Network error', false);
-      }
-    });
-  }
-
-  function managePersonaCopyButton(project) {
-    if (S.ACCOUNT !== 'B') return;
-    const dialog = document.querySelector('[role="dialog"]');
-    if (!dialog) return;
-    if (dialog.querySelector('#' + PERSONA_COPY_ID)) return;
-    const h2 = dialog.querySelector('h2');
-    if (!h2) return;
-    const filename = h2.textContent.trim();
-    if (!/_Persona\.md$/i.test(filename)) return;
-    if (!project) {
-      const m = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
-      if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
-    }
-    if (!project) return;
-    if (!GM_getValue('github_pat', '')) return;
-    const nameWrap = h2.closest('div');
-    if (!nameWrap) return;
-    const headerRow = nameWrap.parentElement;
-    if (!headerRow) return;
-    const btn = document.createElement('button');
-    btn.id = PERSONA_COPY_ID; btn.type = 'button';
-    btn.title = 'Download latest persona from GitHub';
-    btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="10" x2="12" y2="3"/></svg>';
-    btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;';
-    btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
-    btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });
-    btn.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); copyPersonaToClipboard(project, filename); });
-    const closeBtn = headerRow.querySelector('button[aria-label="Close"]');
-    if (closeBtn) headerRow.insertBefore(btn, closeBtn);
-    else headerRow.appendChild(btn);
-  }
-
   function mix(c, p) { return `color-mix(in srgb, ${c} ${p}%, transparent)`; }
 
   const DISC_PHRASE = 'can make mistakes';
@@ -1362,23 +675,20 @@
     rng.selectNodeContents(t);
     const rect = rng.getBoundingClientRect();
     if (rect.width < 100 || rect.height < 8) { cachedDiscText = null; return null; }
-    let bg = 'rgba(0, 0, 0, 0)';
     let strip = t.parentElement;
     let stripW = strip ? strip.getBoundingClientRect().width : 0;
     let n = t.parentElement;
     let depth = 0;
-    while (n && n !== document.documentElement) {
-      if (depth < 6 && n !== document.body) {
+    while (n && n !== document.documentElement && depth < 6) {
+      if (n !== document.body) {
         const nr = n.getBoundingClientRect();
         if (nr.height <= 50 && nr.width >= stripW) { strip = n; stripW = nr.width; }
-        else if (nr.height > 50) depth = 6;
+        else if (nr.height > 50) break;
       }
-      const c = getComputedStyle(n).backgroundColor;
-      if (c && c !== 'rgba(0, 0, 0, 0)' && c !== 'transparent') { bg = c; break; }
       n = n.parentElement;
       depth++;
     }
-    return { rect, bg, strip, discChild: t.parentElement || null };
+    return { rect, strip, discChild: t.parentElement || null };
   }
 
   function getMessageNodes(scope) {
@@ -1422,7 +732,6 @@
 
   function swapCharacterImage(newSrc, charEl) {
     if (!charEl) return;
-    newSrc = vurl(newSrc);
     const current = charEl.querySelector('img.is-active');
     const staging = charEl.querySelector('img:not(.is-active)');
     if (!current || !staging) return;
@@ -1511,8 +820,8 @@
   }
 
   function preloadVoiceImages(project) {
-    if (project.voices) for (const v of Object.values(project.voices)) { if (v.characterUrl) new Image().src = vurl(v.characterUrl); }
-    if (project.voiceCombos) for (const c of Object.values(project.voiceCombos)) { if (c.characterUrl) new Image().src = vurl(c.characterUrl); }
+    if (project.voices) for (const v of Object.values(project.voices)) { if (v.characterUrl) new Image().src = v.characterUrl; }
+    if (project.voiceCombos) for (const c of Object.values(project.voiceCombos)) { if (c.characterUrl) new Image().src = c.characterUrl; }
   }
 
   function colorVoiceText(project) {
@@ -1579,7 +888,7 @@
     if (isNew || changed) charEl.style.cssText = `position:fixed;pointer-events:none;z-index:-1;user-select:none;height:${sprite.characterHeight||'76vh'};width:auto;bottom:${sprite.characterBottom||'-100px'};right:${sprite.characterRight||'-200px'};`;
     if (isNew) {
       const first = charEl.querySelector('img[data-layer="a"]');
-      first.src = vurl(sprite.characterUrl);
+      first.src = sprite.characterUrl;
       first.classList.add('is-active');
       charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards';
     } else if (changed) {
@@ -1627,7 +936,7 @@
 
   function preloadStateImages(project) {
     if (!project.states) return;
-    for (const s of Object.values(project.states)) { if (s.characterUrl) new Image().src = vurl(s.characterUrl); }
+    for (const s of Object.values(project.states)) { if (s.characterUrl) new Image().src = s.characterUrl; }
   }
 
   function refreshStateCharacter(project) {
@@ -1653,7 +962,7 @@
   // PERSONA-BASED CHARACTER (B-account title-prefix projects)
   // =========================================================================
   function preloadPersonaImages(personas) {
-    for (const p of Object.values(personas)) { if (p.characterUrl) new Image().src = vurl(p.characterUrl); }
+    for (const p of Object.values(personas)) { if (p.characterUrl) new Image().src = p.characterUrl; }
   }
 
   function applyPersonaState(project, personaKey, persona) {
@@ -1682,7 +991,7 @@
       + 'right:' + (persona.characterRight || '-180px') + ';';
     if (isNew) {
       const first = charEl.querySelector('img[data-layer="a"]');
-      first.src = vurl(persona.characterUrl);
+      first.src = persona.characterUrl;
       first.classList.add('is-active');
       charEl.style.opacity = '0'; charEl.style.animation = 'thm-char-in 400ms ease-out 150ms forwards';
     } else if (changed) {
@@ -1701,7 +1010,7 @@
         if (!p.projectId || !p.card) continue;
         const sel = `a[href*="/project/${p.projectId}"]`;
         if (p.card.imageUrl) {
-          css += `${sel}{background:url("${vurl(p.card.imageUrl)}") center/cover no-repeat !important;border:1px solid ${mix(p.accentColor, 25)} !important;position:relative !important;overflow:hidden !important;}`;
+          css += `${sel}{background:url("${p.card.imageUrl}") center/cover no-repeat !important;border:1px solid ${mix(p.accentColor, 25)} !important;position:relative !important;overflow:hidden !important;}`;
           css += `${sel}::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.35) 40%,rgba(0,0,0,.45) 65%,rgba(0,0,0,.78) 100%);pointer-events:none;border-radius:inherit;z-index:0;}`;
           css += `${sel}>*{position:relative !important;z-index:1 !important;}`;
         } else { css += `${sel}{border:1px solid ${mix(p.accentColor, 20)} !important;}`; }
@@ -1816,7 +1125,7 @@
         css += 'ul.tm-ctx-hide-' + cat.id + ' [data-tm-ctx-group="' + cat.id + '"]{display:none !important}';
         if (cat.imageUrl) {
           css += '[data-tm-ctx-group="' + cat.id + '"] button.rounded-lg{'
-            + 'background:linear-gradient(180deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,.3) 40%,rgba(0,0,0,.4) 65%,rgba(0,0,0,.7) 100%),url("' + vurl(cat.imageUrl) + '") center/cover no-repeat !important;'
+            + 'background:linear-gradient(180deg,rgba(0,0,0,.6) 0%,rgba(0,0,0,.3) 40%,rgba(0,0,0,.4) 65%,rgba(0,0,0,.7) 100%),url("' + cat.imageUrl + '") center/cover no-repeat !important;'
             + 'border-color:' + cat.color + '40 !important;}';
         }
       }
@@ -2026,13 +1335,18 @@
     const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
     if (!container) return;
     const ATTR = 'data-lane-tinted';
+    const msgs = S.cycleMsgs;
     for (const pre of container.querySelectorAll('pre')) {
       if (pre.hasAttribute(ATTR)) continue;
       const code = pre.querySelector('code');
       if (!code) continue;
       const firstLine = (code.textContent || '').split('\n')[0].trim();
       const match = firstLine.match(/^\[(?:.*?Worktree:\s*(\S+)\s*\.)?.+?(?:Terminal|Sonnet|Opus)\s*[.\]]/i);
-      if (!match) continue;
+      if (!match) {
+        const lastMsg = msgs.length ? msgs[msgs.length - 1].el : null;
+        if (!lastMsg || !lastMsg.contains(pre)) pre.setAttribute(ATTR, 'none');
+        continue;
+      }
       let color, laneId;
       let tNum = null;
       const ti = firstLine.match(/\.\s*T(\d+)\s*\./);
@@ -2068,11 +1382,16 @@
     if (!window.location.pathname.includes('/chat/')) return;
     const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
     if (!container) return;
+    const msgs = S.cycleMsgs;
     for (const p of container.querySelectorAll('p')) {
       if (p.hasAttribute(OB_ATTR)) continue;
       const text = (p.textContent || '').trim();
       const m = text.match(OB_RE);
-      if (!m) continue;
+      if (!m) {
+        const lastMsg = msgs.length ? msgs[msgs.length - 1].el : null;
+        if (!lastMsg || !lastMsg.contains(p)) p.setAttribute(OB_ATTR, 'none');
+        continue;
+      }
       p.setAttribute(OB_ATTR, m[1].toLowerCase());
     }
   }
@@ -2189,6 +1508,640 @@
     const closeBtn = headerRow.querySelector('button[aria-label="Close"]');
     if (closeBtn) headerRow.insertBefore(ctr, closeBtn);
     else headerRow.appendChild(ctr);
+  }
+
+  function findProjectByKey(agentId) {
+    return ALL_PROJECTS.find(p => p.id === agentId || p.registryId === agentId);
+  }
+  function resolveProjectId(agentId) {
+    const p = findProjectByKey(agentId);
+    return p ? p.id : agentId;
+  }
+
+  function doFetch(url, key) {
+    const etag = localStorage.getItem(key + ':etag') || '';
+    const headers = {};
+    if (etag) headers['If-None-Match'] = etag;
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      headers: headers,
+      onload: function(resp) {
+        if (resp.status === 304) {
+          try { const d = JSON.parse(localStorage.getItem(key) || '{}'); d._fetchedAt = Date.now(); localStorage.setItem(key, JSON.stringify(d)); } catch(e) {}
+          return;
+        }
+        if (resp.status === 200) {
+          try { const d = JSON.parse(resp.responseText); d._fetchedAt = Date.now(); localStorage.setItem(key, JSON.stringify(d)); } catch(e) {}
+          const rh = resp.responseHeaders || '';
+          const em = rh.match(/etag:\s*"?([^"\r\n]+)"?/i);
+          if (em) localStorage.setItem(key + ':etag', em[1]);
+        }
+      },
+      onerror: function() {}
+    });
+  }
+
+  function fetchIfDue(url, key, maxAge) {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        const d = JSON.parse(raw);
+        if (d._fetchedAt && (Date.now() - d._fetchedAt) < maxAge * 1000) return;
+      }
+    } catch(e) {}
+    doFetch(url, key);
+  }
+
+  // =========================================================================
+  // INBOX DASHBOARD — fetches pending item counts from cl-themes
+  // =========================================================================
+
+  function fetchInboxSummary() { doFetch(INBOX_URL, INBOX_KEY); }
+
+  function getInboxData() {
+    try { const r = localStorage.getItem(INBOX_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  function formatAge(date) {
+    const ms = Date.now() - date.getTime();
+    const min = Math.floor(ms / 60000);
+    if (min < 1) return 'just now';
+    if (min < 60) return min + 'm ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    return Math.floor(hr / 24) + 'd ago';
+  }
+
+  function toggleInboxPopup(anchorEl) {
+    const existing = document.getElementById(INBOX_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getInboxData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = INBOX_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).map(([id, v]) => [id, typeof v === 'object' ? v : { total: v, actionable: v }]).sort((a,b) => { const at = a[1].total, bt = b[1].total, aa = a[1].actionable, ba = b[1].actionable; if (at === 0 && bt > 0) return 1; if (bt === 0 && at > 0) return -1; if (at === 0 && bt === 0) return a[0].localeCompare(b[0]); if (aa !== ba) return ba - aa; return bt - at; });
+    const govMembers = PROJECT_GROUPS.find(g => g.id === 'governance')?.members || [];
+    const execMembers = PROJECT_GROUPS.find(g => g.id === 'executors')?.members || [];
+    const govEntries = entries.filter(([id]) => govMembers.includes(resolveProjectId(id)));
+    const execEntries = entries.filter(([id]) => execMembers.includes(resolveProjectId(id)));
+    const opsEntries = entries.filter(([id]) => !govMembers.includes(resolveProjectId(id)) && !execMembers.includes(resolveProjectId(id)));
+    let html = '';
+      function renderGroup(groupLabel, items, showProjects, showResearch) {
+      if (!items.length) return '';
+      const showResearchHeader = showResearch;
+      const showResearchColumn = showResearch;
+      const showResearchEnabled = showResearchColumn;
+      let headerCols = '';
+      if (showProjects || showResearchHeader) {
+        headerCols = '<span style="display:flex;gap:0;"><span style="font-size:9px;color:#8a8a9a;opacity:0.3;width:36px;text-align:right;">Tasks</span>';
+        if (showProjects) headerCols += '<span style="font-size:9px;color:#6aaccc;opacity:0.3;width:28px;text-align:right;">Proj</span>';
+        if (showResearchHeader) headerCols += '<span style="font-size:9px;color:#a080c0;opacity:0.3;width:28px;text-align:right;">Rsch</span>';
+        headerCols += '</span>';
+      }
+      let g = '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 10px 2px;"><span style="font-size:10px;color:#8a8a9a;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">' + groupLabel + '</span>' + headerCols + '</div>';
+      for (const [agentId, counts] of items) {
+        const proj = findProjectByKey(agentId);
+        const color = proj ? proj.accentColor : '#8a8a9a';
+        const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+        const href = proj ? '/project/' + proj.projectId : '';
+        const ac = counts.actionable, tc = counts.total;
+        const dim = tc === 0 ? 'opacity:0.35;' : (ac === 0 ? 'opacity:0.5;' : '');
+        const countDisplay = tc === 0 ? '' : (ac === tc ? String(ac) : ac + '<span style="opacity:0.4">/' + tc + '</span>');
+        const pc = counts.projects_total || 0;
+        const rc = counts.research_count || 0;
+        const projCol = showProjects ? '<span style="color:#6aaccc;font-size:11px;font-variant-numeric:tabular-nums;width:28px;text-align:right;display:inline-block;">' + (pc > 0 ? pc : '') + '</span>' : '';
+        const rschCol = showResearchColumn ? '<span class="tm-rsch" data-agent="' + agentId + '" style="color:#a080c0;font-size:11px;font-variant-numeric:tabular-nums;width:28px;text-align:right;display:inline-block;' + (rc > 0 ? 'cursor:pointer;' : '') + '">' + (rc > 0 ? rc : '') + '</span>' : '';
+        const hasMulti = showProjects || showResearchEnabled;
+        const countsHtml = hasMulti ? '<span style="display:flex;align-items:center;"><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;min-width:36px;text-align:right;">' + countDisplay + '</span>' + projCol + rschCol + '</span>' : '<span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + countDisplay + '</span>';
+        if (href) {
+          g += '<a href="' + href + '" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span>' + countsHtml + '</a>';
+        } else {
+          g += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span>' + countsHtml + '</div>';
+        }
+      }
+      return g;
+    }
+    const hasProjects = entries.some(([, c]) => (c.projects_total || 0) > 0);
+    const hasResearch = entries.some(([, c]) => (c.research_count || 0) > 0);
+    html += renderGroup('Governance', govEntries, hasProjects, hasResearch);
+    if (govEntries.length && opsEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Agents', opsEntries, hasProjects, hasResearch);
+    if ((govEntries.length || opsEntries.length) && execEntries.length) html += '<div style="border-top:1px solid #ffffff08;margin:2px 0;"></div>';
+    html += renderGroup('Executors', execEntries, hasProjects, hasResearch);
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      const dTotal = typeof data.actionable === 'number' ? data.actionable + '/' + data.total : '';
+      const pGrand = data.projects_total || 0;
+      const fetchAge = data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '';
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + (dTotal ? dTotal + ' \u00b7 ' : '') + (pGrand > 0 ? pGrand + ' proj \u00b7 ' : '') + age + (stale ? ' \u00b7 stale' : '') + fetchAge + '</div>';
+    }
+    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
+    popup.querySelectorAll('a').forEach(a => { a.addEventListener('click', () => popup.remove()); });
+    popup.querySelectorAll('.tm-rsch').forEach(el => {
+      const aid = el.dataset.agent;
+      const ad = data.agents[aid];
+      if (ad && (ad.research_count || 0) > 0) {
+        el.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); popup.remove(); toggleResearchPopup(aid, ad.research_items || [], anchorEl); });
+      }
+    });
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // REFLECTION DASHBOARD — fetches session reflection counts from cl-themes
+  // =========================================================================
+
+  function fetchReflectionSummary() { doFetch(REFLECT_URL, REFLECT_KEY); }
+
+  function getReflectData() {
+    try { const r = localStorage.getItem(REFLECT_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  function toggleReflectPopup(anchorEl) {
+    const existing = document.getElementById(REFLECT_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getReflectData();
+    if (!data || !data.agents) return;
+    const popup = document.createElement('div');
+    popup.id = REFLECT_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const entries = Object.entries(data.agents).sort((a,b) => {
+      if (a[1] === 0 && b[1] > 0) return 1;
+      if (b[1] === 0 && a[1] > 0) return -1;
+      if (a[1] === 0 && b[1] === 0) return a[0].localeCompare(b[0]);
+      return b[1] - a[1];
+    });
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Reflections</div>';
+    for (const [agentId, count] of entries) {
+      const proj = findProjectByKey(agentId);
+      const color = proj ? proj.accentColor : '#8a8a9a';
+      const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+      const dim = count === 0 ? 'opacity:0.35;' : '';
+      const href = 'https://github.com/randombits-lab/agents-ecosystem/tree/main/agents/foundry/shared/reflection/' + agentId;
+      html += '<a href="' + href + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;' + dim + '"><span style="color:' + color + ';font-size:12px;">' + agentLabel + '</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + count + '</span></a>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
+    }
+    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+
+  // =========================================================================
+  // CI FAILURES DASHBOARD — fetches CI failure counts from cl-themes
+  // =========================================================================
+
+  function fetchFailuresSummary() { doFetch(FAILURES_URL, FAILURES_KEY); }
+
+  function getFailuresData() {
+    try { const r = localStorage.getItem(FAILURES_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  function toggleFailuresPopup(anchorEl) {
+    const existing = document.getElementById(FAILURES_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getFailuresData();
+    if (!data || !data.failures) return;
+    const popup = document.createElement('div');
+    popup.id = FAILURES_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    let html = '<div style="font-size:10px;color:#e53935;padding:6px 10px 2px;opacity:0.7;letter-spacing:0.3px;text-transform:uppercase;">CI Failures</div>';
+    for (const f of data.failures) {
+      const title = String(f.title || '').replace(/[<>&"']/g, '');
+      if (f.url) {
+        html += '<a href="' + String(f.url || '').replace(/"/g, '%22') + '" target="_blank" style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;text-decoration:none;border-radius:3px;transition:background 0.15s;cursor:pointer;"><span style="color:#e0a0a0;font-size:11px;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;font-variant-numeric:tabular-nums;white-space:nowrap;">' + (f.date || '') + '</span></a>';
+      } else {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;"><span style="color:#e0a0a0;font-size:11px;">' + title + '</span><span style="color:#8a8a9a;font-size:10px;">' + (f.date || '') + '</span></div>';
+      }
+    }
+    if (data.total > data.failures.length) {
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:2px 10px;">+ ' + (data.total - data.failures.length) + ' more</div>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > 86400000;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + data.total + ' total \u00b7 ' + age + (stale ? ' \u00b7 stale' : '') + (data._fetchedAt ? ' \u00b7 fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
+    }
+    popup.innerHTML = '<style>#' + popup.id + ' a:hover{background:#ffffff08}</style>' + html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:360px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // BILLING DASHBOARD — fetches GitHub Actions usage from cl-themes
+  // =========================================================================
+
+  function fetchBillingSummary() { doFetch(BILLING_URL, BILLING_KEY); }
+
+  function getBillingData() {
+    try { const r = localStorage.getItem(BILLING_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  function toggleBillingPopup(anchorEl) {
+    const existing = document.getElementById(BILLING_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const data = getBillingData();
+    if (!data || typeof data.actions_minutes_used !== 'number') return;
+    const popup = document.createElement('div');
+    popup.id = BILLING_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const mins = Math.round(data.actions_minutes_used);
+    const pct = Math.round(data.actions_minutes_used / ACTIONS_MINUTES_QUOTA * 100) ;
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Actions · ' + String(data.cycle || '').replace(/[<>&"']/g, '') + '</div>';
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;"><span style="color:#c8d8e8;font-size:12px;">Minutes</span><span style="color:#8a8a9a;font-size:12px;font-variant-numeric:tabular-nums;">' + mins + (pct !== null ? ' <span style="opacity:0.5">' + pct + '%</span>' : '') + '</span></div>';
+    for (const [repo, m] of Object.entries(data.minutes_by_repo || {})) {
+      const rname = String(repo).replace(/[<>&"']/g, '');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 10px 2px 18px;gap:16px;"><span style="color:#8a8a9a;font-size:11px;opacity:0.8;">' + rname + '</span><span style="color:#8a8a9a;font-size:11px;font-variant-numeric:tabular-nums;">' + Math.round(m) + '</span></div>';
+    }
+    const gross = typeof data.actions_gross_usd === 'number' ? data.actions_gross_usd : 0;
+    html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:16px;border-top:1px solid #ffffff08;"><span style="color:#8a8a9a;font-size:11px;">Gross</span><span style="color:#8a8a9a;font-size:11px;font-variant-numeric:tabular-nums;">$' + gross.toFixed(2) + '</span></div>';
+    const over = (data.actions_overage_usd || 0) + (data.all_products_overage_usd || 0);
+    if (over > 0) {
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:2px 10px;gap:16px;"><span style="color:#e0a0a0;font-size:11px;">Overage</span><span style="color:#e53935;font-size:11px;font-variant-numeric:tabular-nums;">$' + over.toFixed(2) + '</span></div>';
+    }
+    if (data.updated_at) {
+      const age = formatAge(new Date(data.updated_at));
+      const stale = (Date.now() - new Date(data.updated_at).getTime()) > BILLING_STALE_MS;
+      html += '<div style="font-size:10px;color:#8a8a9a;opacity:0.4;padding:4px 10px 6px;border-top:1px solid #ffffff10;">' + age + (stale ? ' · stale' : '') + (data._fetchedAt ? ' · fetched ' + formatAge(new Date(data._fetchedAt)) : '') + '</div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:180px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // RESEARCH POPUP — per-agent research prompt listing with clipboard copy
+  // =========================================================================
+
+  function toggleResearchPopup(agentId, items, anchorEl) {
+    const existing = document.getElementById(RESEARCH_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    if (!items.length) return;
+    const popup = document.createElement('div');
+    popup.id = RESEARCH_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const proj = findProjectByKey(agentId);
+    const color = proj ? proj.accentColor : '#a080c0';
+    const agentLabel = proj ? proj.label : String(agentId).replace(/[<>&"']/g, '');
+    let html = '<div style="font-size:10px;color:' + color + ';padding:6px 10px 2px;opacity:0.7;letter-spacing:0.3px;text-transform:uppercase;">' + agentLabel + ' \u00b7 Research</div>';
+    for (const item of items) {
+      const title = String(item.title || item.filename || '').replace(/[<>&"']/g, '');
+      const fname = String(item.filename || '').replace(/[<>&"']/g, '');
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:8px;border-radius:3px;transition:background 0.15s;"><span style="color:#c8d8e8;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + fname + '">' + title + '</span><span class="tm-rsch-copy" data-agent="' + agentId + '" data-file="' + fname + '" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;cursor:pointer;opacity:0.5;transition:opacity 0.2s;border-radius:3px;flex-shrink:0;" title="Copy to clipboard"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg></span></div>';
+    }
+    popup.innerHTML = '<style>#' + RESEARCH_POPUP_ID + ' .tm-rsch-copy:hover{opacity:1!important;background:#ffffff10}#' + RESEARCH_POPUP_ID + ' div:hover{background:#ffffff06}</style>' + html;
+    popup.querySelectorAll('.tm-rsch-copy').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); copyResearchToClipboard(btn.dataset.agent, btn.dataset.file); });
+    });
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  function copyResearchToClipboard(agentId, filename) {
+    const pat = GM_getValue('github_pat', '');
+    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
+    const url = INBOXES_RAW_BASE + encodeURIComponent(agentId) + '/research/' + encodeURIComponent(filename);
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      headers: { 'Authorization': 'Bearer ' + pat },
+      onload: function(r) {
+        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
+        navigator.clipboard.writeText(r.responseText).then(
+          () => showPromptToast('Research prompt copied', true),
+          () => showPromptToast('Clipboard write failed', false)
+        );
+      },
+      onerror: function() { showPromptToast('Network error', false); }
+    });
+  }
+
+  // =========================================================================
+  // CALENDAR WEBHOOK — paste JSON, POST to Power Automate
+  // =========================================================================
+
+  function toggleCalendarPopup(anchorEl) {
+    const existing = document.getElementById(CALENDAR_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const popup = document.createElement('div');
+    popup.id = CALENDAR_POPUP_ID;
+    popup.dataset.tmUi = '1';
+    const rect = anchorEl.getBoundingClientRect();
+    const webhookUrl = GM_getValue(CALENDAR_WEBHOOK_GM, '');
+    let html = '<div style="font-size:10px;color:#8a8a9a;padding:6px 10px 2px;opacity:0.5;letter-spacing:0.3px;text-transform:uppercase;">Calendar Webhook</div>';
+    if (!webhookUrl) {
+      html += '<div style="padding:8px 10px;font-size:11px;color:#c9a84c;">Set webhook URL via Tampermonkey menu<br><span style="opacity:0.5;font-size:10px;">→ Set Calendar Webhook URL</span></div>';
+    } else {
+      html += '<div style="padding:6px 10px;">'
+        + '<textarea id="' + CALENDAR_POPUP_ID + '-input" style="width:260px;height:120px;background:#111;border:1px solid #ffffff15;border-radius:4px;color:#c8d8e8;font-size:11px;font-family:monospace;padding:6px;resize:vertical;" placeholder="Paste calendar JSON…"></textarea>'
+        + '<div style="display:flex;align-items:center;gap:8px;margin-top:6px;">'
+        + '<button id="' + CALENDAR_POPUP_ID + '-send" type="button" style="background:#4a9a7a20;border:1px solid #4a9a7a44;color:#4a9a7a;font-size:11px;padding:4px 12px;border-radius:4px;cursor:pointer;opacity:0.5;transition:all 0.2s;" disabled>Send</button>'
+        + '<span id="' + CALENDAR_POPUP_ID + '-status" style="font-size:10px;color:#8a8a9a;"></span>'
+        + '</div></div>';
+    }
+    popup.innerHTML = html;
+    popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + Math.max(rect.left - 100, 8) + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
+    document.body.appendChild(popup);
+    if (webhookUrl) {
+      const input = document.getElementById(CALENDAR_POPUP_ID + '-input');
+      const sendBtn = document.getElementById(CALENDAR_POPUP_ID + '-send');
+      const statusEl = document.getElementById(CALENDAR_POPUP_ID + '-status');
+      function validateInput() {
+        if (!input) return null;
+        const raw = input.value.trim();
+        if (!raw) return null;
+        try {
+          const parsed = JSON.parse(raw);
+          if (!Array.isArray(parsed)) return null;
+          for (const item of parsed) { if (typeof item.week !== 'string' || !Array.isArray(item.events)) return null; }
+          return raw;
+        } catch(e) { return null; }
+      }
+      if (input) {
+        input.addEventListener('input', () => {
+          const valid = validateInput();
+          if (sendBtn) { sendBtn.disabled = !valid; sendBtn.style.opacity = valid ? '0.9' : '0.5'; }
+          if (statusEl) { statusEl.textContent = input.value.trim() && !valid ? 'Invalid JSON schema' : ''; statusEl.style.color = '#c45c4c'; }
+        });
+      }
+      if (sendBtn) {
+        sendBtn.addEventListener('click', () => {
+          const body = validateInput();
+          if (!body) return;
+          sendBtn.disabled = true; sendBtn.style.opacity = '0.5';
+          if (statusEl) { statusEl.textContent = 'Sending…'; statusEl.style.color = '#8a8a9a'; }
+          GM_xmlhttpRequest({
+            method: 'POST', url: webhookUrl,
+            headers: { 'Content-Type': 'application/json' },
+            data: body,
+            onload: function(r) {
+              if (r.status >= 200 && r.status < 300) {
+                if (statusEl) { statusEl.textContent = '✓ Sent'; statusEl.style.color = '#4ade80'; }
+                if (input) input.value = '';
+                sendBtn.disabled = true; sendBtn.style.opacity = '0.5';
+              } else {
+                if (statusEl) { statusEl.textContent = '✗ HTTP ' + r.status; statusEl.style.color = '#f87171'; }
+                sendBtn.disabled = false; sendBtn.style.opacity = '0.9';
+              }
+            },
+            onerror: function() {
+              if (statusEl) { statusEl.textContent = '✗ Network error'; statusEl.style.color = '#f87171'; }
+              sendBtn.disabled = false; sendBtn.style.opacity = '0.9';
+            }
+          });
+        });
+      }
+    }
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    const escDismiss = (e) => { if (e.key === 'Escape') { popup.remove(); document.removeEventListener('click', dismiss); document.removeEventListener('keydown', escDismiss); } };
+    setTimeout(() => { document.addEventListener('click', dismiss); document.addEventListener('keydown', escDismiss); }, 0);
+  }
+
+  // =========================================================================
+  // VERSION INDICATOR — deployed vs registry version comparison (Account A)
+  // =========================================================================
+
+  function fetchVersionSummary() { doFetch(VERSION_URL, VERSION_KEY); }
+
+  function getVersionData() {
+    try { const r = localStorage.getItem(VERSION_KEY); return r ? JSON.parse(r) : null; } catch(e) { return null; }
+  }
+
+  function parseVersionFromCard() {
+    for (const el of document.querySelectorAll('div, span, h2, h3, p, button')) {
+      if (el.children.length > 0) continue;
+      if ((el.textContent || '').trim() !== 'Instructions') continue;
+      let card = el.parentElement;
+      while (card && card !== document.body && (card.textContent || '').length < 200) card = card.parentElement;
+      if (!card || card === document.body) continue;
+      const full = card.textContent || '';
+      const idx = full.indexOf('Instructions');
+      if (idx === -1) continue;
+      const header = full.substring(idx + 12, idx + 112).trim();
+      const m = header.match(/\|v(\d+\.\d+)\|/);
+      return m ? m[1] : null;
+    }
+    return null;
+  }
+
+  function refreshVersionIndicator(project) {
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    if (!container) return;
+    const fieldset = container.querySelector('fieldset');
+    if (!fieldset) return;
+    const vData = getVersionData();
+    let regId;
+    if (project.account === 'B') {
+      regId = 'b:' + project.id;
+    } else {
+      regId = (project.registryId && vData && vData.agents && project.registryId in vData.agents)
+        ? project.registryId : project.id;
+    }
+    if (!vData || !vData.agents || !vData.agents[regId]) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = '';
+      return;
+    }
+    const registryVersion = vData.agents[regId];
+    const cardVersion = parseVersionFromCard();
+    if (!cardVersion) {
+      if (project.account === 'B') {
+        fieldset.setAttribute('data-tm-version', 'mismatch');
+        fieldset.title = 'No |v...| token — registry: v' + registryVersion + '. Copy latest to update.';
+        return;
+      }
+      fieldset.setAttribute('data-tm-version', 'missing');
+      fieldset.title = 'No |v...| token in prompt \u2014 registry: v' + registryVersion;
+      return;
+    }
+    if (cardVersion === registryVersion) {
+      fieldset.removeAttribute('data-tm-version');
+      fieldset.title = 'v' + cardVersion + ' \u2014 current';
+      return;
+    }
+    fieldset.setAttribute('data-tm-version', 'mismatch');
+    fieldset.title = 'Version mismatch \u2014 deployed: v' + cardVersion + ', registry: v' + registryVersion;
+  }
+
+
+  // =========================================================================
+  // PROMPT CLIPBOARD COPY — fetch + copy agent prompt from GitHub
+  // =========================================================================
+
+  function showPromptToast(msg, ok) {
+    const tid = PROMPT_COPY_ID + '-toast';
+    const ex = document.getElementById(tid); if (ex) ex.remove();
+    const t = document.createElement('div');
+    t.id = tid; t.dataset.tmUi = '1'; t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:60px;left:50%;transform:translateX(-50%);background:' + (ok ? '#1a3a1a' : '#3a1a1a') + ';color:' + (ok ? '#4ade80' : '#f87171') + ';font-size:12px;padding:6px 14px;border-radius:6px;z-index:10001;pointer-events:none;opacity:0;transition:opacity 300ms;';
+    document.body.appendChild(t);
+    requestAnimationFrame(() => { t.style.opacity = '1'; });
+    setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 2500);
+  }
+
+  function copyPromptToClipboard(project) {
+    const pat = GM_getValue('github_pat', '');
+    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
+    let url;
+    if (project.account === 'B') {
+      url = B_PROMPT_BASE + project.id + '/project-instructions.md';
+    } else {
+      const vData = getVersionData();
+      const ecoId = (project.registryId && vData && vData.agents && project.registryId in vData.agents)
+        ? project.registryId : project.id;
+      url = AGENTS_RAW_BASE + ecoId + '/current-prompt.md';
+    }
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      headers: { 'Authorization': 'Bearer ' + pat },
+      onload: function(r) {
+        if (r.status !== 200) { showPromptToast('Fetch failed (' + r.status + ')', false); return; }
+        let text = r.responseText;
+        const fm = text.match(/^---\r?\n[\s\S]*?\r?\n---\r?\n/);
+        if (fm) text = text.substring(fm[0].length);
+        text = text.trim();
+        const hm = text.match(/^#\s/m);
+        if (hm && hm.index > 0) text = text.substring(hm.index);
+        navigator.clipboard.writeText(text).then(
+          () => showPromptToast('Copied to clipboard', true),
+          () => showPromptToast('Clipboard write failed', false)
+        );
+      },
+      onerror: function() { showPromptToast('Network error', false); }
+    });
+  }
+
+  function managePromptCopyButton(project) {
+    const stale = document.getElementById(PROMPT_COPY_ID);
+    if (stale && !stale.closest('[role="dialog"]')) stale.remove();
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog) return;
+    if (dialog.querySelector('#' + PROMPT_COPY_ID)) return;
+    let isInstr = false;
+    for (const el of dialog.querySelectorAll('h2, h3')) {
+      if (/set project instructions/i.test((el.textContent || '').trim())) { isInstr = true; break; }
+    }
+    if (!isInstr) return;
+    if (!project) {
+      const m = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
+      if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
+    }
+    if (!project) return;
+    const container = S.themedContainer || document.querySelector('[' + THEME_ATTR + ']');
+    const fs = container && container.querySelector('fieldset');
+    if (!fs || fs.getAttribute('data-tm-version') !== 'mismatch') return;
+    if (!GM_getValue('github_pat', '')) return;
+    let saveBtn = null;
+    for (const b of dialog.querySelectorAll('button')) {
+      if (/save instructions/i.test((b.textContent || '').trim())) { saveBtn = b; break; }
+    }
+    if (!saveBtn || !saveBtn.parentElement) return;
+    const footer = saveBtn.parentElement;
+    const btn = document.createElement('button');
+    btn.id = PROMPT_COPY_ID; btn.type = 'button';
+    btn.title = 'Copy latest prompt from GitHub';
+    btn.innerHTML = '<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg>';
+    btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;margin-right:auto;';
+    btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
+    btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });
+    btn.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); copyPromptToClipboard(project); });
+    footer.insertBefore(btn, footer.firstChild);
+  }
+
+  // managePersonaCopyButton is invoked by observer.js when dialogs change.
+  function copyPersonaToClipboard(project, filename) {
+    const pat = GM_getValue('github_pat', '');
+    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
+    const projectUrl = B_PROMPT_BASE + project.id + '/' + encodeURIComponent(filename);
+    const sharedUrl = B_SHARED_BASE + encodeURIComponent(filename);
+    fetchPersonaWithFallback(projectUrl, sharedUrl, pat, filename);
+  }
+
+  function fetchPersonaWithFallback(url, fallbackUrl, pat, filename) {
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: url,
+      headers: { 'Authorization': 'Bearer ' + pat },
+      onload: function(r) {
+        if (r.status === 200) {
+          const blob = new Blob([r.responseText], { type: 'text/markdown;charset=utf-8' });
+          const dl = URL.createObjectURL(blob);
+          const a = document.createElement('a'); a.href = dl; a.download = filename;
+          document.body.appendChild(a); a.click(); a.remove();
+          URL.revokeObjectURL(dl);
+          showPromptToast('Persona downloaded', true);
+        } else if (fallbackUrl) {
+          fetchPersonaWithFallback(fallbackUrl, null, pat, filename);
+        } else {
+          showPromptToast('Fetch failed (' + r.status + ')', false);
+        }
+      },
+      onerror: function() {
+        if (fallbackUrl) fetchPersonaWithFallback(fallbackUrl, null, pat, filename);
+        else showPromptToast('Network error', false);
+      }
+    });
+  }
+
+  function managePersonaCopyButton(project) {
+    if (S.ACCOUNT !== 'B') return;
+    const dialog = document.querySelector('[role="dialog"]');
+    if (!dialog) return;
+    if (dialog.querySelector('#' + PERSONA_COPY_ID)) return;
+    const h2 = dialog.querySelector('h2');
+    if (!h2) return;
+    const filename = h2.textContent.trim();
+    if (!/_Persona\.md$/i.test(filename)) return;
+    if (!project) {
+      const m = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
+      if (m) project = ALL_PROJECTS.find(p => p.projectId === m[1]);
+    }
+    if (!project) return;
+    if (!GM_getValue('github_pat', '')) return;
+    const nameWrap = h2.closest('div');
+    if (!nameWrap) return;
+    const headerRow = nameWrap.parentElement;
+    if (!headerRow) return;
+    const btn = document.createElement('button');
+    btn.id = PERSONA_COPY_ID; btn.type = 'button';
+    btn.title = 'Download latest persona from GitHub';
+    btn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="10" x2="12" y2="3"/></svg>';
+    btn.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;border:1px solid #c9a84c44;color:#c9a84c;background:none;border-radius:6px;cursor:pointer;opacity:0.6;transition:all 0.2s;';
+    btn.addEventListener('mouseenter', function() { this.style.opacity = '1'; this.style.borderColor = '#c9a84c88'; this.style.background = '#c9a84c15'; });
+    btn.addEventListener('mouseleave', function() { this.style.opacity = '0.6'; this.style.borderColor = '#c9a84c44'; this.style.background = 'none'; });
+    btn.addEventListener('click', function(e) { e.stopPropagation(); e.preventDefault(); copyPersonaToClipboard(project, filename); });
+    const closeBtn = headerRow.querySelector('button[aria-label="Close"]');
+    if (closeBtn) headerRow.insertBefore(btn, closeBtn);
+    else headerRow.appendChild(btn);
   }
 
   // =========================================================================
@@ -2589,7 +2542,7 @@
     const isVoiceChat = !!(project.voices && isChat);
 
     let bgCSS = '';
-    if (cfg.backgroundImage) bgCSS = `background-image:url("${vurl(cfg.backgroundImage)}");background-size:cover;background-position:center;background-repeat:no-repeat;`;
+    if (cfg.backgroundImage) bgCSS = `background-image:url("${cfg.backgroundImage}");background-size:cover;background-position:center;background-repeat:no-repeat;`;
     else if (project.chatBackground) bgCSS = `background:${project.chatBackground};`;
 
     const hasStaticChar = CHARACTERS_ENABLED && !!cfg.characterUrl && !isVoiceChat;
@@ -2682,7 +2635,7 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
     if (cfg.backgroundImage && project.chatBackground) {
       const img = new Image();
       img.onerror = () => { bgDiv.style.backgroundImage = 'none'; bgDiv.style.background = project.chatBackground; };
-      img.src = vurl(cfg.backgroundImage);
+      img.src = cfg.backgroundImage;
     }
     document.body.appendChild(bgDiv);
   }
@@ -2697,7 +2650,7 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
       d.appendChild(img);
     }
     const first = d.querySelector('img[data-layer="a"]');
-    first.src = vurl(cfg.characterUrl);
+    first.src = cfg.characterUrl;
     first.classList.add('is-active');
     document.body.appendChild(d);
   }
@@ -2783,7 +2736,6 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
     colorChatLinks();
     if (S.currentProject && S.currentMode && !S.currentProject.voices) colorInterjections(S.currentProject);
     if (window.location.pathname === '/projects' || window.location.pathname === '/cowork/projects') { styleProjectCardText(); applyProjectGrouping(); }
-    manageContextGrouping();
     tintCodeBlocks();
     styleOperatorBlocks();
     refreshLaneLegend();
@@ -2796,11 +2748,13 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
       const detected = detectAccountFromDOM();
       if (detected) adoptAccount(detected);
     }
-    ensureInboxFetch();
-    ensureReflectFetch();
-    ensureFailuresFetch();
-    ensureVersionFetch();
-    ensureBillingFetch();
+    fetchIfDue(INBOX_URL, INBOX_KEY, FETCH_MAX_AGE.inbox);
+    fetchIfDue(REFLECT_URL, REFLECT_KEY, FETCH_MAX_AGE.reflect);
+    fetchIfDue(FAILURES_URL, FAILURES_KEY, FETCH_MAX_AGE.failures);
+    fetchIfDue(VERSION_URL, VERSION_KEY, FETCH_MAX_AGE.version);
+    fetchIfDue(BILLING_URL, BILLING_KEY, FETCH_MAX_AGE.billing);
+    S.cycleMsgs = window.location.pathname.includes('/chat/') ? getMessageNodes(S.themedContainer || document) : [];
+    S.cycleSidePanelOpen = isSidePanelOpen();
     manageCardStyles();
     manageContextGrouping();
     injectFileModalActions();
@@ -2832,14 +2786,14 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
       for (const m of muts) {
         if (m.type !== 'childList') continue;
         if (m.target.closest?.('[data-tm-ui]')) continue;
-        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.id === STYLE_ID || n.id === CHARACTER_ID || n.id === BG_ID || n.id === CARD_STYLE_ID || n.id === CTX_STYLE_ID || n.id === VOICE_STYLE_ID || n.id === NAV_ID || n.id === UTILBAR_ID || n.id === TOPLINE_ID || n.id === ACTION_ALERT_ID || n.id === INBOX_POPUP_ID || n.id === REFLECT_POPUP_ID || n.id === FAILURES_POPUP_ID || n.id === BILLING_POPUP_ID || n.id === LEGEND_ID || n.id === PROMPT_COPY_ID || n.id === PERSONA_COPY_ID);
+        const dominated = [...m.addedNodes, ...m.removedNodes].every(n => n.nodeType === 1 && (n.dataset?.tmUi || n.id === STYLE_ID || n.id === BG_ID || n.id === VOICE_STYLE_ID || n.id === TOPLINE_ID));
         if (!dominated) { scheduleCheck(); return; }
       }
     }).observe(document.body, { childList: true, subtree: true });
 
-    const oPS = history.pushState; history.pushState = function() { oPS.apply(this, arguments); S.cycleWarned = false; setTimeout(check, 300); };
-    const oRS = history.replaceState; history.replaceState = function() { oRS.apply(this, arguments); S.cycleWarned = false; setTimeout(check, 300); };
-    window.addEventListener('popstate', () => { S.cycleWarned = false; setTimeout(check, 300); });
+    const oPS = history.pushState; history.pushState = function() { oPS.apply(this, arguments); S.cycleWarned = false; scheduleCheck(); };
+    const oRS = history.replaceState; history.replaceState = function() { oRS.apply(this, arguments); S.cycleWarned = false; scheduleCheck(); };
+    window.addEventListener('popstate', () => { S.cycleWarned = false; scheduleCheck(); });
     setInterval(check, 10000);
     setTimeout(check, 1000);
   }
@@ -2869,38 +2823,10 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
 
 
     document.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'visible') {
-        scheduleCheck();
-        const d = getInboxData();
-        if (!d || (Date.now() - (d._fetchedAt || 0)) > 300000) fetchInboxSummary();
-        const rd = getReflectData();
-        if (!rd || (Date.now() - (rd._fetchedAt || 0)) > 300000) fetchReflectionSummary();
-        const fd = getFailuresData();
-        if (!fd || (Date.now() - (fd._fetchedAt || 0)) > 300000) fetchFailuresSummary();
-        const vd = getVersionData();
-        if (!vd || (Date.now() - (vd._fetchedAt || 0)) > 300000) fetchVersionSummary();
-        const bd = getBillingData();
-        if (!bd || (Date.now() - (bd._fetchedAt || 0)) > 300000) fetchBillingSummary();
-      }
+      if (document.visibilityState === 'visible') scheduleCheck();
     });
 
 
-
-
-
-
-
-
-
-    // Periodic dashboard polling — supplements one-shot and visibility-change fetches
-    setInterval(() => {
-      if (document.hidden) return;
-      fetchInboxSummary();
-      fetchReflectionSummary();
-      fetchFailuresSummary();
-      fetchVersionSummary();
-      fetchBillingSummary();
-    }, 180000);
 
     initObserver();
 

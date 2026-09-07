@@ -123,8 +123,21 @@
       "due": 0,
       "informational": 0,
       "projects_total": 0,
-      "research_count": 0,
-      "research_items": []
+      "research_count": 3,
+      "research_items": [
+        {
+          "filename": "2026-09-07-interview-frameworks-pm-ai.md",
+          "title": "Interview frameworks pm ai"
+        },
+        {
+          "filename": "2026-09-07-market-intelligence-refresh.md",
+          "title": "Market intelligence refresh"
+        },
+        {
+          "filename": "2026-09-07-romanian-it-pm-market.md",
+          "title": "Romanian it pm market"
+        }
+      ]
     },
     "nabu": {
       "total": 1,
@@ -216,6 +229,6 @@
   "actionable": 24,
   "due": 2,
   "projects_total": 2,
-  "research_total": 7,
-  "updated_at": "2026-09-07T16:31:27Z"
+  "research_total": 10,
+  "updated_at": "2026-09-07T16:32:22Z"
 }

@@ -6,8 +6,13 @@
       "due": 0,
       "informational": 0,
       "projects_total": 1,
-      "research_count": 0,
-      "research_items": []
+      "research_count": 1,
+      "research_items": [
+        {
+          "filename": "2026-09-07-repo-as-organism.md",
+          "title": "Repo as organism"
+        }
+      ]
     },
     "adjutant": {
       "total": 2,
@@ -211,6 +216,6 @@
   "actionable": 24,
   "due": 2,
   "projects_total": 2,
-  "research_total": 6,
-  "updated_at": "2026-09-07T16:28:46Z"
+  "research_total": 7,
+  "updated_at": "2026-09-07T16:31:27Z"
 }

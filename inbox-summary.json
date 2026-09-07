@@ -163,8 +163,21 @@
       "due": 0,
       "informational": 0,
       "projects_total": 0,
-      "research_count": 0,
-      "research_items": []
+      "research_count": 3,
+      "research_items": [
+        {
+          "filename": "2026-09-07-heartbeat-monitoring.md",
+          "title": "Heartbeat monitoring"
+        },
+        {
+          "filename": "2026-09-07-task-portfolio-optimization.md",
+          "title": "Task portfolio optimization"
+        },
+        {
+          "filename": "2026-09-07-vadim-tudor-persona.md",
+          "title": "Vadim tudor persona"
+        }
+      ]
     },
     "vesper": {
       "total": 2,
@@ -198,6 +211,6 @@
   "actionable": 24,
   "due": 2,
   "projects_total": 2,
-  "research_total": 3,
-  "updated_at": "2026-09-07T16:26:14Z"
+  "research_total": 6,
+  "updated_at": "2026-09-07T16:28:46Z"
 }

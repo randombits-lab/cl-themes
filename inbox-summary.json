@@ -154,11 +154,15 @@
       "due": 0,
       "informational": 0,
       "projects_total": 1,
-      "research_count": 1,
+      "research_count": 2,
       "research_items": [
         {
           "filename": "2026-09-07-character-consistency-ai-generation.md",
           "title": "Character consistency ai generation"
+        },
+        {
+          "filename": "2026-09-07-reference-sheet-pipeline.md",
+          "title": "Reference sheet pipeline"
         }
       ]
     },
@@ -234,6 +238,6 @@
   "actionable": 24,
   "due": 2,
   "projects_total": 2,
-  "research_total": 11,
-  "updated_at": "2026-09-07T16:43:12Z"
+  "research_total": 12,
+  "updated_at": "2026-09-07T16:45:23Z"
 }

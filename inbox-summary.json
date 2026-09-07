@@ -77,10 +77,10 @@
       "research_items": []
     },
     "faith": {
-      "total": 4,
-      "actionable": 1,
+      "total": 0,
+      "actionable": 0,
       "due": 0,
-      "informational": 3,
+      "informational": 0,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
@@ -194,10 +194,10 @@
       "research_items": []
     }
   },
-  "total": 52,
-  "actionable": 23,
+  "total": 48,
+  "actionable": 22,
   "due": 2,
   "projects_total": 2,
   "research_total": 3,
-  "updated_at": "2026-09-07T13:47:02Z"
+  "updated_at": "2026-09-07T13:56:33Z"
 }

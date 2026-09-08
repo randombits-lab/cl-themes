@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.72.1
+// @version      6.73.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -11,6 +11,7 @@
 // @grant        GM_registerMenuCommand
 // @connect      raw.githubusercontent.com
 // @connect      powerplatform.com
+// @connect      api.github.com
 // @downloadURL  https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // @updateURL    https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
 // ==/UserScript==
@@ -19,7 +20,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.72.1';
+  const SCRIPT_VERSION = '6.73.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1810,11 +1811,14 @@
     for (const item of items) {
       const title = String(item.title || item.filename || '').replace(/[<>&"']/g, '');
       const fname = String(item.filename || '').replace(/[<>&"']/g, '');
-      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:8px;border-radius:3px;transition:background 0.15s;"><span style="color:#c8d8e8;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + fname + '">' + title + '</span><span class="tm-rsch-copy" data-agent="' + agentId + '" data-file="' + fname + '" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;cursor:pointer;opacity:0.5;transition:opacity 0.2s;border-radius:3px;flex-shrink:0;" title="Copy to clipboard"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg></span></div>';
+      html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:8px;border-radius:3px;transition:background 0.15s;"><span style="color:#c8d8e8;font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + fname + '">' + title + '</span><span class="tm-rsch-copy" data-agent="' + agentId + '" data-file="' + fname + '" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;cursor:pointer;opacity:0.5;transition:opacity 0.2s;border-radius:3px;flex-shrink:0;" title="Copy to clipboard"><svg viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.3"><rect x="5" y="5" width="9" height="9" rx="1.5"/><path d="M3 11V3a1.5 1.5 0 0 1 1.5-1.5H11"/></svg></span><span class="tm-rsch-del" data-agent="' + agentId + '" data-file="' + fname + '" style="display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;cursor:pointer;opacity:0.35;transition:opacity 0.2s;border-radius:3px;flex-shrink:0;color:#e0a0a0;" title="Delete from repo"><svg viewBox="0 0 16 16" width="11" height="11" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><line x1="4" y1="4" x2="12" y2="12"/><line x1="12" y1="4" x2="4" y2="12"/></svg></span></div>';
     }
     popup.innerHTML = '<style>#' + RESEARCH_POPUP_ID + ' .tm-rsch-copy:hover{opacity:1!important;background:#ffffff10}#' + RESEARCH_POPUP_ID + ' div:hover{background:#ffffff06}</style>' + html;
     popup.querySelectorAll('.tm-rsch-copy').forEach(btn => {
       btn.addEventListener('click', (e) => { e.stopPropagation(); copyResearchToClipboard(btn.dataset.agent, btn.dataset.file); });
+    });
+    popup.querySelectorAll('.tm-rsch-del').forEach(btn => {
+      btn.addEventListener('click', (e) => { e.stopPropagation(); deleteResearchFile(btn.dataset.agent, btn.dataset.file, btn.closest('div')); });
     });
     popup.style.cssText = 'position:fixed;bottom:' + (window.innerHeight - rect.top + 6) + 'px;left:' + rect.left + 'px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:200px;max-width:320px;box-shadow:0 4px 12px rgba(0,0,0,0.4);';
     document.body.appendChild(popup);
@@ -1839,6 +1843,39 @@
         );
       },
       onerror: function() { showPromptToast('Network error', false); }
+    });
+  }
+
+  function deleteResearchFile(agentId, filename, rowEl) {
+    const pat = GM_getValue('github_pat', '');
+    if (!pat) { showPromptToast('Set GitHub token first (Tampermonkey menu)', false); return; }
+    const path = 'inboxes/' + agentId + '/research/' + filename;
+    const apiUrl = 'https://api.github.com/repos/randombits-lab/agents-ecosystem/contents/' + path;
+    GM_xmlhttpRequest({
+      method: 'GET',
+      url: apiUrl,
+      headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json' },
+      onload: function(r) {
+        if (r.status !== 200) { showPromptToast('Failed to get file SHA (' + r.status + ')', false); return; }
+        let sha;
+        try { sha = JSON.parse(r.responseText).sha; } catch(e) { showPromptToast('Invalid API response', false); return; }
+        GM_xmlhttpRequest({
+          method: 'DELETE',
+          url: apiUrl,
+          headers: { 'Authorization': 'token ' + pat, 'Accept': 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
+          data: JSON.stringify({ message: '[chore] delete research prompt ' + filename, sha: sha }),
+          onload: function(dr) {
+            if (dr.status >= 200 && dr.status < 300) {
+              showPromptToast('Deleted ' + filename, true);
+              if (rowEl) rowEl.style.opacity = '0.3';
+            } else {
+              showPromptToast('Delete failed (' + dr.status + ')', false);
+            }
+          },
+          onerror: function() { showPromptToast('Network error on delete', false); }
+        });
+      },
+      onerror: function() { showPromptToast('Network error fetching SHA', false); }
     });
   }
 

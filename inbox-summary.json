@@ -190,13 +190,8 @@
       "due": 0,
       "informational": 0,
       "projects_total": 0,
-      "research_count": 1,
-      "research_items": [
-        {
-          "filename": "2026-09-07-vadim-tudor-persona.md",
-          "title": "Vadim tudor persona"
-        }
-      ]
+      "research_count": 0,
+      "research_items": []
     },
     "vesper": {
       "total": 2,
@@ -230,6 +225,6 @@
   "actionable": 23,
   "due": 2,
   "projects_total": 2,
-  "research_total": 10,
-  "updated_at": "2026-09-08T22:11:48Z"
+  "research_total": 9,
+  "updated_at": "2026-09-08T22:12:09Z"
 }

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.68.0
+// @version      6.69.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -19,7 +19,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.68.0';
+  const SCRIPT_VERSION = '6.69.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -526,7 +526,6 @@
   for (const p of PROJECTS) { if (!p.account) p.account = 'A'; }
   const ALL_PROJECTS = PROJECTS.slice();
   const ACCOUNT_TAB_KEY = 'claude-theme-account';
-  const ACCOUNT_PIN_KEY = 'account_pin';
   const ORG_B_RE = /ope\s*Logistics\s*S\.?\s*R\.?\s*L?\.?/i;
 
   function detectAccountFromDOM() {
@@ -547,18 +546,13 @@
   function initAccount() {
     if (S.ACCOUNT) return true;
     const tabVal = sessionStorage.getItem(ACCOUNT_TAB_KEY);
-    const pinVal = GM_getValue(ACCOUNT_PIN_KEY, null);
     if (tabVal === 'A' || tabVal === 'B') {
       S.ACCOUNT = tabVal; S.ACCOUNT_ASSUMED = false;
-    } else if (pinVal === 'A' || pinVal === 'B') {
-      S.ACCOUNT = pinVal; S.ACCOUNT_ASSUMED = false;
-      sessionStorage.setItem(ACCOUNT_TAB_KEY, pinVal);
     } else {
       const detected = detectAccountFromDOM();
       if (detected) {
         S.ACCOUNT = detected; S.ACCOUNT_ASSUMED = false;
         sessionStorage.setItem(ACCOUNT_TAB_KEY, detected);
-        GM_setValue(ACCOUNT_PIN_KEY, detected);
       } else {
         S.ACCOUNT = 'A'; S.ACCOUNT_ASSUMED = true;
       }
@@ -2590,7 +2584,6 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
     const changed = acc !== S.ACCOUNT;
     S.ACCOUNT = acc; S.ACCOUNT_ASSUMED = false;
     sessionStorage.setItem(ACCOUNT_TAB_KEY, acc);
-    GM_setValue(ACCOUNT_PIN_KEY, acc);
     if (changed) { selectAccountProjects(); cleanup(); document.getElementById(CARD_STYLE_ID)?.remove(); document.getElementById(CTX_STYLE_ID)?.remove(); }
     document.getElementById(NAV_ID)?.remove();
   }
@@ -2812,8 +2805,8 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
       GM_registerMenuCommand('Claude Themes: disable (reloads)', () => { GM_setValue('theme_disabled', true); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle sprites (reloads)', () => { GM_setValue('sprites_enabled', !GM_getValue('sprites_enabled', false)); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle reduced motion (reloads)', () => { GM_setValue('reduced_motion', !GM_getValue('reduced_motion', false)); location.reload(); });
-      GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || S.ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); GM_setValue('account_pin', next); location.reload(); });
-      GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = S.ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); GM_setValue('account_pin', cur); location.reload(); });
+      GM_registerMenuCommand('Claude Themes: switch account (reloads)', () => { const cur = sessionStorage.getItem('claude-theme-account') || S.ACCOUNT || 'A'; const next = cur === 'A' ? 'B' : 'A'; sessionStorage.setItem('claude-theme-account', next); location.reload(); });
+      GM_registerMenuCommand('Claude Themes: pin current account (reloads)', () => { const cur = S.ACCOUNT || sessionStorage.getItem('claude-theme-account') || 'A'; sessionStorage.setItem('claude-theme-account', cur); location.reload(); });
       GM_registerMenuCommand('Claude Themes: toggle action audio', () => { const v = !GM_getValue('action_audio', false); GM_setValue('action_audio', v); S.actionAudioEnabled = v; });
       GM_registerMenuCommand('Claude Themes: set GitHub token', () => { const cur = GM_getValue('github_pat', ''); const t = prompt('GitHub PAT (repo read)' + (cur ? ' [set]' : ' [not set]') + ':'); if (t !== null) GM_setValue('github_pat', t.trim()); });
       GM_registerMenuCommand('Claude Themes: set calendar webhook', () => { const cur = GM_getValue('calendar_webhook_url', ''); const u = prompt('Calendar webhook URL' + (cur ? ' [set]' : ' [not set]') + ':'); if (u !== null) GM_setValue('calendar_webhook_url', u.trim()); });

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.69.0
+// @version      6.70.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -19,7 +19,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.69.0';
+  const SCRIPT_VERSION = '6.70.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -51,6 +51,8 @@
   const RESEARCH_POPUP_ID = 'claude-theme-research-popup';
   const CALENDAR_POPUP_ID = 'claude-theme-calendar-popup';
   const CALENDAR_WEBHOOK_GM = 'calendar_webhook_url';
+  const TOOLS_MENU_ID = 'claude-theme-tools-menu';
+  const WORKSHOP_POPUP_ID = 'claude-theme-workshop-popup';
 
   // === Data attributes ===
   const THEME_ATTR   = 'data-claude-theme';
@@ -1920,6 +1922,106 @@
   }
 
   // =========================================================================
+  // TOOLS MENU — dropdown routing to tool-specific popups
+  // =========================================================================
+
+  function toggleToolsMenu(anchorEl) {
+    const existing = document.getElementById(TOOLS_MENU_ID);
+    if (existing) { existing.remove(); return; }
+    document.getElementById(CALENDAR_POPUP_ID)?.remove();
+    document.getElementById(WORKSHOP_POPUP_ID)?.remove();
+    const menu = document.createElement("div");
+    menu.id = TOOLS_MENU_ID;
+    menu.dataset.tmUi = "1";
+    const rect = anchorEl.getBoundingClientRect();
+    const items = [
+      { label: "Calendar Webhook", icon: '<svg viewBox="0 0 16 16" width="13" height="13"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="7" x2="14" y2="7" stroke="currentColor" stroke-width="1.1"/></svg>', fn: () => { menu.remove(); toggleCalendarPopup(anchorEl); } },
+      { label: "Workshop Agents", icon: '<svg viewBox="0 0 16 16" width="13" height="13"><path d="M3 17h18v3H3z" fill="currentColor" opacity="0.5" transform="scale(0.67)"/><path d="M5 13h14c1.1 0 2 .9 2 2v2H3v-2c0-1.1.9-2 2-2z" fill="currentColor" transform="scale(0.67)"/><path d="M7 9h10v4H7z" fill="currentColor" opacity="0.85" transform="scale(0.67)"/></svg>', fn: () => { menu.remove(); toggleWorkshopPopup(anchorEl); } },
+    ];
+    let html = "";
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      html += "<div class=" + String.fromCharCode(34) + "tm-tools-item" + String.fromCharCode(34) + " data-idx=" + String.fromCharCode(34) + i + String.fromCharCode(34) + " style=" + String.fromCharCode(34) + "display:flex;align-items:center;gap:8px;padding:6px 12px;cursor:pointer;border-radius:3px;transition:background 0.15s;color:#c8d8e8;font-size:12px;" + String.fromCharCode(34) + ">" + it.icon + "<span>" + it.label + "</span></div>";
+    }
+    menu.innerHTML = "<style>#" + TOOLS_MENU_ID + " .tm-tools-item:hover{background:#ffffff10}</style>" + html;
+    menu.querySelectorAll(".tm-tools-item").forEach(el => {
+      el.addEventListener("click", (e) => { e.stopPropagation(); items[parseInt(el.dataset.idx)].fn(); });
+    });
+    menu.style.cssText = "position:fixed;bottom:" + (window.innerHeight - rect.top + 6) + "px;left:" + rect.left + "px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:160px;padding:4px 0;box-shadow:0 4px 12px rgba(0,0,0,0.4);";
+    document.body.appendChild(menu);
+    const dismiss = (e) => { if (!menu.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { menu.remove(); document.removeEventListener("click", dismiss); document.removeEventListener("keydown", escD); } };
+    const escD = (e) => { if (e.key === "Escape") { menu.remove(); document.removeEventListener("click", dismiss); document.removeEventListener("keydown", escD); } };
+    setTimeout(() => { document.addEventListener("click", dismiss); document.addEventListener("keydown", escD); }, 0);
+  }
+
+  // =========================================================================
+  // WORKSHOP POPUP — agent version reference from registry.yaml
+  // =========================================================================
+
+  function parseWorkshopRegistry(text) {
+    const agents = [];
+    const lines = text.split("\n");
+    let inAgents = false, current = null;
+    for (const line of lines) {
+      if (line.startsWith("#") || line.trim() === "") continue;
+      if (/^agents:\s*$/.test(line)) { inAgents = true; continue; }
+      if (!inAgents) continue;
+      const am = line.match(/^  (\w[\w-]*):\s*$/);
+      if (am) { if (current) agents.push(current); current = { id: am[1] }; continue; }
+      if (current) { const kv = line.match(/^\s{4}(\w[\w_]*):\s*"?([^"\n]*)"?\s*$/); if (kv) current[kv[1]] = kv[2].trim(); }
+    }
+    if (current) agents.push(current);
+    return agents;
+  }
+
+  function renderWorkshopAgents(popup, agents) {
+    if (!agents.length) { popup.innerHTML = "<div style=" + String.fromCharCode(34) + "padding:8px 10px;font-size:11px;color:#c9a84c;" + String.fromCharCode(34) + ">No agents in registry</div>"; return; }
+    let html = "<div style=" + String.fromCharCode(34) + "font-size:10px;color:#c47832;padding:6px 10px 2px;opacity:0.7;letter-spacing:0.3px;text-transform:uppercase;" + String.fromCharCode(34) + ">Workshop Agents</div>";
+    for (const agent of agents) {
+      const name = agent.id.charAt(0).toUpperCase() + agent.id.slice(1);
+      const ver = agent.version || "?";
+      const upd = agent.updated || "";
+      const age = upd ? formatAge(new Date(upd + "T00:00:00Z")) : "";
+      const sid = agent.sferal_project_id || "";
+      const href = sid ? "https://app.sferal.ai/app/projects/chat/" + sid + "/settings?currentTab=prompt" : "";
+      const tag = href ? "a" : "div";
+      const la = href ? " href=" + String.fromCharCode(34) + href + String.fromCharCode(34) + " target=" + String.fromCharCode(34) + "_blank" + String.fromCharCode(34) : "";
+      html += "<" + tag + la + " style=" + String.fromCharCode(34) + "display:flex;justify-content:space-between;align-items:center;padding:4px 10px;gap:12px;text-decoration:none;border-radius:3px;transition:background 0.15s;" + (href ? "cursor:pointer;" : "") + String.fromCharCode(34) + "><span style=" + String.fromCharCode(34) + "color:#c47832;font-size:12px;" + String.fromCharCode(34) + ">" + name + "</span><span style=" + String.fromCharCode(34) + "display:flex;align-items:center;gap:8px;" + String.fromCharCode(34) + "><span style=" + String.fromCharCode(34) + "color:#8a8a9a;font-size:11px;font-variant-numeric:tabular-nums;" + String.fromCharCode(34) + ">v" + ver + "</span>" + (age ? "<span style=" + String.fromCharCode(34) + "color:#8a8a9a;font-size:10px;opacity:0.5;" + String.fromCharCode(34) + ">" + age + "</span>" : "") + "</span></" + tag + ">";
+    }
+    html += "<div style=" + String.fromCharCode(34) + "font-size:10px;color:#8a8a9a;opacity:0.3;padding:4px 10px 6px;border-top:1px solid #ffffff10;" + String.fromCharCode(34) + ">" + agents.length + " agents</div>";
+    popup.innerHTML = "<style>#" + WORKSHOP_POPUP_ID + " a:hover{background:#ffffff08}</style>" + html;
+  }
+
+  function toggleWorkshopPopup(anchorEl) {
+    const existing = document.getElementById(WORKSHOP_POPUP_ID);
+    if (existing) { existing.remove(); return; }
+    const pat = GM_getValue("github_pat", "");
+    if (!pat) { showPromptToast("Set GitHub token first (Tampermonkey menu)", false); return; }
+    const popup = document.createElement("div");
+    popup.id = WORKSHOP_POPUP_ID;
+    popup.dataset.tmUi = "1";
+    const rect = anchorEl.getBoundingClientRect();
+    popup.innerHTML = "<div style=" + String.fromCharCode(34) + "padding:8px 10px;font-size:11px;color:#8a8a9a;" + String.fromCharCode(34) + ">Loading" + String.fromCharCode(8230) + "</div>";
+    popup.style.cssText = "position:fixed;bottom:" + (window.innerHeight - rect.top + 6) + "px;left:" + Math.max(rect.left - 60, 8) + "px;z-index:10000;background:#1a1a1a;border:1px solid #ffffff15;border-radius:6px;min-width:220px;box-shadow:0 4px 12px rgba(0,0,0,0.4);";
+    document.body.appendChild(popup);
+    GM_xmlhttpRequest({
+      method: "GET",
+      url: AGENTS_RAW_BASE + "workshop/agents/registry.yaml",
+      headers: { "Authorization": "Bearer " + pat },
+      onload: function(r) {
+        if (r.status !== 200) { popup.innerHTML = "<div style=" + String.fromCharCode(34) + "padding:8px 10px;font-size:11px;color:#f87171;" + String.fromCharCode(34) + ">Fetch failed (" + r.status + ")</div>"; return; }
+        const agents = parseWorkshopRegistry(r.responseText);
+        if (!agents.length) { popup.innerHTML = "<div style=" + String.fromCharCode(34) + "padding:8px 10px;font-size:11px;color:#c9a84c;" + String.fromCharCode(34) + ">Invalid registry format</div>"; return; }
+        renderWorkshopAgents(popup, agents);
+      },
+      onerror: function() { popup.innerHTML = "<div style=" + String.fromCharCode(34) + "padding:8px 10px;font-size:11px;color:#f87171;" + String.fromCharCode(34) + ">Network error</div>"; }
+    });
+    const dismiss = (e) => { if (!popup.contains(e.target) && e.target !== anchorEl && !anchorEl.contains(e.target)) { popup.remove(); document.removeEventListener("click", dismiss); document.removeEventListener("keydown", escD); } };
+    const escD = (e) => { if (e.key === "Escape") { popup.remove(); document.removeEventListener("click", dismiss); document.removeEventListener("keydown", escD); } };
+    setTimeout(() => { document.addEventListener("click", dismiss); document.addEventListener("keydown", escD); }, 0);
+  }
+
+  // =========================================================================
   // VERSION INDICATOR — deployed vs registry version comparison (Account A)
   // =========================================================================
 
@@ -2345,13 +2447,13 @@
       failuresBadge.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M8 2L1.5 13h13L8 2z" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="8" y1="6.5" x2="8" y2="9.5" stroke="currentColor" stroke-width="1.4"/><circle cx="8" cy="11" r="0.7" fill="currentColor"/></svg><span style="font-size:10px;color:#8a8a9a;font-variant-numeric:tabular-nums;min-width:8px;text-align:center;"></span>';
       failuresBadge.addEventListener('click', (e) => { e.stopPropagation(); toggleFailuresPopup(failuresBadge); });
       bar.appendChild(failuresBadge);
-      const calendarBtn = document.createElement('span');
-      calendarBtn.id = UTILBAR_ID + '-calendar';
-      calendarBtn.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.3;';
-      calendarBtn.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><rect x="2" y="3" width="12" height="11" rx="1.5" stroke="currentColor" fill="none" stroke-width="1.3"/><line x1="5" y1="1.5" x2="5" y2="4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="11" y1="1.5" x2="11" y2="4.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/><line x1="2" y1="7" x2="14" y2="7" stroke="currentColor" stroke-width="1.1"/></svg>';
-      calendarBtn.title = 'Calendar webhook';
-      calendarBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleCalendarPopup(calendarBtn); });
-      bar.appendChild(calendarBtn);
+      const toolsBtn = document.createElement('span');
+      toolsBtn.id = UTILBAR_ID + '-tools';
+      toolsBtn.style.cssText = 'display:inline-flex;align-items:center;gap:3px;cursor:pointer;padding:1px 6px;border-radius:3px;transition:opacity 0.2s;opacity:0.4;';
+      toolsBtn.innerHTML = '<svg viewBox="0 0 16 16" width="13" height="13" style="color:#8a8a9a;"><path d="M13.5 4.3a4 4 0 0 1-5.6 5L4.2 13a1.5 1.5 0 0 1-2.1-2.2l3.7-3.7A4 4 0 0 1 10.8 2l-2.2 2.2 1.5 1.5L12.3 3.5a4 4 0 0 1 1.2.8z" stroke="currentColor" fill="none" stroke-width="1.2" stroke-linejoin="round"/></svg>';
+      toolsBtn.title = 'Tools';
+      toolsBtn.addEventListener('click', (e) => { e.stopPropagation(); toggleToolsMenu(toolsBtn); });
+      bar.appendChild(toolsBtn);
       const refreshBtn = document.createElement('span');
       refreshBtn.id = UTILBAR_ID + '-refresh';
       refreshBtn.dataset.tmUi = '1';
@@ -2480,13 +2582,9 @@
       }
     }
 
-    const calendarEl = document.getElementById(UTILBAR_ID + '-calendar');
-    if (calendarEl) {
-      const hasUrl = !!GM_getValue(CALENDAR_WEBHOOK_GM, '');
-      const cSvg = calendarEl.querySelector('svg');
-      calendarEl.style.opacity = hasUrl ? '0.5' : '0.3';
-      if (cSvg) cSvg.style.color = hasUrl ? '#4a9a7a' : '#8a8a9a';
-      calendarEl.title = hasUrl ? 'Calendar webhook' : 'Calendar webhook (no URL configured)';
+    const toolsEl = document.getElementById(UTILBAR_ID + '-tools');
+    if (toolsEl) {
+      toolsEl.style.opacity = '0.4';
     }
 
     const billingEl = document.getElementById(UTILBAR_ID + '-billing');
@@ -2516,7 +2614,7 @@
     }
   }
 
-  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(BILLING_POPUP_ID)?.remove(); document.getElementById(RESEARCH_POPUP_ID)?.remove(); document.getElementById(CALENDAR_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
+  function destroyUtilBar() { document.getElementById(UTILBAR_ID)?.remove(); document.getElementById(INBOX_POPUP_ID)?.remove(); document.getElementById(REFLECT_POPUP_ID)?.remove(); document.getElementById(FAILURES_POPUP_ID)?.remove(); document.getElementById(BILLING_POPUP_ID)?.remove(); document.getElementById(RESEARCH_POPUP_ID)?.remove(); document.getElementById(CALENDAR_POPUP_ID)?.remove(); document.getElementById(TOOLS_MENU_ID)?.remove(); document.getElementById(WORKSHOP_POPUP_ID)?.remove(); document.getElementById(ACTION_ALERT_ID)?.remove(); document.getElementById(UTILBAR_ID + '-disc')?.remove(); const discHide = document.querySelector('[data-tm-disc-hide]'); if (discHide) discHide.removeAttribute('data-tm-disc-hide'); S.dstrip = null; }
 
   function updateHealthBeacon() {
     const ver = document.querySelector('#' + NAV_ID + ' span');

@@ -243,19 +243,19 @@
       "research_items": []
     },
     "workshop": {
-      "total": 6,
-      "actionable": 5,
+      "total": 4,
+      "actionable": 4,
       "due": 0,
-      "informational": 1,
+      "informational": 0,
       "projects_total": 0,
       "research_count": 0,
       "research_items": []
     }
   },
-  "total": 49,
-  "actionable": 22,
+  "total": 47,
+  "actionable": 21,
   "due": 2,
   "projects_total": 2,
   "research_total": 16,
-  "updated_at": "2026-09-08T12:10:26Z"
+  "updated_at": "2026-09-08T12:10:41Z"
 }

@@ -140,8 +140,8 @@
       ]
     },
     "nabu": {
-      "total": 1,
-      "actionable": 1,
+      "total": 0,
+      "actionable": 0,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -221,10 +221,10 @@
       "research_items": []
     }
   },
-  "total": 49,
-  "actionable": 22,
+  "total": 48,
+  "actionable": 21,
   "due": 2,
   "projects_total": 2,
   "research_total": 9,
-  "updated_at": "2026-09-08T22:32:21Z"
+  "updated_at": "2026-09-08T23:01:46Z"
 }

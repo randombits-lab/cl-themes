@@ -47,12 +47,8 @@
       "due": 1,
       "informational": 2,
       "projects_total": 0,
-      "research_count": 2,
+      "research_count": 1,
       "research_items": [
-        {
-          "filename": "2026-08-22-pre-commitment-devices.md",
-          "title": "Pre-commitment devices and accountability enforcement"
-        },
         {
           "filename": "2026-08-22-sdt-tracking-systems.md",
           "title": "Self-determination theory versus external tracking systems"
@@ -252,6 +248,6 @@
   "actionable": 23,
   "due": 2,
   "projects_total": 2,
-  "research_total": 15,
-  "updated_at": "2026-09-08T22:10:03Z"
+  "research_total": 14,
+  "updated_at": "2026-09-08T22:10:23Z"
 }

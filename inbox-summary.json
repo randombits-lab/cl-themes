@@ -47,12 +47,8 @@
       "due": 1,
       "informational": 2,
       "projects_total": 0,
-      "research_count": 3,
+      "research_count": 2,
       "research_items": [
-        {
-          "filename": "2026-08-22-jitai-smartphone.md",
-          "title": "Just-in-time adaptive interventions via smartphone"
-        },
         {
           "filename": "2026-08-22-pre-commitment-devices.md",
           "title": "Pre-commitment devices and accountability enforcement"
@@ -167,8 +163,8 @@
       "research_items": []
     },
     "prism": {
-      "total": 0,
-      "actionable": 0,
+      "total": 1,
+      "actionable": 1,
       "due": 0,
       "informational": 0,
       "projects_total": 1,
@@ -252,10 +248,10 @@
       "research_items": []
     }
   },
-  "total": 49,
-  "actionable": 22,
+  "total": 50,
+  "actionable": 23,
   "due": 2,
   "projects_total": 2,
-  "research_total": 16,
-  "updated_at": "2026-09-08T21:15:44Z"
+  "research_total": 15,
+  "updated_at": "2026-09-08T22:10:03Z"
 }

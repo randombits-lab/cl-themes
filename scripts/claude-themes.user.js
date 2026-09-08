@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.71.0
+// @version      6.72.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -19,7 +19,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.71.0';
+  const SCRIPT_VERSION = '6.72.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1008,7 +1008,7 @@
         if (p.card.imageUrl) {
           css += `${sel}{background:url("${p.card.imageUrl}") center/cover no-repeat !important;border:1px solid ${mix(p.accentColor, 25)} !important;position:relative !important;overflow:hidden !important;}`;
           css += `${sel}::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.35) 40%,rgba(0,0,0,.45) 65%,rgba(0,0,0,.78) 100%);pointer-events:none;border-radius:inherit;z-index:0;}`;
-          css += `${sel}>*{position:relative !important;z-index:1 !important;}`;
+          css += `${sel}>*{position:relative !important;z-index:1 !important;background-color:transparent !important;}`;
         } else { css += `${sel}{border:1px solid ${mix(p.accentColor, 20)} !important;}`; }
       }
       for (const g of PROJECT_GROUPS) { for (let gi = 0; gi < g.members.length; gi++) { const gp = PROJECTS.find(pp => pp.id === g.members[gi]); if (gp && gp.projectId) css += 'ul.grid>li:has(a[href*="/project/' + gp.projectId + '"]){order:' + (g.order + gi) + '}'; } }

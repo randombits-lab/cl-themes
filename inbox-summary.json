@@ -86,8 +86,8 @@
       ]
     },
     "factory": {
-      "total": 7,
-      "actionable": 1,
+      "total": 6,
+      "actionable": 0,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -203,8 +203,8 @@
       "research_items": []
     },
     "vadim": {
-      "total": 1,
-      "actionable": 1,
+      "total": 2,
+      "actionable": 2,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -257,5 +257,5 @@
   "due": 2,
   "projects_total": 2,
   "research_total": 16,
-  "updated_at": "2026-09-08T07:59:53Z"
+  "updated_at": "2026-09-08T08:41:42Z"
 }

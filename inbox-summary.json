@@ -190,12 +190,8 @@
       "due": 0,
       "informational": 0,
       "projects_total": 0,
-      "research_count": 3,
+      "research_count": 2,
       "research_items": [
-        {
-          "filename": "2026-09-07-heartbeat-monitoring.md",
-          "title": "Heartbeat monitoring"
-        },
         {
           "filename": "2026-09-07-task-portfolio-optimization.md",
           "title": "Task portfolio optimization"
@@ -238,6 +234,6 @@
   "actionable": 23,
   "due": 2,
   "projects_total": 2,
-  "research_total": 12,
-  "updated_at": "2026-09-08T22:11:03Z"
+  "research_total": 11,
+  "updated_at": "2026-09-08T22:11:24Z"
 }

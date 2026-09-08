@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.70.0
+// @version      6.71.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -19,7 +19,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.70.0';
+  const SCRIPT_VERSION = '6.71.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -2089,6 +2089,71 @@
 
 
   // =========================================================================
+  // PERSONA CARD OVERLAY — copy persona content from GitHub on homepage cards
+  // =========================================================================
+
+  function copyPersonaFromGitHub(filename) {
+    const pat = GM_getValue("github_pat", "");
+    if (!pat) { showPromptToast("Set GitHub token first (Tampermonkey menu)", false); return; }
+    const urlMatch = window.location.pathname.match(/\/project\/([a-f0-9-]+)/);
+    if (!urlMatch) return;
+    const projectUuid = urlMatch[1];
+    const project = ALL_PROJECTS.find(p => p.projectId === projectUuid);
+    const projectUrl = project ? B_PROMPT_BASE + project.id + "/" + filename : null;
+    const sharedUrl = B_SHARED_BASE + filename;
+    function tryFetch(url, fallbackUrl) {
+      GM_xmlhttpRequest({
+        method: "GET", url: url,
+        headers: { "Authorization": "Bearer " + pat },
+        onload: function(r) {
+          if (r.status === 200) {
+            navigator.clipboard.writeText(r.responseText).then(
+              () => showPromptToast("Persona copied (" + filename + ")", true),
+              () => showPromptToast("Clipboard write failed", false)
+            );
+          } else if (fallbackUrl) { tryFetch(fallbackUrl, null); }
+          else { showPromptToast("Persona not found in repo (" + r.status + ")", false); }
+        },
+        onerror: function() {
+          if (fallbackUrl) tryFetch(fallbackUrl, null);
+          else showPromptToast("Network error", false);
+        }
+      });
+    }
+    tryFetch(projectUrl || sharedUrl, projectUrl ? sharedUrl : null);
+  }
+
+  function managePersonaCardOverlays() {
+    if (S.ACCOUNT !== "B") return;
+    if (!window.location.pathname.includes("/project/")) return;
+    const thumbnails = document.querySelectorAll('[data-testid="file-thumbnail"]');
+    thumbnails.forEach(thumb => {
+      if (thumb.hasAttribute("data-tm-persona-overlay")) return;
+      const h3 = thumb.querySelector("h3");
+      if (!h3) return;
+      const filename = h3.textContent.trim();
+      if (!/_Persona/i.test(filename)) return;
+      thumb.setAttribute("data-tm-persona-overlay", "1");
+      const posParent = thumb.parentElement;
+      if (!posParent) return;
+      const btn = document.createElement("div");
+      btn.dataset.tmUi = "1";
+      btn.style.cssText = "position:absolute;top:4px;right:4px;z-index:5;width:22px;height:22px;display:flex;align-items:center;justify-content:center;border-radius:4px;background:rgba(0,0,0,0.6);cursor:pointer;opacity:0;transition:opacity 0.2s;";
+      btn.innerHTML = '<svg viewBox="0 0 16 16" width="12" height="12" style="color:#c8d8e8;"><path d="M4.5 2A1.5 1.5 0 003 3.5v7A1.5 1.5 0 004.5 12H5v1.5A1.5 1.5 0 006.5 15h5a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0011.5 5H11V3.5A1.5 1.5 0 009.5 2h-5zM11 5H6.5A1.5 1.5 0 005 6.5V12h-.5a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5h5a.5.5 0 01.5.5V5zm-4.5 2h5a.5.5 0 01.5.5v5a.5.5 0 01-.5.5h-5a.5.5 0 01-.5-.5v-5a.5.5 0 01.5-.5z" fill="currentColor"/></svg>';
+      btn.title = "Copy persona from GitHub";
+      posParent.addEventListener("mouseenter", () => { btn.style.opacity = "0.8"; });
+      posParent.addEventListener("mouseleave", () => { btn.style.opacity = "0"; });
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        copyPersonaFromGitHub(filename);
+      });
+      posParent.appendChild(btn);
+    });
+  }
+
+
+  // =========================================================================
   // PROMPT CLIPBOARD COPY — fetch + copy agent prompt from GitHub
   // =========================================================================
 
@@ -2862,6 +2927,7 @@ ${!isChat && project.account !== 'B' ? `      [${THEME_ATTR}] fieldset[data-tm-v
     if (S.currentMode === 'homepage' && S.currentProject) refreshVersionIndicator(S.currentProject);
     managePromptCopyButton(S.currentProject);
     managePersonaCopyButton(S.currentProject);
+    managePersonaCardOverlays();
     if (window.location.pathname.includes('/chat/')) { refreshUtilBar(); checkActionRequired(); } else destroyUtilBar();
     if (!slowCycleTimer) { slowCycleTimer = setTimeout(() => { slowCycleTimer = null; slowCycle(); }, 2000); }
   }

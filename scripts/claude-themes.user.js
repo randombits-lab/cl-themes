@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.72.0
+// @version      6.72.1
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -19,7 +19,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.72.0';
+  const SCRIPT_VERSION = '6.72.1';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -1004,7 +1004,7 @@
       let css = '';
       for (const p of PROJECTS) {
         if (!p.projectId || !p.card) continue;
-        const sel = `a[href*="/project/${p.projectId}"]`;
+        const sel = `li:has(a[href*="/project/${p.projectId}"]) > div`;
         if (p.card.imageUrl) {
           css += `${sel}{background:url("${p.card.imageUrl}") center/cover no-repeat !important;border:1px solid ${mix(p.accentColor, 25)} !important;position:relative !important;overflow:hidden !important;}`;
           css += `${sel}::after{content:'';position:absolute;inset:0;background:linear-gradient(180deg,rgba(0,0,0,.72) 0%,rgba(0,0,0,.35) 40%,rgba(0,0,0,.45) 65%,rgba(0,0,0,.78) 100%);pointer-events:none;border-radius:inherit;z-index:0;}`;
@@ -1024,8 +1024,10 @@
   function styleProjectCardText() {
     for (const p of PROJECTS) {
       if (!p.projectId || !p.card) continue;
-      const cards = document.querySelectorAll(`a[href*="/project/${p.projectId}"]`);
-      for (const card of cards) {
+      const links = document.querySelectorAll(`a[href*="/project/${p.projectId}"]`);
+      for (const link of links) {
+        const card = link.closest('li')?.querySelector(':scope > div');
+        if (!card) continue;
         const allEls = card.querySelectorAll('*');
         let titleFound = false;
         for (const el of allEls) {

@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.73.0
+// @version      6.74.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -20,7 +20,7 @@
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.73.0';
+  const SCRIPT_VERSION = '6.74.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';
@@ -68,14 +68,15 @@
   const VERSION_KEY = 'claude-theme-versions';
 
   // === Remote data URLs ===
-  const INBOX_URL   = BASE + 'inbox-summary.json';
-  const REFLECT_URL = BASE + 'reflection-summary.json';
-  const FAILURES_URL = BASE + 'failures-summary.json';
-  const BILLING_URL = BASE + 'billing-summary.json';
+  const SUMMARIES_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/tools/tampermonkey/summaries/';
+  const INBOX_URL   = SUMMARIES_BASE + 'inbox-summary.json';
+  const REFLECT_URL = SUMMARIES_BASE + 'reflection-summary.json';
+  const FAILURES_URL = SUMMARIES_BASE + 'failures-summary.json';
+  const BILLING_URL = SUMMARIES_BASE + 'billing-summary.json';
   const ACTIONS_MINUTES_QUOTA = 3000; // GitHub Actions included minutes per month; 0 disables quota coloring
   const BILLING_STALE_MS = 108000000; // 30h: daily 04:45 UTC billing pipeline plus slack
   const FETCH_MAX_AGE = { inbox: 300, reflect: 300, failures: 300, version: 900, billing: 3600 };
-  const VERSION_URL = BASE + 'version-summary.json';
+  const VERSION_URL = SUMMARIES_BASE + 'version-summary.json';
   const AGENTS_RAW_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/agents/';
   const B_PROMPT_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/projects/';
   const B_SHARED_BASE = 'https://raw.githubusercontent.com/randombits-lab/agents-ecosystem/main/contexts/klg/personas/shared/';
@@ -1519,8 +1520,10 @@
 
   function doFetch(url, key) {
     const etag = localStorage.getItem(key + ':etag') || '';
+    const pat = GM_getValue('github_pat', '');
     const headers = {};
     if (etag) headers['If-None-Match'] = etag;
+    if (pat) headers['Authorization'] = 'Bearer ' + pat;
     GM_xmlhttpRequest({
       method: 'GET',
       url: url,

@@ -1,8 +1,8 @@
 {
   "agents": {
     "abathur": {
-      "total": 2,
-      "actionable": 0,
+      "total": 3,
+      "actionable": 1,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -158,10 +158,10 @@
       "research_items": []
     },
     "prism": {
-      "total": 1,
+      "total": 0,
       "actionable": 0,
       "due": 0,
-      "informational": 1,
+      "informational": 0,
       "projects_total": 1,
       "research_count": 2,
       "research_items": [
@@ -231,9 +231,9 @@
     }
   },
   "total": 49,
-  "actionable": 23,
+  "actionable": 24,
   "due": 2,
   "projects_total": 1,
   "research_total": 11,
-  "updated_at": "2026-09-09T14:43:54Z"
+  "updated_at": "2026-09-09T18:03:14Z"
 }

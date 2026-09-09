@@ -1,8 +1,8 @@
 {
   "agents": {
     "abathur": {
-      "total": 3,
-      "actionable": 0,
+      "total": 4,
+      "actionable": 1,
       "due": 0,
       "informational": 1,
       "projects_total": 0,
@@ -24,8 +24,8 @@
       "research_items": []
     },
     "alfred": {
-      "total": 4,
-      "actionable": 4,
+      "total": 5,
+      "actionable": 5,
       "due": 0,
       "informational": 0,
       "projects_total": 0,
@@ -230,10 +230,10 @@
       "research_items": []
     }
   },
-  "total": 48,
-  "actionable": 22,
+  "total": 50,
+  "actionable": 24,
   "due": 2,
   "projects_total": 1,
   "research_total": 11,
-  "updated_at": "2026-09-09T14:14:54Z"
+  "updated_at": "2026-09-09T14:24:36Z"
 }

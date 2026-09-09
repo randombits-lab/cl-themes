@@ -180,10 +180,10 @@
       "research_items": []
     },
     "prism": {
-      "total": 3,
-      "actionable": 1,
+      "total": 0,
+      "actionable": 0,
       "due": 0,
-      "informational": 2,
+      "informational": 0,
       "projects_total": 1,
       "research_count": 2,
       "research_items": [
@@ -261,10 +261,10 @@
       "research_items": []
     }
   },
-  "total": 54,
-  "actionable": 26,
+  "total": 51,
+  "actionable": 25,
   "due": 2,
   "projects_total": 1,
   "research_total": 18,
-  "updated_at": "2026-09-09T20:05:10Z"
+  "updated_at": "2026-09-09T20:08:22Z"
 }

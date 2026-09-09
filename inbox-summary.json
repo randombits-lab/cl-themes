@@ -78,8 +78,17 @@
       "due": 0,
       "informational": 0,
       "projects_total": 0,
-      "research_count": 0,
-      "research_items": []
+      "research_count": 2,
+      "research_items": [
+        {
+          "filename": "2026-09-09-financial-discipline-agent.md",
+          "title": "Financial discipline agent"
+        },
+        {
+          "filename": "2026-09-09-physical-optimization-agent.md",
+          "title": "Physical optimization agent"
+        }
+      ]
     },
     "faith": {
       "total": 0,
@@ -225,6 +234,6 @@
   "actionable": 22,
   "due": 2,
   "projects_total": 1,
-  "research_total": 9,
-  "updated_at": "2026-09-09T09:48:05Z"
+  "research_total": 11,
+  "updated_at": "2026-09-09T11:39:41Z"
 }

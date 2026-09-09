@@ -1,10 +1,10 @@
 {
   "agents": {
     "abathur": {
-      "total": 4,
-      "actionable": 1,
+      "total": 2,
+      "actionable": 0,
       "due": 0,
-      "informational": 1,
+      "informational": 0,
       "projects_total": 0,
       "research_count": 1,
       "research_items": [
@@ -230,10 +230,10 @@
       "research_items": []
     }
   },
-  "total": 50,
-  "actionable": 24,
+  "total": 48,
+  "actionable": 23,
   "due": 2,
   "projects_total": 1,
   "research_total": 11,
-  "updated_at": "2026-09-09T14:24:36Z"
+  "updated_at": "2026-09-09T14:39:01Z"
 }
